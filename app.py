@@ -136,11 +136,10 @@ date_slicer_update()
 def update_data_plot():
     global data
     newdata = new_market_data(data)
+    print('新数据', newdata.data)
     data.update(newdata)
     ohlcitems.set_data(data)
-    print(type(ohlcitems))
     for w in ma_items_dict:
-        print(type(ma_items_dict[w]))
         ma_items_dict[w].setData(data.timeindex, getattr(i_ma, w))
 
     pos_index = i_macd.to_df().macd >= 0
