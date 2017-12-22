@@ -29,6 +29,7 @@ class macd(indicator_base):
     def __call__(self, ohlc):
         self.ohlc = ohlc
         self.calc()
+        return self
 
     def update(self, new_data):
             self.ohlc = new_data
@@ -76,6 +77,7 @@ class ma(indicator_base):
     def __call__(self, ohlc):
         self.ohlc = ohlc
         self.calc()
+        return self
 
     def __str__(self):
         return f'<MA>----'+','.join(['ma' + str(w) for w in self._windows])

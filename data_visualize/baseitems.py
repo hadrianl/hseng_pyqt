@@ -29,14 +29,14 @@ class CandlestickItem(pg.GraphicsObject):
         ## rather than re-drawing the shapes every time.
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
-        p.setPen(pg.mkPen('w'))
+        p.setPen(pg.mkPen('w', width=0.4))
         w = 0.4
         for (i, t, open, high, low, close) in self.data.itertuples():
             p.drawLine(QtCore.QPointF(i, low), QtCore.QPointF(i, high))
             if open > close:
-                p.setBrush(pg.mkBrush('r'))
-            else:
                 p.setBrush(pg.mkBrush('g'))
+            else:
+                p.setBrush(pg.mkBrush('r'))
             p.drawRect(QtCore.QRectF(i-w, open, w*2, close-open))
         p.end()
 
@@ -61,8 +61,12 @@ class DateAxis(pg.AxisItem):
 
     def tickStrings(self, values, scale, spacing):
         strns = []
-        timestamp = self._timestamp_mapping.loc[values]
-        rng = max(timestamp)-min(timestamp)
+        try:
+            timestamp = self._timestamp_mapping.loc[values]
+            rng = max(timestamp)-min(timestamp)
+        except Exception as e:
+            timestamp = []
+            rng =0
         #if rng < 120:
         #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
         if rng < 3600*24:
