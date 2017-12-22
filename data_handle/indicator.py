@@ -15,25 +15,32 @@ import pandas as pd
 
 class indicator_base():
     def __init__(self, name, **kwargs):
-        self._name = name
+        self.name = name
         for k, v in kwargs.items():
             setattr(self, '_' + k, v)
 
 class macd(indicator_base):
-    def __init__(self, marketdata, short=12, long=26, m=9):
-        self._short = short
-        self._long = long
-        self._m = m
-        self._sourcedata = marketdata.data
-        # self._diff, self._dea, self._macd = MACD(self._sourcedata.close.values, self._short, self._long, self._m)
-        self._diff = self._sourcedata.close.ewm(self._short).mean() - self._sourcedata.close.ewm(self._long).mean()
-        self._dea = self._diff.ewm(self._m).mean()
-        self._macd = (self._diff - self._dea)*2
-        self._timestamp = marketdata.timestamp
-        self._timeindex = marketdata.timeindex
+    def __init__(self, short=12, long=26, m=9):
+        super(macd, self).__init__('MACD', short=short, long=long, m=m)
 
     def __str__(self):
         return f'<MACD>----SHORT:{self._short} LONG:{self._long} SIGNAL:{self._m}'
+
+    def __call__(self, ohlc):
+        self.ohlc = ohlc
+        self.calc()
+
+    def update(self, new_data):
+            self.ohlc = new_data
+            self.calc()
+
+    def calc(self):
+        close = self.ohlc.close
+        self._diff = close.ewm(self._short).mean() - close.ewm(self._long).mean()
+        self._dea = self._diff.ewm(self._m).mean()
+        self._macd = (self._diff - self._dea) * 2
+        self._timestamp = self.ohlc.timestamp
+        self._timeindex = self.ohlc.timeindex
 
     @property
     def diff(self):
@@ -59,23 +66,35 @@ class macd(indicator_base):
         return pd.concat([self.timestamp, self.diff, self.dea, self.macd], axis=1)
 
 
-class ma():
-    def __init__(self,marketdata, *windows):
-        self._close = marketdata.close
-        self._timestamp = marketdata.timestamp
-        self._timeindex = marketdata.timeindex
-        self._windows = windows
-        for w in self._windows:
-            self.__dict__['ma' + str(w)] = self._close.rolling(w).mean().rename('ma'+str(w))
+class ma(indicator_base):
+    def __init__(self, **windows):
+        super(ma, self).__init__('MA', **windows)
+        self._windows = {('_'+k):v for k, v in windows.items()}
+        # for w in self._windows:
+        #     self.__dict__['ma' + str(w)] = self._close.rolling(w).mean().rename('ma'+str(w))
+
+    def __call__(self, ohlc):
+        self.ohlc = ohlc
+        self.calc()
 
     def __str__(self):
         return f'<MA>----'+','.join(['ma' + str(w) for w in self._windows])
 
-    def update(self,newdata):
-        for w in self._windows:
-            new_ma = (getattr(self, 'ma'+str(w)).iloc[-(w-1)]*(w-1) + newdata.close)/w
-            self.__dict__['ma' + str(w)]=self.__dict__['ma' + str(w)].append(pd.Series(new_ma), ignore_index=True)
+    def calc(self):
+        self._close = self.ohlc.close
+        self._timestamp = self.ohlc.timestamp
+        self._timeindex = self.ohlc.timeindex
+        for k, v in self._windows.items():
+            self.__dict__[k] = self._close.rolling(v).mean().rename(k)
 
+    # def update(self,newdata):
+    #     for n, w in self._windows.items():
+    #         new_ma = (getattr(self, n).iloc[-(w-1)]*(w-1) + newdata.close)/w
+    #         self.__dict__[n]=self.__dict__[n].append(pd.Series(new_ma), ignore_index=True)
+
+    def update(self, all_new_data):
+        self.ohlc = all_new_data
+        self.calc()
 
     @property
     def timestamp(self):
@@ -86,7 +105,7 @@ class ma():
         return self._timeindex
 
     def to_df(self):
-        return pd.concat([getattr(self, 'ma' + str(w)) for w in self._windows], axis=1)
+        return pd.concat([getattr(self, w) for w in self._windows], axis=1)
 
 if __name__ == '__main__':
     _df = market_data('2017-12-15', '2017-12-18', 'HSIc1')

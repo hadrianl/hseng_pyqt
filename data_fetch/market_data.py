@@ -36,14 +36,12 @@ class market_data():
         return self.data.__repr__()
 
     def indicator_register(self,indicator):
-            self.indicators[indicator.name] = indicator
+            self.indicators[indicator.name] = indicator(self)
 
-    def update(self):
-        u_index = choice(self.timeindex)
-        u_data = self.data.iloc[u_index]
-        u_data['datetime'] = self.data.datetime.iloc[-1] + timedelta(minutes=1)
-        self.data = self.data.append(u_data, ignore_index=True)
-        print(u_index, u_data.values)
+    def update(self, newdata):
+        self.data = self.data.append(newdata, ignore_index=True)
+        for i,v in self.indicators:
+            v.update(self)
 
     @property
     def open(self):

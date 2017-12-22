@@ -14,10 +14,10 @@ KAIRUI_MYSQL_USER = 'kairuitouzi'
 KAIRUI_MYSQL_PASSWD = 'kairuitouzi'
 
 
-MA_COLORS = {'ma10': (255,255,255),
-             'ma20': (129,255,8),
-             'ma30': (182,128,219),
-             'ma60': (3,226,174)}
+MA_COLORS = {'_ma10': (255,255,255),
+             '_ma20': (129,255,8),
+             '_ma30': (182,128,219),
+             '_ma60': (3,226,174)}
 
 
 

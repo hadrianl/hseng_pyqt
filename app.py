@@ -15,8 +15,11 @@ from data_fetch.util import *
 
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 data = market_data('2017-12-13','2017-12-18','HSIc1')
-i_macd = macd(data)
-i_ma = ma(data, 10, 20, 30,60)
+i_macd = macd(short=10, long=22, m=9)
+i_ma = ma(ma10=10, ma20=20, ma30=30,ma60=60)
+data.indicator_register(i_ma)
+data.indicator_register(i_macd)
+
 
 app = QtWidgets.QApplication([])
 win = pg.GraphicsWindow(border=0.5)
@@ -39,7 +42,7 @@ ohlc_plt = win.addPlot(row=0,col=0, axisItems={'bottom': xaxis})    #添加主�
 ohlc_plt.addItem(ohlcitems)         #向主图表加入k线
 ma_plt_dict = {}
 for w in i_ma._windows:       ##在主图表画出均线
-    ma_plt_dict['ma' + str(w)] = ohlc_plt.plot(data.timeindex, getattr(i_ma, 'ma' + str(w)), pen=pg.mkPen(color=MA_COLORS.get('ma' + str(w), 'w'), width=1))
+    ma_plt_dict[w] = ohlc_plt.plot(data.timeindex, getattr(i_ma, w), pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
 
 ohlc_plt.setWindowTitle('market data')
 ohlc_plt.showGrid(x=True, y=True)
@@ -113,7 +116,10 @@ def ohlc_Yrange_update():
 
 def date_slicer_update():
     # global ohlc_plt, date_slicer
-    ohlc_plt.setXRange(*date_region.getRegion(), padding=0)
+    try:
+        ohlc_plt.setXRange(*date_region.getRegion(), padding=0)
+    except Exception as e:
+        print(e)
 
 
 date_region.sigRegionChanged.connect(date_slicer_update)
@@ -121,17 +127,12 @@ ohlc_plt.sigXRangeChanged.connect(ohlc_Yrange_update)
 date_slicer_update()
 
 
-# def update_data():
-#     global  data, i_ma
-#     data.update()
-#     ohlcitems.set_data(data)
-#     i_ma.update(data.data.iloc[-1])
-#     for k, ma in ma_plt_dict.items():
-#         ma.setdata(getattr(i_ma, k))
+# def update_data_plot():
+#     data.update(newdata)
 #     app.processEvents()
-
+#
 # timer = QtCore.QTimer()
-# timer.timeout.connect(update_data)
+# timer.timeout.connect(update_data_plot)
 # timer.start(1000)
 
 
