@@ -53,7 +53,7 @@ class CandlestickItem(pg.GraphicsObject):
 
 class DateAxis(pg.AxisItem):
     """
-    时间轴标签，timestamp转换为string
+    时间轴标签件，timestamp转换为string
     """
     def __init__(self,timestamp_mapping, orientation='bottom', *args):
         super(DateAxis, self).__init__(orientation, *args)
@@ -91,11 +91,13 @@ class DateAxis(pg.AxisItem):
         for x in timestamp:
             try:
                 strns.append(time.strftime(string, time.localtime(x)))
-            except ValueError:  ## Windows can't handle dates before 1970
+            except Exception as e:
+                print(e)## Windows can't handle dates before 1970
                 strns.append('')
         try:
             label = time.strftime(label1, time.localtime(min(timestamp)))+time.strftime(label2, time.localtime(max(timestamp)))
-        except ValueError:
+        except  Exception as e:
+            print(e)
             label = ''
         self.setLabel(text=label)
         return strns
