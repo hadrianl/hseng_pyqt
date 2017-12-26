@@ -18,7 +18,7 @@ class CandlestickItem(pg.GraphicsObject):
         pg.GraphicsObject.__init__(self)
         self.flagHasData = False
 
-    def set_data(self, marketdata):
+    def setData(self, marketdata):
         self.data = marketdata.data  ## data must have fields: time, open, close, min, max
         self.flagHasData = True
         self.generatePicture()
@@ -59,6 +59,9 @@ class DateAxis(pg.AxisItem):
         super(DateAxis, self).__init__(orientation, *args)
         self._timestamp_mapping = timestamp_mapping
 
+    def update_tickval(self,timestamp_mapping):
+        self._timestamp_mapping = timestamp_mapping
+
     def tickStrings(self, values, scale, spacing):
         strns = []
         try:
@@ -71,12 +74,12 @@ class DateAxis(pg.AxisItem):
         #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
         if rng < 3600*24:
             string = '%H:%M:%S'
-            label1 = '%b %d -'
+            label1 = '%b %d-'
             label2 = ' %b %d, %Y'
         elif rng >= 3600*24 and rng < 3600*24*30:
-            string = '%d'
+            string = '%d D'
             label1 = '%b - '
-            label2 = '%b, %Y'
+            label2 = '%b , %Y'
         elif rng >= 3600*24*30 and rng < 3600*24*30*24:
             string = '%b'
             label1 = '%Y -'

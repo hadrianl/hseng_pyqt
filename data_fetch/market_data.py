@@ -71,6 +71,7 @@ class market_data(market_data_base):
 
     def update(self, newdata):
         self.data = self.data.append(newdata.data, ignore_index=True)
+        self.data.drop(self.data.index[0],inplace=True)
         for i,v in self.indicators.items():
             v.update(self)
 
