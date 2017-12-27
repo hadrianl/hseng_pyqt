@@ -29,7 +29,7 @@ class mouseaction():
             ohlc_plt.addItem(self.yaxis_text)
 
 
-        vb = ohlc_plt.vb
+        vb = ohlc_plt.getViewBox()
 
         def mouseMoved(evt):
             pos = evt[0]  ## using signal proxy turns original arguments into a tuple

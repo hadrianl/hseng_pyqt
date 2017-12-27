@@ -13,6 +13,7 @@ from data_visualize.Mainchart import mainchart
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
 from data_fetch.util import *
+from pyqtgraph.dockarea import *
 
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
@@ -24,12 +25,23 @@ data.indicator_register(i_macd)
 # -----------------------------------------------------------------------+
 # -----------------------窗口与app初始化---------------------------------+
 app = QtWidgets.QApplication([])
-win = pg.GraphicsWindow()
-win.resize(1000, 900)
+win = QtGui.QMainWindow()
+layout = pg.GraphicsLayout()
+area = DockArea()
+win.setCentralWidget(area)
+win.resize(1500, 900)
+win.show()
+d1 =Dock('mainchart', size=(1, 1))
+mainchart_dock = Dock('恒指期货', size=(1200, 600))
+indicator_dock = Dock('指标', size=(1200, 150))
+date_slicer_dock = Dock('slicer', size=(1200, 100))
+area.addDock(d1, 'left')
+area.addDock(mainchart_dock, 'right')
+area.addDock(indicator_dock, 'bottom', mainchart_dock)
+area.addDock(date_slicer_dock, 'bottom', indicator_dock)
 # -----------------------------------------------------------------------+
 xaxis = DateAxis(data.timestamp, orientation='bottom')  # 时间坐标轴
-ohlc_plt = win.addPlot(row=0, col=0, axisItems={'bottom': xaxis})    # 添加主图表
-
+ohlc_plt = pg.PlotWidget(axisItems={'bottom': xaxis})    # 添加主图表
 
 ohlcitems = CandlestickItem()
 ohlcitems.setData(data)
@@ -41,9 +53,9 @@ for w in i_ma._windows:       # 在主图表画出均线
 ohlc_plt.setWindowTitle('market data')
 ohlc_plt.showGrid(x=True, y=True)
 
-indicator_plt = win.addPlot(row=1, col=0)     # 添加指标图表
 # ----------------------------画出指标-------------------------------+
-win.nextRow()
+# main_chart_layout.nextRow()
+indicator_plt = pg.PlotWidget()     # 添加指标图表
 pos_index = i_macd.to_df().macd >= 0
 neg_index = i_macd.to_df().macd < 0
 macd_items_dict = dict()
@@ -58,8 +70,8 @@ indicator_plt.hideAxis('bottom')
 indicator_plt.getViewBox().setXLink(ohlc_plt.getViewBox())    # 建立指标图表与主图表的viewbox连接
 # ------------------------------------------------------------------+
 # ---------------添加时间切片图表-----------------------------------+
-win.nextRow()
-date_slicer = win.addPlot(row=2, col=0)
+# main_chart_layout.nextRow()
+date_slicer = pg.PlotWidget()
 date_slicer.hideAxis('bottom')
 date_slicer.setMouseEnabled(False, False)
 close_curve = date_slicer.plot(data.timeindex, data.close)
@@ -76,6 +88,38 @@ date_slicer.addItem(date_region)
 # legendItem.addItem(macd_items_dict['diff'],'diff')
 
 # ------------------------------------------------------------------+
+w1 = pg.LayoutWidget()
+label = QtGui.QLabel(""" -- DockArea Example -- 
+This window has 6 Dock widgets in it. Each dock can be dragged
+by its title bar to occupy a different space within the window 
+but note that one dock has its title bar hidden). Additionally,
+the borders between docks may be dragged to resize. Docks that are dragged on top
+of one another are stacked in a tabbed layout. Double-click a dock title
+bar to place it in its own window.
+""")
+saveBtn = QtGui.QPushButton('Save dock state')
+restoreBtn = QtGui.QPushButton('Restore dock state')
+restoreBtn.setEnabled(False)
+w1.addWidget(label, row=0, col=0)
+w1.addWidget(saveBtn, row=1, col=0)
+w1.addWidget(restoreBtn, row=2, col=0)
+d1.addWidget(w1)
+state = None
+def save():
+    global state
+    state = area.saveState()
+    restoreBtn.setEnabled(True)
+def load():
+    global state
+    area.restoreState(state)
+saveBtn.clicked.connect(save)
+restoreBtn.clicked.connect(load)
+
+mainchart_dock.addWidget(ohlc_plt)
+indicator_dock.addWidget(indicator_plt)
+date_slicer_dock.addWidget(date_slicer)
+
+
 
 # -------------------------设置鼠标交互----------------------------+
 mouse = mouseaction()
