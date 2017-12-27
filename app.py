@@ -7,6 +7,7 @@
 
 from data_fetch.market_data import market_data, new_market_data
 from data_handle.indicator import macd, ma
+from data_handle.tickdata import tickdatas
 from data_visualize.baseitems import CandlestickItem, DateAxis
 from data_visualize.accessory import mouseaction
 from data_visualize.Mainchart import mainchart
@@ -14,6 +15,7 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
 from data_fetch.util import *
 from pyqtgraph.dockarea import *
+from numpy.random import random
 
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
@@ -32,9 +34,10 @@ win.setCentralWidget(area)
 win.resize(1500, 900)
 win.show()
 d1 =Dock('mainchart', size=(1, 1))
-mainchart_dock = Dock('恒指期货', size=(1200, 600))
+mainchart_dock = Dock('恒指期货', hideTitle=True, size=(1200, 600))
 indicator_dock = Dock('指标', size=(1200, 150))
-date_slicer_dock = Dock('slicer', size=(1200, 100))
+date_slicer_dock = Dock('slicer', size=(1200, 100), hideTitle=True)
+date_slicer_dock.hideTitleBar()
 area.addDock(d1, 'left')
 area.addDock(mainchart_dock, 'right')
 area.addDock(indicator_dock, 'bottom', mainchart_dock)
@@ -42,16 +45,18 @@ area.addDock(date_slicer_dock, 'bottom', indicator_dock)
 # -----------------------------------------------------------------------+
 xaxis = DateAxis(data.timestamp, orientation='bottom')  # 时间坐标轴
 ohlc_plt = pg.PlotWidget(axisItems={'bottom': xaxis})    # 添加主图表
-
 ohlcitems = CandlestickItem()
 ohlcitems.setData(data)
-
 ohlc_plt.addItem(ohlcitems)         # 向主图表加入k线
 ma_items_dict = {}
 for w in i_ma._windows:       # 在主图表画出均线
     ma_items_dict[w] = ohlc_plt.plot(data.timeindex, getattr(i_ma, w), pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
 ohlc_plt.setWindowTitle('market data')
 ohlc_plt.showGrid(x=True, y=True)
+# ----------------------------tick-------------------------------+
+tickitems = CandlestickItem()
+# ohlc_plt.addItem(tickitems)
+# -------------------------------------------------------------------+
 
 # ----------------------------画出指标-------------------------------+
 # main_chart_layout.nextRow()
@@ -159,10 +164,13 @@ def ohlc_data_update_sync():
         date_region.setRegion([date_region_Max - date_region_len-1, date_region_Max-1])
     ohlc_plt.update()
 
-
+newdata=None
+# tick_datas = tick_datas()
 def update_data_plot():
-    global data, pos_index, neg_index
+    global data, pos_index, neg_index,newdata, tick_datas
     newdata = new_market_data(data)
+    # tick = newdata.low + (newdata.high - newdata.low)*random()
+
     data.update(newdata)   # 更新新的数据
     # ---------------------------更新数据到图表----------------------------------------------------+
     ohlcitems.setData(data)
