@@ -13,7 +13,7 @@ class mouseaction():
         self.vLine = pg.InfiniteLine(angle=90, movable=False)
         self.hLine = pg.InfiniteLine(angle=0, movable=False)
         self._if = info
-        self.info_text = pg.TextItem(anchor=(0, 1))
+        self.info_text = pg.TextItem(anchor=(1, 1))
         self._at = axis_text
         self.xaxis_text = pg.TextItem(anchor=(1, 1))
         self.yaxis_text = pg.TextItem()

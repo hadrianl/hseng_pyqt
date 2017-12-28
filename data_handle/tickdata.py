@@ -7,26 +7,36 @@
 
 from data_fetch.market_data import market_data_base
 import pandas as pd
+from datetime import datetime
 class tickdatas(market_data_base):
-    def __init__(self, symbol):
+    def __init__(self, symbol, timeindex):
         self._symbol = symbol
-        self._timestamp_range = None
+        self._timeindex = timeindex
         self._done = False
-        self.datalist = []
         self._data = pd.DataFrame(columns=['datetime', 'tick', 'vol'])
 
     def append(self,tick):
-        self.datalist.append(tick)
-        self._data.append(tick)
+        if not self._data.empty:
+            if (tick['datetime'].timestamp()//60)*60 == self._timestamp:
+                self._data = self._data.append(tick, ignore_index=True)
+            else:
+                raise Exception('数据不在同一分钟内')
+        else:
+            self._data = self._data.append(tick, ignore_index=True)
+            self._timestamp = (self._data.datetime[0].timestamp()//60)*60
+            print(self._timestamp)
+
 
     @property
     def data(self):
-        d = {'datetime': self._data.datetime,
-             'open': self._data.tick[0],
+        d = {'datetime': datetime.fromtimestamp(self._timestamp),
+             'open': self._data.tick.iloc[0],
              'high': self._data.tick.max(),
              'low': self._data.tick.min(),
-             'close': self._data.tick[-1]}
-        return pd.DataFrame(d)
+             'close': self._data.tick.iloc[-1]}
+        return pd.DataFrame(d, index=[self._timeindex], columns=['datetime', 'open', 'high', 'low', 'close'])
+
+
 
 
 

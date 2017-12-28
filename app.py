@@ -16,6 +16,7 @@ from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
 from data_fetch.util import *
 from pyqtgraph.dockarea import *
 from numpy.random import random
+import time
 
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
@@ -55,7 +56,8 @@ ohlc_plt.setWindowTitle('market data')
 ohlc_plt.showGrid(x=True, y=True)
 # ----------------------------tick-------------------------------+
 tickitems = CandlestickItem()
-# ohlc_plt.addItem(tickitems)
+ohlc_plt.addItem(tickitems)
+
 # -------------------------------------------------------------------+
 
 # ----------------------------画出指标-------------------------------+
@@ -80,7 +82,7 @@ date_slicer = pg.PlotWidget()
 date_slicer.hideAxis('bottom')
 date_slicer.setMouseEnabled(False, False)
 close_curve = date_slicer.plot(data.timeindex, data.close)
-date_region = pg.LinearRegionItem([data.timeindex.max() - 150, data.timeindex.max() + 2])
+date_region = pg.LinearRegionItem([data.timeindex.max() - 150, data.timeindex.max() + 10])
 print(date_region.getRegion(), data.close.min())
 # date_slicer.setLimits(xMin=data.timeindex.min(),
 #                       xMax=data.timeindex.max(),
@@ -157,35 +159,44 @@ def ohlc_data_update_sync():
     date_region_len = int(date_region.getRegion()[1] - date_region.getRegion()[0])
     print(date_region_Max)
     print(data.timeindex.max())
-    if date_region_Max == data.timeindex.max() + 1:    # 判断最新数据是否是在图表边缘
-        date_region.setRegion([data.timeindex.max() + 1 - date_region_len, data.timeindex.max() + 1])
+    if date_region_Max == data.timeindex.max() + 3:    # 判断最新数据是否是在图表边缘
+        date_region.setRegion([data.timeindex.max() + 3 - date_region_len, data.timeindex.max() + 3])
         ohlc_Yrange_update()
     else:
         date_region.setRegion([date_region_Max - date_region_len-1, date_region_Max-1])
     ohlc_plt.update()
 
 newdata=None
-# tick_datas = tick_datas()
+tick_datas = tickdatas('hseng',data.timeindex.iloc[-1] +1)
+n = 0
 def update_data_plot():
-    global data, pos_index, neg_index,newdata, tick_datas
+    global data, pos_index, neg_index,newdata, tick_datas, n
     newdata = new_market_data(data)
-    # tick = newdata.low + (newdata.high - newdata.low)*random()
-
-    data.update(newdata)   # 更新新的数据
-    # ---------------------------更新数据到图表----------------------------------------------------+
-    ohlcitems.setData(data)
-    for w in ma_items_dict:
-        ma_items_dict[w].setData(data.timeindex.values, getattr(i_ma, w).values)
-    pos_index = i_macd.to_df().macd >= 0
-    neg_index = i_macd.to_df().macd < 0
-    macd_items_dict['diff'].setData(i_macd.timeindex.values, i_macd.diff.values)
-    macd_items_dict['dea'].setData(i_macd.timeindex.values, i_macd.dea.values)
-    macd_items_dict['macd_pos'].setOpts(x=i_macd.timeindex[pos_index], height=i_macd.macd[pos_index])
-    macd_items_dict['macd_neg'].setOpts(x=i_macd.timeindex[neg_index], height=i_macd.macd[neg_index])
-    close_curve.setData(data.timeindex.values, data.close.values)
-    xaxis.update_tickval(data.timestamp)
-    # ------------------------------------------------------------------------------------------------+
-    ohlc_data_update_sync()
+    tick = {'datetime': newdata.datetime.iloc[-1], 'tick': newdata.low.iloc[-1] + (newdata.high.iloc[-1] - newdata.low.iloc[-1])*random(), 'vol':1}
+    n+=1
+    tick_datas.append(tick)
+    print(tick_datas.data, data.timeindex.iloc[-1])
+    tickitems.setData(tick_datas)
+    tickitems.update()
+    if n>=30:
+        time.sleep(0.5)
+        data.update(newdata)
+        # ---------------------------更新数据到图表----------------------------------------------------+
+        ohlcitems.setData(data)
+        for w in ma_items_dict:
+            ma_items_dict[w].setData(data.timeindex.values, getattr(i_ma, w).values)
+        pos_index = i_macd.to_df().macd >= 0
+        neg_index = i_macd.to_df().macd < 0
+        macd_items_dict['diff'].setData(i_macd.timeindex.values, i_macd.diff.values)
+        macd_items_dict['dea'].setData(i_macd.timeindex.values, i_macd.dea.values)
+        macd_items_dict['macd_pos'].setOpts(x=i_macd.timeindex[pos_index], height=i_macd.macd[pos_index])
+        macd_items_dict['macd_neg'].setOpts(x=i_macd.timeindex[neg_index], height=i_macd.macd[neg_index])
+        close_curve.setData(data.timeindex.values, data.close.values)
+        xaxis.update_tickval(data.timestamp)
+        # ------------------------------------------------------------------------------------------------+
+        ohlc_data_update_sync()
+        n=0
+        tick_datas = tickdatas('hseng',data.timeindex.iloc[-1] + 1)
     app.processEvents()
 
 
@@ -195,7 +206,7 @@ date_slicer_update()
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update_data_plot)
-timer.start(1000)
+timer.start(100)
 
 
 if __name__ == '__main__':

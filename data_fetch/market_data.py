@@ -37,6 +37,10 @@ class market_data_base():
         return self.data['close']
 
     @property
+    def datetime(self):
+        return  self.data['datetime']
+
+    @property
     def timestamp(self):
         return self.data['datetime'].apply(lambda x: x.timestamp()).rename('timestamp')
 

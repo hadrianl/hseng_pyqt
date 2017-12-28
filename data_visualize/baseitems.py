@@ -17,6 +17,7 @@ class CandlestickItem(pg.GraphicsObject):
     def __init__(self):
         pg.GraphicsObject.__init__(self)
         self.flagHasData = False
+        self.picture = QtGui.QPicture()
 
     def setData(self, marketdata):
         self.data = marketdata.data  ## data must have fields: time, open, close, min, max
