@@ -14,6 +14,8 @@ class CandlestickItem(pg.GraphicsObject):
     """
     蜡烛图的图形件
     """
+    tick_signal = QtCore.pyqtSignal()
+
     def __init__(self):
         pg.GraphicsObject.__init__(self)
         self.flagHasData = False
@@ -24,6 +26,7 @@ class CandlestickItem(pg.GraphicsObject):
         self.flagHasData = True
         self.generatePicture()
         self.informViewBoundsChanged()
+
 
     def generatePicture(self):
         ## pre-computing a QPicture object allows paint() to run much more quickly,

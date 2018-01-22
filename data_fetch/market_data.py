@@ -14,6 +14,7 @@ from data_fetch.util import *
 from numpy.random import choice
 from datetime import timedelta
 
+
 class market_data_base():
     def __init__(self):
         self._conn = sqlalchemy.create_engine(
@@ -57,10 +58,10 @@ class market_data(market_data_base):
         self.end = end
         self.ktype = ktype
         self.symbol = symbol
-        self._sql = f"select datetime, open, high, low, close from stock_data.index_min \
+        self._sql = f"select datetime, open, high, low, close from carry_investment.futures_min \
                                     where datetime>=\"{start}\" \
                                     and datetime<\"{end} \"\
-                                    and code=\"{symbol}\""
+                                    and prodcode=\"{symbol}\""
         self.data = pd.read_sql(self._sql, self._conn)
         self.indicators = {}
 
@@ -73,28 +74,29 @@ class market_data(market_data_base):
     def indicator_register(self,indicator):
             self.indicators[indicator.name] = indicator(self)
 
-    def update(self, newdata):
-        self.data = self.data.append(newdata.data, ignore_index=True)
+    def update(self, tick_data):
+        new_ohlc = tick_data._ohlc_queue.get_nowait()
+        self.data = self.data.append(new_ohlc, ignore_index=True)
         self.data.drop(self.data.index[0],inplace=True)
         for i,v in self.indicators.items():
             v.update(self)
 
-class new_market_data(market_data_base):
-    def __init__(self,old_market_data):
-        super(new_market_data, self).__init__()
-        self.symbol = old_market_data.symbol
-        self.last_time = old_market_data.data.datetime.iloc[-1]
-        for i in range(60):
-            self.last_time += timedelta(minutes=1)
-            self._sql = f'select datetime, open, high, low, close from stock_data.index_min where datetime=\"{str(self.last_time)}\" and code=\"{self.symbol}\" '
-            # print(self._sql)
-            # print(self.symbol)
-            # print(self.last_time)
-            self.data = pd.read_sql(self._sql, self._conn)
-            if not self.data.empty:
-                break
+# class new_market_data(market_data_base):
+#     def __init__(self,old_market_data):
+#         super(new_market_data, self).__init__()
+#         self.symbol = old_market_data.symbol
+#         self.last_time = old_market_data.data.datetime.iloc[-1]
+#         for i in range(60):
+#             self.last_time += timedelta(minutes=1)
+#             self._sql = f'select datetime, open, high, low, close from stock_data.index_min where datetime=\"{str(self.last_time)}\" and code=\"{self.symbol}\" '
+#             # print(self._sql)
+#             # print(self.symbol)
+#             # print(self.last_time)
+#             self.data = pd.read_sql(self._sql, self._conn)
+#             if not self.data.empty:
+#                 break
 
 if __name__ == '__main__':
-    df = market_data('2017-12-15','2017-12-18','HSIc1')
+    df = market_data('2018-01-18', '2018-01-19 11:00:00', 'HSIF8')
     print(df)
     print(df.__repr__())

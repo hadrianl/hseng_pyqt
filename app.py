@@ -5,12 +5,13 @@
 # @File    : app.py
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
-from data_fetch.market_data import market_data, new_market_data
+from data_fetch.market_data import market_data
 from data_handle.indicator import macd, ma
 from data_handle.tickdata import tickdatas
 from data_visualize.baseitems import CandlestickItem, DateAxis
 from data_visualize.accessory import mouseaction
 from data_visualize.Mainchart import mainchart
+import datetime as dt
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
 from data_fetch.util import *
@@ -20,7 +21,9 @@ import time
 
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
-data = market_data('2017-12-12', '2017-12-14 21:00:00', 'HSIc1')
+start_time = dt.datetime.now() - dt.timedelta(minutes=200)
+end_time = dt.datetime.now() + dt.timedelta(minutes=10)
+data = market_data(start_time, end_time, 'HSIF8')
 i_macd = macd(short=10, long=22, m=9)
 i_ma = ma(ma10=10, ma20=20, ma30=30, ma60=60)
 data.indicator_register(i_ma)
@@ -144,21 +147,21 @@ def ohlc_Yrange_update():
                             i_macd.macd[i_macd.timeindex.between(*viewrange[0])].max())
         date_slicer.setYRange(data.close.min(), data.close.max())
     except Exception as e:
-        print(e)
+        print('ohlc_Yrange_update', e)
+ohlc_plt.sigXRangeChanged.connect(ohlc_Yrange_update)
 
-
-def date_slicer_update():
+def date_slicer_update():  # 当时间切片发生变化时触发
     try:
         ohlc_plt.setXRange(*date_region.getRegion(), padding=0)
     except Exception as e:
-        print(e)
-
+        print('date_slicer_update', e)
+date_region.sigRegionChanged.connect(date_slicer_update)
 
 def ohlc_data_update_sync():
     date_region_Max = int(date_region.getRegion()[1])
     date_region_len = int(date_region.getRegion()[1] - date_region.getRegion()[0])
-    print(date_region_Max)
-    print(data.timeindex.max())
+    print(f'可视区域最大值：{date_region_Max}')
+    print(f'图表timeindex最大值：{data.timeindex.max()}')
     if date_region_Max == data.timeindex.max() + 3:    # 判断最新数据是否是在图表边缘
         date_region.setRegion([data.timeindex.max() + 3 - date_region_len, data.timeindex.max() + 3])
         ohlc_Yrange_update()
@@ -166,23 +169,25 @@ def ohlc_data_update_sync():
         date_region.setRegion([date_region_Max - date_region_len-1, date_region_Max-1])
     ohlc_plt.update()
 
-newdata=None
-tick_datas = tickdatas('hseng',data.timeindex.iloc[-1] +1)
-n = 0
+
 def update_data_plot():
-    global data, pos_index, neg_index,newdata, tick_datas, n
-    newdata = new_market_data(data)
-    tick = {'datetime': newdata.datetime.iloc[-1], 'tick': newdata.low.iloc[-1] + (newdata.high.iloc[-1] - newdata.low.iloc[-1])*random(), 'vol':1}
-    n+=1
-    tick_datas.append(tick)
-    print(tick_datas.data, data.timeindex.iloc[-1])
+    global data, pos_index, neg_index, tick_datas, ohlc_plt
+    tickitems.update()
+    tick_datas._timeindex = data.timeindex.iloc[-1] + 1
     tickitems.setData(tick_datas)
     tickitems.update()
-    if n>=30:
-        time.sleep(0.5)
-        data.update(newdata)
-        # ---------------------------更新数据到图表----------------------------------------------------+
+
+    # ---------------------------调整画图界面高度----------------------------------------------------+
+    viewrange = ohlc_plt.getViewBox().viewRange()
+    if tick_datas.high.iloc[0] >= viewrange[1][1] or tick_datas.low.iloc[0] <= viewrange[1][0]:
+        ohlc_plt.setYRange(min(viewrange[1][0], tick_datas.low.iloc[0]),
+                           max(viewrange[1][1], tick_datas.high.iloc[0]))
+
+    # ---------------------------更新数据到图表----------------------------------------------------+
+    if not tick_datas._ohlc_queue.empty():
+        data.update(tick_datas)
         ohlcitems.setData(data)
+
         for w in ma_items_dict:
             ma_items_dict[w].setData(data.timeindex.values, getattr(i_ma, w).values)
         pos_index = i_macd.to_df().macd >= 0
@@ -193,20 +198,18 @@ def update_data_plot():
         macd_items_dict['macd_neg'].setOpts(x=i_macd.timeindex[neg_index], height=i_macd.macd[neg_index])
         close_curve.setData(data.timeindex.values, data.close.values)
         xaxis.update_tickval(data.timestamp)
-        # ------------------------------------------------------------------------------------------------+
+    # ------------------------------------------------------------------------------------------------+
         ohlc_data_update_sync()
-        n=0
-        tick_datas = tickdatas('hseng',data.timeindex.iloc[-1] + 1)
     app.processEvents()
+tick_datas = tickdatas('HSIF8')
+tick_datas.bindsignal(tickitems.tick_signal)
+tick_datas.active()
+tickitems.tick_signal.connect(update_data_plot)
 
 
-date_region.sigRegionChanged.connect(date_slicer_update)
-ohlc_plt.sigXRangeChanged.connect(ohlc_Yrange_update)
+
 date_slicer_update()
 
-timer = QtCore.QTimer()
-timer.timeout.connect(update_data_plot)
-timer.start(100)
 
 
 if __name__ == '__main__':
