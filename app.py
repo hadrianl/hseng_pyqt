@@ -21,7 +21,7 @@ import time
 
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
-start_time = dt.datetime.now() - dt.timedelta(minutes=200)
+start_time = dt.datetime.now() - dt.timedelta(hours=10)
 end_time = dt.datetime.now() + dt.timedelta(minutes=10)
 data = market_data(start_time, end_time, 'HSIF8')
 i_macd = macd(short=10, long=22, m=9)
