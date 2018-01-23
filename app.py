@@ -21,7 +21,7 @@ import time
 
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
-start_time = dt.datetime.now() - dt.timedelta(hours=10)
+start_time = dt.datetime.now() - dt.timedelta(minutes=60)
 end_time = dt.datetime.now() + dt.timedelta(minutes=10)
 data = market_data(start_time, end_time, 'HSIF8')
 i_macd = macd(short=10, long=22, m=9)
@@ -130,13 +130,6 @@ indicator_dock.addWidget(indicator_plt)
 date_slicer_dock.addWidget(date_slicer)
 
 
-
-# -------------------------设置鼠标交互----------------------------+
-mouse = mouseaction()
-proxy = mouse(ohlc_plt, data)
-# ------------------------------------------------------------------+
-
-
 def ohlc_Yrange_update():
     viewrange = ohlc_plt.getViewBox().viewRange()
     date_region.setRegion(viewrange[0])
@@ -206,6 +199,10 @@ tick_datas.bindsignal(tickitems.tick_signal)
 tick_datas.active()
 tickitems.tick_signal.connect(update_data_plot)
 
+# -------------------------设置鼠标交互----------------------------+
+mouse = mouseaction()
+proxy = mouse(ohlc_plt, data, tick_datas)
+# ------------------------------------------------------------------+
 
 
 date_slicer_update()

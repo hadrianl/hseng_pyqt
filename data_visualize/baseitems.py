@@ -92,16 +92,20 @@ class DateAxis(pg.AxisItem):
             string = '%Y'
             label1 = ''
             label2 = ''
+        else:
+            string = ''
+            label1 = ''
+            label2 = ''
         for x in timestamp:
             try:
                 strns.append(time.strftime(string, time.localtime(x)))
             except Exception as e:
-                print(e)## Windows can't handle dates before 1970
+                # print(e) ## Windows can't handle dates before 1970
                 strns.append('')
         try:
             label = time.strftime(label1, time.localtime(min(timestamp)))+time.strftime(label2, time.localtime(max(timestamp)))
         except  Exception as e:
-            print(e)
+            # print(e)
             label = ''
         self.setLabel(text=label)
         return strns

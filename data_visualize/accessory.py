@@ -18,7 +18,7 @@ class mouseaction():
         self.xaxis_text = pg.TextItem(anchor=(1, 1))
         self.yaxis_text = pg.TextItem()
 
-    def __call__(self, ohlc_plt, data):
+    def __call__(self, ohlc_plt, market_data, ticker_data):
         if self._ch:
             ohlc_plt.addItem(self.vLine, ignoreBounds=True)
             ohlc_plt.addItem(self.hLine, ignoreBounds=True)
@@ -35,11 +35,16 @@ class mouseaction():
             pos = evt[0]  ## using signal proxy turns original arguments into a tuple
             if ohlc_plt.sceneBoundingRect().contains(pos):
                 mousePoint = vb.mapSceneToView(pos)
-                x_index = {0: data.timeindex.max(), 1: int(mousePoint.x()), 3: data.timeindex.min()}. \
-                    get(((mousePoint.x() <= data.timeindex.min()) << 1) + (mousePoint.x() <= data.timeindex.max()))
+                t_max = market_data.timeindex.max()
+                t_min = market_data.timeindex.min()
+                x_type = ((mousePoint.x() <= t_min - 3) << 1) + (mousePoint.x() <= t_max + 3)
+                x_index = {0: t_max + 3 , 1: int(mousePoint.x()), 3: t_min -3 }.get(x_type)
                 if self._if:
                     try:
-                        text_df = data.data.iloc[x_index]
+                        if x_index == t_max + 1:
+                            text_df = ticker_data.data.iloc[0]
+                        else:
+                            text_df = market_data.data.iloc[x_index]
                         html = f"""
                         <span style="color:white">时间:<span/><span style="color:blue">{str(text_df.datetime)[9:16].replace(" ", "日")}<span/><br/>
                         <span style="color:white">开盘:<span/><span style="color:red">{text_df.open}<span/><br/>
@@ -52,8 +57,8 @@ class mouseaction():
                         self.xaxis_text.setText(str(text_df.datetime))
                         self.yaxis_text.setText('{:.2f}'.format(mousePoint.y()))
                     except IndexError as e:
-                        print(e)
-
+                        # print(e)
+                        pass
                 if self._ch:
                     self.vLine.setPos(x_index)
                     self.hLine.setPos(mousePoint.y())
