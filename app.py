@@ -155,7 +155,7 @@ def ohlc_data_update_sync():
     date_region_len = int(date_region.getRegion()[1] - date_region.getRegion()[0])
     print(f'可视区域最大值：{date_region_Max}')
     print(f'图表timeindex最大值：{data.timeindex.max()}')
-    if len(data.data) >= data.bar_size - 1:
+    if len(data.data) >= data.bar_size:
         if date_region_Max == data.timeindex.max() + 3:  # 判断最新数据是否是在图表边缘
             date_region.setRegion([data.timeindex.max() + 3 - date_region_len, data.timeindex.max() + 3])
         else:
@@ -210,8 +210,7 @@ mouse = mouseaction()
 proxy = mouse(ohlc_plt, data, tick_datas)
 # ------------------------------------------------------------------+
 
-
-date_slicer_update()
+date_region.setRegion([data.timeindex.max() - 120, data.timeindex.max() + 4])  # 初始化可视区域
 
 
 
