@@ -20,7 +20,7 @@ class tickdatas(market_data_base):
         self._data = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
         self.isactive = False
         self._sub_socket = zmq.Context().socket(zmq.SUB)
-        self._sub_socket.connect('tcp://192.168.2.226:6868')
+        self._sub_socket.connect('tcp://192.168.2.237:6868')
         self._sub_socket.set_string(zmq.SUBSCRIBE, '')
         self._ohlc_queue = Queue()
         self._data_queue = Queue()

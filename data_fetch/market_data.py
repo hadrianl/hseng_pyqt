@@ -63,7 +63,9 @@ class market_data(market_data_base):
                                     and datetime<\"{end} \"\
                                     and prodcode=\"{symbol}\""
         self.data = pd.read_sql(self._sql, self._conn)
+        self.data.datetime = pd.to_datetime(self.data.datetime)
         self.indicators = {}
+        self.bar_size = 200
 
     def __str__(self):
         return f"<{self.ktype}-{self.symbol}> *{self.data['datetime'].min()}-->{self.data['datetime'].max()}*"
@@ -77,10 +79,14 @@ class market_data(market_data_base):
     def update(self, tick_data):
         new_ohlc = tick_data._ohlc_queue.get_nowait()
         self.data = self.data.append(new_ohlc, ignore_index=True)
-        self.data.drop(self.data.index[0],inplace=True)
+        if len(self.data) > self.bar_size:
+            self.data.drop(self.data.index[0],inplace=True)
         for i,v in self.indicators.items():
             v.update(self)
 
+    def resample(self, ktype):
+        self.data_resampled =  self.data.resample(ktype, on='datetime').agg({'open':lambda x:x.head(1),'high':lambda x:x.max(),'low':lambda x:x.min(), 'close':lambda x:x.tail(1)})
+        return self.data_resampled
 # class new_market_data(market_data_base):
 #     def __init__(self,old_market_data):
 #         super(new_market_data, self).__init__()

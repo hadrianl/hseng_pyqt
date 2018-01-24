@@ -9,8 +9,8 @@
 该文件存储一些基本的数据获取的字段名转换和基本的数据整理函数
 """
 
-KAIRUI_SERVER_IP = '192.168.2.226'
-KAIRUI_MYSQL_USER = 'kairuitouzi'
+KAIRUI_SERVER_IP = '192.168.2.237'
+KAIRUI_MYSQL_USER = 'hadrianl'
 KAIRUI_MYSQL_PASSWD = 'kairuitouzi'
 
 
