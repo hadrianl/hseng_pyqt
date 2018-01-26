@@ -20,9 +20,14 @@ class CandlestickItem(pg.GraphicsObject):
         pg.GraphicsObject.__init__(self)
         self.flagHasData = False
         self.picture = QtGui.QPicture()
+        self.PenWidth = 0.4
+        self.LinePen = pg.mkPen('w', width=self.PenWidth)
+        self.GreenBrush = pg.mkBrush('g')
+        self.RedBrush = pg.mkBrush('r')
 
-    def setData(self, marketdata):
-        self.data = marketdata.data  ## data must have fields: time, open, close, min, max
+
+    def setData(self, ohlc):
+        self.data = ohlc.data  # data must have fields: time, open, close, min, max
         self.flagHasData = True
         self.generatePicture()
         self.informViewBoundsChanged()
@@ -33,14 +38,14 @@ class CandlestickItem(pg.GraphicsObject):
         ## rather than re-drawing the shapes every time.
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
-        p.setPen(pg.mkPen('w', width=0.4))
-        w = 0.4
+        p.setPen(self.LinePen)
+        w = self.PenWidth
         for (i, t, open, high, low, close) in self.data.itertuples():
             p.drawLine(QtCore.QPointF(i, low), QtCore.QPointF(i, high))
             if open > close:
-                p.setBrush(pg.mkBrush('g'))
+                p.setBrush(self.GreenBrush)
             else:
-                p.setBrush(pg.mkBrush('r'))
+                p.setBrush(self.RedBrush)
             p.drawRect(QtCore.QRectF(i-w, open, w*2, close-open))
         p.end()
 

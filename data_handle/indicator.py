@@ -9,7 +9,7 @@
 """
 
 
-from data_fetch.market_data import market_data
+from data_fetch.market_data import OHLC
 import pandas as pd
 
 
@@ -20,7 +20,7 @@ class indicator_base():
             setattr(self, '_' + k, v)
 
 class macd(indicator_base):
-    def __init__(self, short=12, long=26, m=9):
+    def __init__(self, short=10, long=22, m=9):
         super(macd, self).__init__('MACD', short=short, long=long, m=m)
 
     def __str__(self):
@@ -110,7 +110,7 @@ class ma(indicator_base):
         return pd.concat([getattr(self, w) for w in self._windows], axis=1)
 
 if __name__ == '__main__':
-    _df = market_data('2017-12-15', '2017-12-18', 'HSIc1')
+    _df = OHLC('2017-12-15', '2017-12-18', 'HSIc1')
     _macd = macd(_df)
     _ma = ma(_df,10,20,30)
     print(_macd)
