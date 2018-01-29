@@ -20,7 +20,7 @@ class indicator_base():
             setattr(self, '_' + k, v)
 
 class macd(indicator_base):
-    def __init__(self, short=10, long=22, m=9):
+    def __init__(self, short=12, long=26, m=9):
         super(macd, self).__init__('MACD', short=short, long=long, m=m)
 
     def __str__(self):

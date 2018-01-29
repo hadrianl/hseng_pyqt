@@ -9,7 +9,7 @@
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
 import time
-
+from  PyQt5.Qt import QLine
 class CandlestickItem(pg.GraphicsObject):
     """
     蜡烛图的图形件
@@ -24,7 +24,12 @@ class CandlestickItem(pg.GraphicsObject):
         self.LinePen = pg.mkPen('w', width=self.PenWidth)
         self.GreenBrush = pg.mkBrush('g')
         self.RedBrush = pg.mkBrush('r')
+        self.is_current_bar = False
 
+    def mark_line(self):
+        self.is_current_bar = True
+        self.hline = pg.InfiniteLine(angle=0, movable=False, pen=self.LinePen)
+        self.htext = pg.InfLineLabel(self.hline)
 
     def setData(self, ohlc):
         self.data = ohlc.data  # data must have fields: time, open, close, min, max
@@ -42,6 +47,9 @@ class CandlestickItem(pg.GraphicsObject):
         w = self.PenWidth
         for (i, t, open, high, low, close) in self.data.itertuples():
             p.drawLine(QtCore.QPointF(i, low), QtCore.QPointF(i, high))
+            if self.is_current_bar:
+                self.hline.setPos(close)
+                self.htext.setText(f'{close}', color='w')
             if open > close:
                 p.setBrush(self.GreenBrush)
             else:

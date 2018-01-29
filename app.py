@@ -17,16 +17,18 @@ from data_fetch.util import *
 from pyqtgraph.dockarea import *
 from numpy.random import random
 import time
+from threading import Lock
+from PyQt5.QtCore import QThread,pyqtSignal
 from PyQt5.Qt import QFont
 from mainwindow import Ui_MainWindow
 import sys
+import pandas as pd
 
 class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
-    global xaxis
     def __init__(self):
         super(MainWindow,self).__init__()
         self.setupUi(self)
-
+        self.plotwidget.setCentralItem(self.layout)
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
 start_time = dt.datetime.now() - dt.timedelta(minutes=120)
@@ -41,33 +43,14 @@ ohlc + i_macd
 # -----------------------窗口与app初始化---------------------------------+
 app = QtWidgets.QApplication(sys.argv)
 xaxis = DateAxis(ohlc.timestamp, orientation='bottom')  # 时间坐标轴
-# win = MainWindow()
-win = pg.PlotWidget()
+
+win = pg.GraphicsWindow(title='实盘分钟图')
 layout = pg.GraphicsLayout(border=(100,100,100))
 layout.setGeometry(QtCore.QRectF(10, 10, 1200, 700))
 layout.setContentsMargins(10, 10, 10, 10)
 layout.setSpacing(0)
 layout.setBorder(color=(255, 255, 255, 255), width=0.8)
 win.setCentralItem(layout)
-# win = QtGui.QMainWindow()
-# layout = pg.GraphicsLayout()
-# area = DockArea()
-# win.setCentralWidget(area)
-# win.resize(1500, 900)
-# win.show()
-# d1 =Dock('mainchart', size=(1, 1))
-# mainchart_dock = Dock('恒指期货', hideTitle=True, size=(1200, 600))
-# indicator_dock = Dock('指标', size=(1200, 150))
-# date_slicer_dock = Dock('slicer', size=(1200, 100), hideTitle=True)
-# date_slicer_dock.hideTitleBar()
-# area.addDock(d1, 'left')
-# area.addDock(mainchart_dock, 'right')
-# area.addDock(indicator_dock, 'bottom', mainchart_dock)
-# area.addDock(date_slicer_dock, 'bottom', indicator_dock)
-
-# ohlc_plt = win.ohlc_plt
-# indicator_plt = win.indicator_plt
-# date_slicer = win.date_slicer
 
 # -----------------------------------------------------------------------+
 def makePI(name):
@@ -87,10 +70,8 @@ def makePI(name):
     plotItem.showGrid(True, True)
     plotItem.hideButtons()
     return plotItem
-# ohlc_plt = pg.PlotWidget(win.centralwidget, axisItems={'bottom': xaxis})    # 添加主图表
-# ohlc_plt = pg.PlotItem(viewBox=pg.ViewBox(), name='ohlc', axisItems={'bottom': xaxis})
+
 ohlc_plt = makePI('ohlc')
-# ohlc_plt.setXLink('date_slicer')
 ohlc_plt.setMinimumHeight(300)
 ohlcitems = CandlestickItem()
 ohlcitems.setData(ohlc)
@@ -102,25 +83,30 @@ ohlc_plt.setWindowTitle('market data')
 ohlc_plt.showGrid(x=True, y=True)
 # ----------------------------tick-------------------------------+
 tickitems = CandlestickItem()
+tickitems.mark_line()
 ohlc_plt.addItem(tickitems)
+ohlc_plt.addItem(tickitems.hline)
 layout.addItem(ohlc_plt)
 layout.nextRow()
 # -------------------------------------------------------------------+
 
 # ----------------------------画出指标-------------------------------+
-# main_chart_layout.nextRow()
-# indicator_plt = pg.PlotWidget()     # 添加指标图表
-# indicator_plt = pg.PlotItem(viewBox=pg.ViewBox(), name='ohlc', axisItems={'bottom': xaxis})
 indicator_plt = makePI('indicator')
 indicator_plt.setXLink('ohlc_plt')
 indicator_plt.setMaximumHeight(200)
-pos_index = i_macd.to_df().macd >= 0
-neg_index = i_macd.to_df().macd < 0
+# pos_index = i_macd.to_df().macd >= 0
+# neg_index = i_macd.to_df().macd < 0
 macd_items_dict = dict()
-macd_items_dict['macd_pos'] = pg.BarGraphItem(x=i_macd.timeindex[pos_index], height=i_macd.macd[pos_index], width=0.35, brush='r')
-macd_items_dict['macd_neg'] = pg.BarGraphItem(x=i_macd.timeindex[neg_index], height=i_macd.macd[neg_index], width=0.35, brush='g')
-indicator_plt.addItem(macd_items_dict['macd_pos'])
-indicator_plt.addItem(macd_items_dict['macd_neg'])
+bar_line_type = pd.concat([i_macd.ohlc.close > i_macd.ohlc.open,
+                           i_macd.macd > 0], 1).apply(lambda x: (x.iloc[0] << 1) + x.iloc[1], 1)
+macd_items_dict['macd_pos>'] = pg.BarGraphItem(x=i_macd.timeindex[bar_line_type == 3], height=i_macd.macd[bar_line_type == 3], width=0.5, brush='r')
+macd_items_dict['macd_neg>'] = pg.BarGraphItem(x=i_macd.timeindex[bar_line_type == 2], height=i_macd.macd[bar_line_type == 2], width=0.5, brush='b')
+macd_items_dict['macd_pos<'] = pg.BarGraphItem(x=i_macd.timeindex[bar_line_type == 1], height=i_macd.macd[bar_line_type == 1], width=0.5, brush='y')
+macd_items_dict['macd_neg<'] = pg.BarGraphItem(x=i_macd.timeindex[bar_line_type == 0], height=i_macd.macd[bar_line_type == 0], width=0.5, brush='g')
+indicator_plt.addItem(macd_items_dict['macd_pos>'])
+indicator_plt.addItem(macd_items_dict['macd_neg>'])
+indicator_plt.addItem(macd_items_dict['macd_pos<'])
+indicator_plt.addItem(macd_items_dict['macd_neg<'])
 macd_items_dict['diff'] = indicator_plt.plot(i_macd.timeindex, i_macd.diff, pen='y')
 macd_items_dict['dea'] = indicator_plt.plot(i_macd.timeindex, i_macd.dea, pen='w')
 indicator_plt.showGrid(x=True, y=True)
@@ -138,7 +124,7 @@ date_slicer.setMaximumHeight(100)
 date_slicer.setMouseEnabled(False, False)
 close_curve = date_slicer.plot(ohlc.timeindex, ohlc.close)
 date_region = pg.LinearRegionItem([1, 100])
-print(date_region.getRegion(), ohlc.close.min())
+# print(date_region.getRegion(), ohlc.close.min())
 # date_slicer.setLimits(xMin=data.timeindex.min(),
 #                       xMax=data.timeindex.max(),
 #                       yMin=data.close.min(),
@@ -157,6 +143,63 @@ layout.addItem(date_slicer)
 # win.verticalLayout.addWidget(ohlc_plt)
 # win.verticalLayout_2.addWidget(indicator_plt)
 # win.verticalLayout_3.addWidget(date_slicer)
+
+# class Replot_Thread(QThread):
+#     ohlc_update_sig = pyqtSignal()
+#     def __init__(self, parent):
+#         super(Replot_Thread, self).__init__(parent)
+#         self.ohlc_update_sig.connect(self.start)
+#
+#     def run(self): # 重新画图
+#             ohlc.update(tick_datas)
+#             ohlcitems.setData(ohlc)
+#             # -----------------------------均线----------------------------------------------+
+#             for w in ma_items_dict:
+#                 ma_items_dict[w].setData(ohlc.timeindex.values, getattr(i_ma, w).values)
+#             # ----------------------------macd----------------------------------------------+
+#             pos_index = i_macd.to_df().macd >= 0
+#             neg_index = i_macd.to_df().macd < 0
+#             bar_line_type = pd.concat([i_macd.ohlc.close > i_macd.ohlc.open,
+#                                        i_macd.macd > 0], 1).apply(lambda x: (x.iloc[0] << 1) + x.iloc[1], 1)
+#             macd_items_dict['diff'].setData(i_macd.timeindex.values, i_macd.diff.values)
+#             macd_items_dict['dea'].setData(i_macd.timeindex.values, i_macd.dea.values)
+#             macd_items_dict['macd_pos>'].setOpts(x=i_macd.timeindex[bar_line_type == 3], height=i_macd.macd[pos_index])
+#             macd_items_dict['macd_neg>'].setOpts(x=i_macd.timeindex[bar_line_type == 2], height=i_macd.macd[neg_index])
+#             macd_items_dict['macd_pos<'].setOpts(x=i_macd.timeindex[bar_line_type == 1], height=i_macd.macd[pos_index])
+#             macd_items_dict['macd_neg<'].setOpts(x=i_macd.timeindex[bar_line_type == 0], height=i_macd.macd[neg_index])
+#             close_curve.setData(ohlc.timeindex.values, ohlc.close.values)
+#             xaxis.update_tickval(ohlc.timestamp)
+#         # ------------------------------------------------------------------------------------------------+
+#             ohlc_data_update_sync()
+# chart_replot_thread = Replot_Thread(win)
+
+def chart_replot(): # 重新画图
+        ohlc.update(tick_datas)
+        ohlcitems.setData(ohlc)
+        # -----------------------------均线----------------------------------------------+
+        for w in ma_items_dict:
+            ma_items_dict[w].setData(ohlc.timeindex.values, getattr(i_ma, w).values)
+        # ----------------------------macd----------------------------------------------+
+        # pos_index = i_macd.to_df().macd >= 0
+        # neg_index = i_macd.to_df().macd < 0
+        bar_line_type = pd.concat([i_macd.ohlc.close > i_macd.ohlc.open,
+                                   i_macd.macd > 0], 1).apply(lambda x: (x.iloc[0] << 1) + x.iloc[1], 1)
+        macd_items_dict['diff'].setData(i_macd.timeindex.values, i_macd.diff.values)
+        macd_items_dict['dea'].setData(i_macd.timeindex.values, i_macd.dea.values)
+        macd_items_dict['macd_pos>'].setOpts(x=i_macd.timeindex[bar_line_type == 3], height=i_macd.macd[bar_line_type == 3])
+        macd_items_dict['macd_neg>'].setOpts(x=i_macd.timeindex[bar_line_type == 2], height=i_macd.macd[bar_line_type == 2])
+        macd_items_dict['macd_pos<'].setOpts(x=i_macd.timeindex[bar_line_type == 1], height=i_macd.macd[bar_line_type == 1])
+        macd_items_dict['macd_neg<'].setOpts(x=i_macd.timeindex[bar_line_type == 0], height=i_macd.macd[bar_line_type == 0])
+        close_curve.setData(ohlc.timeindex.values, ohlc.close.values)
+        # todo pos_neg
+        # pos_neg = i_macd.macd >= 0
+        # pos_neg = (pos_neg.shift(1) + pos_neg + pos_neg.shift(-1)).apply(lambda x: x if abs(x) == 3 else 0)
+        # for i in pos_neg:
+        #     if i == 3
+
+
+        xaxis.update_tickval(ohlc.timestamp)
+        ohlc_data_update_sync()
 
 def ohlc_Yrange_update():
     viewrange = ohlc_plt.getViewBox().viewRange()
@@ -198,7 +241,11 @@ def ohlc_data_update_sync():
 
 
 def update_data_plot():
-    global ohlc, pos_index, neg_index, tick_datas, ohlc_plt
+    global tick_datas
+    # ---------------------------更新数据到图表----------------------------------------------------+
+    if not tick_datas._ohlc_queue.empty():
+        # chart_replot_thread.ohlc_update_sig.emit()
+        chart_replot()
     tickitems.update()
     tick_datas._timeindex = ohlc.timeindex.iloc[-1] + 1
     tickitems.setData(tick_datas)
@@ -209,24 +256,9 @@ def update_data_plot():
     if tick_datas.high.iloc[0] >= viewrange[1][1] or tick_datas.low.iloc[0] <= viewrange[1][0]:
         ohlc_plt.setYRange(min(viewrange[1][0], tick_datas.low.iloc[0]),
                            max(viewrange[1][1], tick_datas.high.iloc[0]))
-
-    # ---------------------------更新数据到图表----------------------------------------------------+
-    if not tick_datas._ohlc_queue.empty():
-        ohlc.update(tick_datas)
-        ohlcitems.setData(ohlc)
-
-        for w in ma_items_dict:
-            ma_items_dict[w].setData(ohlc.timeindex.values, getattr(i_ma, w).values)
-        pos_index = i_macd.to_df().macd >= 0
-        neg_index = i_macd.to_df().macd < 0
-        macd_items_dict['diff'].setData(i_macd.timeindex.values, i_macd.diff.values)
-        macd_items_dict['dea'].setData(i_macd.timeindex.values, i_macd.dea.values)
-        macd_items_dict['macd_pos'].setOpts(x=i_macd.timeindex[pos_index], height=i_macd.macd[pos_index])
-        macd_items_dict['macd_neg'].setOpts(x=i_macd.timeindex[neg_index], height=i_macd.macd[neg_index])
-        close_curve.setData(ohlc.timeindex.values, ohlc.close.values)
-        xaxis.update_tickval(ohlc.timestamp)
-    # ------------------------------------------------------------------------------------------------+
-        ohlc_data_update_sync()
+    # except Exception as e:
+    #     print(f'update_data_plot_error:{e}')
+    # else:
     app.processEvents()
 tickitems.tick_signal.connect(update_data_plot)
 tick_datas = NewOHLC('HSIF8')
@@ -237,11 +269,14 @@ mouse = mouseaction()
 proxy = mouse(ohlc_plt, ohlc, tick_datas)
 # ------------------------------------------------------------------+
 
-date_region.setRegion([ohlc.timeindex.max() - 120, ohlc.timeindex.max() + 4])  # 初始化可视区域
+date_region.setRegion([ohlc.timeindex.max() - 120, ohlc.timeindex.max() + 5])  # 初始化可视区域
 tick_datas._timeindex = ohlc.timeindex.iloc[-1] + 1
+ohlc_data_update_sync()
 
 
 if __name__ == '__main__':
+
+    win.resize(1200, 800)
     win.show()
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         sys.exit(app.exec())

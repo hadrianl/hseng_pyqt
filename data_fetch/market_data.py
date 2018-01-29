@@ -146,20 +146,24 @@ class NewOHLC(market_data_base):
             if not self._last_tick:
                 self._last_tick = ticker
             self._thread_lock.acquire()
+            # try:
             if self._last_tick.TickerTime//(60*self.ktype) == ticker.TickerTime//(60*self.ktype):
                 self._ticker = self._ticker.append({'tickertime': ticker.TickerTime,
-                                                'price': ticker.Price,
-                                                'qty': ticker.Qty}, ignore_index = True)
+                                                    'price': ticker.Price,
+                                                    'qty': ticker.Qty}, ignore_index = True)
             else:
                 self._ohlc_queue.put_nowait(self.data)
                 self._ticker = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
                 self._ticker = self._ticker.append({'tickertime': ticker.TickerTime,
-                                                'price': ticker.Price,
-                                                'qty': ticker.Qty}, ignore_index=True)
-
-            self._last_tick = ticker
+                                                    'price': ticker.Price,
+                                                    'qty': ticker.Qty}, ignore_index=True)
+            # except Exception as e:
+            #     print(f'ticker_update_error:{e}')
             self._thread_lock.release()
-            if self._sig and self._data_queue.qsize() <= 10:
+            # else:
+            self._last_tick = ticker
+            if self._sig:
+                print(f'{datetime.now()}剩余data_sub队列数量：{self._data_queue.qsize()}')
                 self._sig.emit()
 
     def active(self):

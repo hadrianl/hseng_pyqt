@@ -71,5 +71,4 @@ class mouseaction(QtCore.QObject):
                     self.yaxis_text.setPos(ohlc_plt.getViewBox().viewRange()[0][1], mousePoint.y())
 
 
-
         return pg.SignalProxy(ohlc_plt.scene().sigMouseMoved, rateLimit=60, slot=mouseMoved)
