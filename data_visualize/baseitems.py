@@ -21,14 +21,15 @@ class CandlestickItem(pg.GraphicsObject):
         self.flagHasData = False
         self.picture = QtGui.QPicture()
         self.PenWidth = 0.4
-        self.LinePen = pg.mkPen('w', width=self.PenWidth)
+        self.WLinePen = pg.mkPen('w', width=self.PenWidth)
+        self.GLinePen = pg.mkPen('g', width=self.PenWidth)
+        self.RLinePen = pg.mkPen('r', width=self.PenWidth)
         self.GreenBrush = pg.mkBrush('g')
         self.RedBrush = pg.mkBrush('r')
         self.is_current_bar = False
-
+        self.hline = pg.InfiniteLine(angle=0, movable=False, pen=self.WLinePen)
     def mark_line(self):
         self.is_current_bar = True
-        self.hline = pg.InfiniteLine(angle=0, movable=False, pen=self.LinePen)
         self.htext = pg.InfLineLabel(self.hline)
 
     def setData(self, ohlc):
@@ -43,7 +44,7 @@ class CandlestickItem(pg.GraphicsObject):
         ## rather than re-drawing the shapes every time.
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
-        p.setPen(self.LinePen)
+        p.setPen(self.WLinePen)
         w = self.PenWidth
         for (i, t, open, high, low, close) in self.data.itertuples():
             p.drawLine(QtCore.QPointF(i, low), QtCore.QPointF(i, high))
@@ -52,8 +53,10 @@ class CandlestickItem(pg.GraphicsObject):
                 self.htext.setText(f'{close}', color='w')
             if open > close:
                 p.setBrush(self.GreenBrush)
+                self.hline.setPen(self.GLinePen)
             else:
                 p.setBrush(self.RedBrush)
+                self.hline.setPen(self.RLinePen)
             p.drawRect(QtCore.QRectF(i-w, open, w*2, close-open))
         p.end()
 

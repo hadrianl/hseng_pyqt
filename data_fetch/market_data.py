@@ -66,16 +66,21 @@ class market_data_base():
 
 
 class OHLC(market_data_base):
-    def __init__(self, start, end,  symbol, ktype=1):
+    def __init__(self, start, end,  symbol, minbar=None,ktype=1):
         super(OHLC, self).__init__()
         self.start = start
         self.end = end
         self.ktype = ktype
         self.symbol = symbol
-        self._sql = f"select datetime, open, high, low, close from carry_investment.futures_min \
-                                    where datetime>=\"{start}\" \
-                                    and datetime<\"{end} \"\
-                                    and prodcode=\"{symbol}\""
+        if minbar:
+            self._sql = f"select datetime, open, high, low, close from " \
+                        f"(select * from carry_investment.futures_min where datetime<\"{end} \" and prodcode=\"{symbol}\" " \
+                        f"order by id desc limit 0,{minbar}) as fm order by fm.id asc"
+        else:
+            self._sql = f"select datetime, open, high, low, close from carry_investment.futures_min \
+                                        where datetime>=\"{start}\" \
+                                        and datetime<\"{end} \"\
+                                        and prodcode=\"{symbol}\""
         self.data = pd.read_sql(self._sql, self._conn)
         self.data.datetime = pd.to_datetime(self.data.datetime)
         self.indicators = {}
