@@ -97,7 +97,7 @@ class mouseaction(QtCore.QObject):
 
                 if 'i_macd' in indicator:
                     try:
-                        macd_text = f'<span style="color:red">MACD:{round(indicator["i_macd"].macd[x_index], 2)}<span/>  ' \
+                        macd_text = f'<span style="color:red">MACD:{round(indicator["i_macd"].Macd[x_index], 2)}<span/>  ' \
                                     f'<span style="color:yellow">DIFF:{round(indicator["i_macd"].diff[x_index], 2)}<span/>  ' \
                                     f'<span style="color:white">DEA:{round(indicator["i_macd"].dea[x_index], 2)}<span/>  '
                         self.macd_text.setHtml(macd_text)

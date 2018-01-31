@@ -100,9 +100,9 @@ class OHLC(market_data_base):
 
     def update(self, last_ohlc):
         ohlc_data = last_ohlc._ohlc_queue.get_nowait()
-        self.data = self.data.append(ohlc_data, ignore_index=True)
         if len(self.data) >= self.bar_size:
-            self.data.drop(self.data.index[0],inplace=True)
+            self.data.drop(self.data.index[0], inplace=True)
+        self.data = self.data.append(ohlc_data, ignore_index=True)
         for i,v in self.indicators.items():
             v.update(self)
 
@@ -141,7 +141,7 @@ class NewOHLC(market_data_base):
         while self.isactive:
             ticker = self._sub_socket.recv_pyobj()
             if ticker.ProdCode.decode() == self._symbol and ticker.DealSrc == 1:
-                print(f'data_sub队列数量：{self._data_queue.qsize()}')
+                # print(f'data_sub队列数量：{self._data_queue.qsize()}')
                 self._data_queue.put(ticker)
         self._sub_socket.disconnect()
 
@@ -151,7 +151,6 @@ class NewOHLC(market_data_base):
             if not self._last_tick:
                 self._last_tick = ticker
             self._thread_lock.acquire()
-            # try:
             if self._last_tick.TickerTime//(60*self.ktype) == ticker.TickerTime//(60*self.ktype):
                 self._ticker = self._ticker.append({'tickertime': ticker.TickerTime,
                                                     'price': ticker.Price,
@@ -162,13 +161,11 @@ class NewOHLC(market_data_base):
                 self._ticker = self._ticker.append({'tickertime': ticker.TickerTime,
                                                     'price': ticker.Price,
                                                     'qty': ticker.Qty}, ignore_index=True)
-            # except Exception as e:
-            #     print(f'ticker_update_error:{e}')
             self._thread_lock.release()
-            # else:
             self._last_tick = ticker
             if self._sig:
-                print(f'{datetime.now()}剩余data_sub队列数量：{self._data_queue.qsize()}')
+                # print(f'{datetime.fromtimestamp(ticker.TickerTime)}-price:{ticker.Price}-qty:{ticker.Qty}')
+                # print(f'{datetime.now()}剩余data_queue队列数量：{self._data_queue.qsize()}')
                 self._sig.emit()
 
     def active(self):
