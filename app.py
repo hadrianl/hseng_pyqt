@@ -6,19 +6,20 @@
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
 from data_fetch.market_data import OHLC, NewOHLC
-from data_handle.indicator import *
+from data_handle.indicator import Ma, Macd, Std
 from data_visualize.OHLC_ui import OHlCWidget
+from data_visualize.console import AnalysisConsole
 import datetime as dt
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtGui, QtCore, QtWidgets
+from pyqtgraph.Qt import QtCore, QtWidgets
 import sys
-from data_visualize.console import AnalysisConsole
+
 
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
 start_time = dt.datetime.now() - dt.timedelta(minutes=120)
 end_time = dt.datetime.now() + dt.timedelta(minutes=10)
-ohlc = OHLC(start_time, end_time, 'HSIG8', minbar=200)
+ohlc = OHLC(start_time, end_time, 'HSIG8')
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
@@ -31,8 +32,8 @@ tick_datas = NewOHLC('HSIG8')
 # -----------------------窗口与app初始化---------------------------------+
 app = QtWidgets.QApplication(sys.argv)
 win = OHlCWidget()
-  # 各个初始化之间存在依赖关系，需要按照以下顺序初始化
-win.binddata(ohlc=ohlc,tick_datas=tick_datas, i_ma=i_ma, i_macd=i_macd, i_std=i_std)
+# 各个初始化之间存在依赖关系，需要按照以下顺序初始化
+win.binddata(ohlc=ohlc, tick_datas=tick_datas, i_ma=i_ma, i_macd=i_macd, i_std=i_std)
 win.init_ohlc()  # 初始化ohlc主图
 win.init_ma()  # 初始化ma均线图
 win.init_indicator()  # 初始化指标
@@ -46,7 +47,7 @@ win.date_region.setRegion([win.ohlc.timeindex.max() - 120, win.ohlc.timeindex.ma
 win.tick_datas._timeindex = ohlc.timeindex.iloc[-1] + 1
 win.ohlc_data_update_sync()
 
-namespace = {'ohlc': ohlc, 'i_macd': i_macd, 'tick_datas': tick_datas}
+namespace = {'ohlc': ohlc, 'i_macd': i_macd, 'tick_datas': tick_datas, 'win': win}
 console = AnalysisConsole(namespace)
 
 

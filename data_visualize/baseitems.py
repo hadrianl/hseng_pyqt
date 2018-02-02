@@ -8,6 +8,7 @@
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
+from pandas import DataFrame
 import time
 from  PyQt5.Qt import QLine
 class CandlestickItem(pg.GraphicsObject):
@@ -15,6 +16,7 @@ class CandlestickItem(pg.GraphicsObject):
     蜡烛图的图形件
     """
     tick_signal = QtCore.pyqtSignal()
+    ohlc_replot_signal = QtCore.pyqtSignal(DataFrame)
 
     def __init__(self):
         pg.GraphicsObject.__init__(self)

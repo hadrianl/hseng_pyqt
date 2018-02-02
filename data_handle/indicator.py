@@ -40,6 +40,7 @@ class indicator_base():
             self.ohlc = new_data
             self.calc()
 
+
 class Macd(indicator_base):
     def __init__(self, short=12, long=26, m=9):
         super(Macd, self).__init__('MACD', short=short, long=long, m=m)
@@ -49,6 +50,8 @@ class Macd(indicator_base):
 
     def calc(self):
         close = self.ohlc.close
+        self._timestamp = self.ohlc.timestamp
+        self._timeindex = self.ohlc.timeindex
         self._diff = close.ewm(self._short).mean() - close.ewm(self._long).mean()
         self._dea = self._diff.ewm(self._m).mean()
         self._macd = (self._diff - self._dea) * 2
@@ -72,7 +75,7 @@ class Macd(indicator_base):
 class Ma(indicator_base):
     def __init__(self, **windows):
         super(Ma, self).__init__('MA', **windows)
-        self._windows = {('_'+k):v for k, v in windows.items()}
+        self._windows = {('_'+k): v for k, v in windows.items()}
         # for w in self._windows:
         #     self.__dict__['Ma' + str(w)] = self._close.rolling(w).mean().rename('Ma'+str(w))
 
@@ -87,6 +90,8 @@ class Ma(indicator_base):
         return f'<MA>----'+','.join(['Ma' + str(w) for w in self._windows])
 
     def calc(self):
+        self._timestamp = self.ohlc.timestamp
+        self._timeindex = self.ohlc.timeindex
         for k, v in self._windows.items():
             self.__dict__[k] = self.ohlc.close.rolling(v).mean().rename(k)
 
@@ -101,16 +106,20 @@ class Ma(indicator_base):
 
 class Std(indicator_base):
     def __init__(self, window=60, min_periods=2):
-        super(Std, self).__init__('std',window=window,min_periods=min_periods)
+        super(Std, self).__init__('std', window=window, min_periods=min_periods)
 
     def __str__(self):
         return f'<STD>----WINDOW{self._window}-MIN_PERIOUS:{self._min_periods}'
 
     def calc(self):
-        self._inc = self.ohlc.close - self.ohlc.close.shift(1)
+        self._timestamp = self.ohlc.timestamp
+        self._timeindex = self.ohlc.timeindex
+        # self._inc = (self.ohlc.close - self.ohlc.close.shift(1))/self.ohlc.close.shift(1)*1000
+        self._inc = self.ohlc.close - self.ohlc.open
+        self._avg = self._inc.rolling(window=self._window, min_periods=self._min_periods).mean()
         self._std = self._inc.rolling(window=self._window, min_periods=self._min_periods).std()
-        self._pos_std = self._inc + self._std*2
-        self._neg_std = self._inc - self._std*2
+        self._pos_std = self._std*2
+        self._neg_std = -self._std*2
 
     @property
     def inc(self):
@@ -125,11 +134,9 @@ class Std(indicator_base):
         return self._neg_std.rename('neg_std')
 
 
-
 if __name__ == '__main__':
     _df = OHLC('2017-12-15', '2017-12-18', 'HSIc1')
     _macd = Macd(_df)
     _ma = Ma(_df, 10, 20, 30)
     print(_macd)
     print(_ma)
-

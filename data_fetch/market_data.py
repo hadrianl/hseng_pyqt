@@ -8,13 +8,14 @@
 
 import pandas as pd
 import pymysql
-pymysql.install_as_MySQLdb()
 import sqlalchemy
 from data_fetch.util import *
 from threading import Thread, Lock
 from queue import Queue
 import zmq
 from datetime import datetime
+pymysql.install_as_MySQLdb()
+
 
 class market_data_base():
     def __init__(self):
@@ -40,7 +41,7 @@ class market_data_base():
 
     @property
     def datetime(self):
-        return  self.data['datetime']
+        return self.data['datetime']
 
     @property
     def timestamp(self):
@@ -63,10 +64,8 @@ class market_data_base():
         self._data = value
 
 
-
-
 class OHLC(market_data_base):
-    def __init__(self, start, end,  symbol, minbar=None,ktype=1):
+    def __init__(self, start, end,  symbol, minbar=None, ktype=1):
         super(OHLC, self).__init__()
         self.start = start
         self.end = end
@@ -95,19 +94,21 @@ class OHLC(market_data_base):
     def __add__(self, indicator):
         self._indicator_register(indicator)
 
-    def _indicator_register(self,indicator):
+    def _indicator_register(self, indicator):
             self.indicators[indicator.name] = indicator(self)
 
-    def update(self, last_ohlc):
-        ohlc_data = last_ohlc._ohlc_queue.get_nowait()
+    def update(self, last_ohlc_data):
         if len(self.data) >= self.bar_size:
             self.data.drop(self.data.index[0], inplace=True)
-        self.data = self.data.append(ohlc_data, ignore_index=True)
-        for i,v in self.indicators.items():
+        self.data = self.data.append(last_ohlc_data, ignore_index=True)
+        for i, v in self.indicators.items():
             v.update(self)
 
     def _resample(self, ktype):
-        self.data_resampled =  self.data.resample(ktype, on='datetime').agg({'open':lambda x:x.head(1),'high':lambda x:x.max(),'low':lambda x:x.min(), 'close':lambda x:x.tail(1)})
+        self.data_resampled = self.data.resample(ktype, on='datetime').agg({'open': lambda x: x.head(1),
+                                                                            'high': lambda x: x.max(),
+                                                                            'low': lambda x: x.min(),
+                                                                            'close': lambda x: x.tail(1)})
         return self.data_resampled
 
 
@@ -118,25 +119,26 @@ class NewOHLC(market_data_base):
         self.ktype = ktype
         self._ticker = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
         self.isactive = False
-        self._ohlc_queue = Queue()
         self._data_queue = Queue()
-        self._sig = None
+        self._tick_sig = None
+        self._ohlc_sig = None
 
         self._thread_lock = Lock()
         self._last_tick = None
 
-    def bindsignal(self, signal):
-        self._sig = signal
+    def bindsignal(self, tick_signal, ohlc_signal):
+        self._tick_sig = tick_signal
+        self._ohlc_sig = ohlc_signal
 
     def _ticker_sub(self):
         self._sub_socket = zmq.Context().socket(zmq.SUB)
-        self._sub_socket.connect('tcp://192.168.2.237:6868')
+        self._sub_socket.connect(f'tcp://{KAIRUI_SERVER_IP}:6868')
         self._sub_socket.set_string(zmq.SUBSCRIBE, '')
         try:
             sql = 'select tickertime, price, qty from carry_investment.futures_tick where tickertime>=(select DATE_FORMAT(TIMESTAMP(max(tickertime)),"%%Y-%%m-%%d %%H:%%i:00") from carry_investment.futures_tick)'
             self._ticker = pd.read_sql(sql, self._conn)
             self._ticker.tickertime = self._ticker.tickertime.apply(lambda x: x.timestamp())
-        except Exception as e:
+        except Exception:
             self._ticker = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
         while self.isactive:
             ticker = self._sub_socket.recv_pyobj()
@@ -154,19 +156,19 @@ class NewOHLC(market_data_base):
             if self._last_tick.TickerTime//(60*self.ktype) == ticker.TickerTime//(60*self.ktype):
                 self._ticker = self._ticker.append({'tickertime': ticker.TickerTime,
                                                     'price': ticker.Price,
-                                                    'qty': ticker.Qty}, ignore_index = True)
+                                                    'qty': ticker.Qty}, ignore_index=True)
             else:
-                self._ohlc_queue.put_nowait(self.data)
+                self._ohlc_sig.emit(self.data)
                 self._ticker = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
                 self._ticker = self._ticker.append({'tickertime': ticker.TickerTime,
                                                     'price': ticker.Price,
                                                     'qty': ticker.Qty}, ignore_index=True)
             self._thread_lock.release()
             self._last_tick = ticker
-            if self._sig:
+            if self._tick_sig:
                 # print(f'{datetime.fromtimestamp(ticker.TickerTime)}-price:{ticker.Price}-qty:{ticker.Qty}')
                 # print(f'{datetime.now()}剩余data_queue队列数量：{self._data_queue.qsize()}')
-                self._sig.emit()
+                self._tick_sig.emit()
 
     def active(self):
         self.isactive = True
@@ -188,8 +190,6 @@ class NewOHLC(market_data_base):
              'low': self._ticker.price.min(),
              'close': self._ticker.price.iloc[-1]}
         return pd.DataFrame(d, index=[self._timeindex], columns=['datetime', 'open', 'high', 'low', 'close'])
-
-
 
 
 if __name__ == '__main__':
