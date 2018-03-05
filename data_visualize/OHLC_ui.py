@@ -83,7 +83,6 @@ class OHlCWidget(KeyEventWidget):
     def __init__(self, parent=None):
         self.parent = parent
         super(OHlCWidget, self).__init__(parent)
-        self.setWindowTitle('实盘分钟图')
         self.pw = pg.PlotWidget()
         self.main_layout = pg.GraphicsLayout(border=(100, 100, 100))
         self.main_layout.setGeometry(QtCore.QRectF(10, 10, 1200, 700))
