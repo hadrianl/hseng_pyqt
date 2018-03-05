@@ -64,7 +64,7 @@ class market_data_base():
         self._data = value
 
 
-class OHLC(market_data_base):
+class OHLC(market_data_base):  # 主图表的OHLC数据类
     def __init__(self, start, end,  symbol, minbar=None, ktype=1):
         super(OHLC, self).__init__()
         self.start = start
@@ -91,10 +91,10 @@ class OHLC(market_data_base):
     def __repr__(self):
         return self.data.__repr__()
 
-    def __add__(self, indicator):
+    def __add__(self, indicator):  # 重载+号，能够通过“OHLC + 指标”的语句添加指标
         self._indicator_register(indicator)
 
-    def _indicator_register(self, indicator):
+    def _indicator_register(self, indicator):  # 添加注册指标进入图表的函数
             self.indicators[indicator.name] = indicator(self)
 
     def update(self, last_ohlc_data):
@@ -112,7 +112,7 @@ class OHLC(market_data_base):
         return self.data_resampled
 
 
-class NewOHLC(market_data_base):
+class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前最新处于活跃交易状态的OHLC
     def __init__(self, symbol, ktype=1):
         super(NewOHLC, self).__init__()
         self._symbol = symbol
