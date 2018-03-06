@@ -129,6 +129,8 @@ class DateAxis(pg.AxisItem):
         return strns
 
 
-class basechart():
-    """"
-    基础图表架构"""
+class TradeDataScatter(pg.ScatterPlotItem):
+    def __init__(self, brush='r'):
+        self.PenWidth = 0.4
+        super(TradeDataScatter, self).__init__(pen= pg.mkPen('g', width=self.PenWidth),
+                                               symbol='t',brush=pg.mkBrush(brush))
