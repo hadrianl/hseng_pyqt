@@ -8,11 +8,11 @@
 from login import Ui_LoginWindow
 from PyQt5.Qt import QDialog, QMessageBox
 
-class LoginDialog(QDialog):
+class LoginDialog(QDialog, Ui_LoginWindow):
     def __init__(self):
-        super(LoginDialog, self).__init__()
-        self.ui = Ui_LoginWindow()
-        self.ui.setupUi(self)
+        QDialog.__init__(self)
+        Ui_LoginWindow.__init__(self)
+        self.setupUi(self)
 
     def login_check(self):
         # if self.ui.UserName.text() == 'hadrianl' and self.ui.Password.text() == '666666':
