@@ -7,7 +7,7 @@
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
 import pyqtgraph as pg
-from data_visualize.baseitems import DateAxis, CandlestickItem
+from data_visualize.baseitems import DateAxis, CandlestickItem, TradeDataScatter
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.Qt import QFont
 import PyQt5
@@ -173,6 +173,12 @@ class OHlCWidget(KeyEventWidget):
         self.std_plt.getViewBox().setXLink(self.ohlc_plt.getViewBox())
         self.main_layout.addItem(self.std_plt)
         self.main_layout.nextRow()
+
+    def init_trade_data(self):  # todo tradedata
+        self.tradeitems = TradeDataScatter('b')
+        print(self.trade_data['OpenTime'], self.trade_data['OpenPrice'])
+        self.tradeitems.setData(x=self.trade_data['OpenTime'], y=self.trade_data['OpenPrice'])
+        self.ohlc_plt.addItem(self.tradeitems)
 
     def init_date_slice(self):  # 初始化时间切片图
         self.date_slicer = self.makePI('date_slicer')

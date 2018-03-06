@@ -11,6 +11,7 @@ from data_visualize.OHLC_ui import OHlCWidget
 from data_visualize.console import AnalysisConsole
 from data_visualize.Login_ui import LoginDialog
 from data_fetch.util import MONTH_LETTER_MAPS
+from data_fetch.trade_data import TradeData
 import datetime as dt
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
@@ -29,6 +30,7 @@ tick_datas = NewOHLC('HSIH8')
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
+trade_data = TradeData(start_time, end_time, 'HSENG$.MAR8')
 # 将指标假如到主图数据里
 ohlc + i_ma
 ohlc + i_macd
@@ -39,11 +41,12 @@ app = QtWidgets.QApplication(sys.argv)
 win = OHlCWidget()
 win.setWindowTitle(symbol + '实盘分钟图')
 # 各个初始化之间存在依赖关系，需要按照以下顺序初始化
-win.binddata(ohlc=ohlc, tick_datas=tick_datas, i_ma=i_ma, i_macd=i_macd, i_std=i_std)  # 把数据与UI绑定
+win.binddata(ohlc=ohlc, tick_datas=tick_datas, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_data=trade_data)  # 把数据与UI绑定
 win.init_ohlc()  # 初始化ohlc主图
 win.init_ma()  # 初始化ma均线图
 win.init_indicator()  # 初始化指标
 win.init_std()  # 初始化std指标
+win.init_trade_data()  # 初始化交易数据的对接
 win.init_date_slice()  # 初始化时间切片
 win.init_mouseaction()  # 初始化十字光标与鼠标交互
 win.init_signal()  # 初始化指标
