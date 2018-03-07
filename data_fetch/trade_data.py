@@ -42,7 +42,41 @@ class TradeData():
     def __getitem__(self, key):
         return self._trade_data.__getitem__(key)
 
+    def update(self, t):
+        self.start = self.start + dt.timedelta(minutes=t)
+        self.end = self.end + dt.timedelta(minutes=t)
+        try:
+            self._trade_data = pd.read_sql(self._sql, self._conn)
+            self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
+            self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
+        except Exception as e:
+            print(e)
+            self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
+                                                     'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
+
     @property
     def account(self):
         return self._trade_data.Account_ID.unique().tolist()
+
+    @property
+    def data(self):
+        return self._trade_data
+
+    @property
+    def open(self):
+        return self._trade_data[['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice', 'Type', 'Lots']].set_index('OpenTime').to_period('T')
+
+    @property
+    def close(self):
+        return self._trade_data[['Ticket', 'Account_ID', 'CloseTime', 'ClosePrice', 'Type', 'Lots']].set_index('CloseTime').to_period('T')
+
+    @property
+    def long(self):
+        return self._trade_data.query('Type==0')[['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',  'CloseTime', 'ClosePrice', 'Lots']]
+
+    @property
+    def short(self):
+        return self._trade_data.query('Type==1')[['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',  'CloseTime', 'ClosePrice', 'Lots']]
+
+
 

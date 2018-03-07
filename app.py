@@ -25,12 +25,12 @@ start_time = dt.datetime.now() - dt.timedelta(minutes=120)
 end_time = dt.datetime.now() + dt.timedelta(minutes=10)
 symbol = 'HSI' + MONTH_LETTER_MAPS[dt.datetime.now().month] + str(dt.datetime.now().year)[-1]  # 根据当前时间生成品种代码
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
-ohlc = OHLC(start_time, end_time, 'HSIH8')
+ohlc = OHLC(start_time, end_time, 'HSIH8', minbar=120)
 tick_datas = NewOHLC('HSIH8')
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
-trade_data = TradeData(start_time, end_time, 'HSENG$.MAR8')
+trade_datas = TradeData(start_time, end_time, 'HSENG$.MAR8')
 # 将指标假如到主图数据里
 ohlc + i_ma
 ohlc + i_macd
@@ -41,7 +41,7 @@ app = QtWidgets.QApplication(sys.argv)
 win = OHlCWidget()
 win.setWindowTitle(symbol + '实盘分钟图')
 # 各个初始化之间存在依赖关系，需要按照以下顺序初始化
-win.binddata(ohlc=ohlc, tick_datas=tick_datas, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_data=trade_data)  # 把数据与UI绑定
+win.binddata(ohlc=ohlc, tick_datas=tick_datas, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_datas=trade_datas)  # 把数据与UI绑定
 win.init_ohlc()  # 初始化ohlc主图
 win.init_ma()  # 初始化ma均线图
 win.init_indicator()  # 初始化指标
@@ -56,7 +56,34 @@ win.date_region.setRegion([win.ohlc.timeindex.max() - 120, win.ohlc.timeindex.ma
 win.tick_datas._timeindex = ohlc.timeindex.iloc[-1] + 1
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 
-namespace = {'ohlc': ohlc, 'i_macd': i_macd, 'tick_datas': tick_datas, 'win': win}  # console的命名空间
+
+def help():
+    text = f'''主要命名空间：ohlc, tick_datas,trade_datas, win
+    ohlc是数据类的历史K线数据；tick_datas是数据类的当前K线数据(包括当前k线内的tick数据）；
+    trade_datas是交易数据；win是可视化类的主窗口
+    主要用法：
+    ohlc.data-历史K线数据
+    ohlc.indicator-历史K线指标数据
+    ohlc.open-历史K线open
+    ohlc.high-历史K线high
+    ohlc.low-历史K线low
+    ohlc.close-历史K线close
+    ohlc.datetime-历史K线时间
+    ohlc.timestamp-历史K线时间戳
+    ohlc.timeindex-历史k线时间序列
+    tick_datas有ohlc以上的所有属性，另外
+    tick_datas.ticker-当前K线的ticker数据
+    trade_datas.account-交易数据包含的账户
+    win.ohlc_plt-主窗口主图
+    win.indicator_plt-主窗口指标图
+    win.ma_items_dict-主窗口ma
+    win.macd_items_dict-主窗口macd
+    win.std_plt-主窗口std图
+    win.std_items_dict-主窗口std
+    win.mouse-主窗口鼠标
+    '''
+    print(text)
+namespace = {'ohlc': ohlc, 'tick_datas': tick_datas, 'trade_datas': trade_datas, 'win': win, 'help': help}  # console的命名空间
 console = AnalysisConsole(namespace)
 
 
@@ -68,6 +95,8 @@ if __name__ == '__main__':
             console.show()
         else:
             console.focusWidget()
+
+
     win.resize(1200, 800)
     login_win = LoginDialog()
     login_win.show()

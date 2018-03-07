@@ -183,6 +183,10 @@ class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前�
         self._data_update_thread.join()
 
     @property
+    def ticker(self):
+        return self._ticker
+
+    @property
     def data(self):
         d = {'datetime': datetime.fromtimestamp((self._ticker.iloc[0].tickertime // 60) * 60),
              'open': self._ticker.price.iloc[0],

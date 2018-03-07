@@ -7,9 +7,9 @@
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
 import pyqtgraph as pg
-from data_visualize.baseitems import DateAxis, CandlestickItem, TradeDataScatter
+from data_visualize.baseitems import DateAxis, CandlestickItem, TradeDataScatter, TradeDataLinkLine
 from PyQt5 import QtGui, QtWidgets, QtCore
-from PyQt5.Qt import QFont
+from PyQt5.Qt import QFont, QMessageBox
 import PyQt5
 from data_fetch.util import *
 import pandas as pd
@@ -175,10 +175,57 @@ class OHlCWidget(KeyEventWidget):
         self.main_layout.nextRow()
 
     def init_trade_data(self):  # todo tradedata
-        self.tradeitems = TradeDataScatter('b')
-        print(self.trade_data['OpenTime'], self.trade_data['OpenPrice'])
-        self.tradeitems.setData(x=self.trade_data['OpenTime'], y=self.trade_data['OpenPrice'])
-        self.ohlc_plt.addItem(self.tradeitems)
+        self.tradeitems_dict = {}
+        self.tradeitems_dict['open'] = TradeDataScatter(brush='b', symbol='t1')
+        self.tradeitems_dict['close'] = TradeDataScatter(brush='y', symbol='t')
+        try:
+            print(self.ohlc.datetime.reset_index().set_index('datetime').loc[self.trade_datas.open.index.start_time, 'index'])
+            self.tradeitems_dict['open'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
+                                                 .loc[self.trade_datas.open.index.start_time, 'index'],
+                                                 y=self.trade_datas['OpenPrice'])
+            self.ohlc_plt.addItem(self.tradeitems_dict['open'])
+            self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
+                                                 .loc[self.trade_datas.close.index.start_time, 'index'],
+                                                 y=self.trade_datas['ClosePrice'])
+            self.ohlc_plt.addItem(self.tradeitems_dict['close'])
+        except Exception as e:
+            print(e)
+            # raise e
+            QMessageBox.critical(self, '加载错误', 'trade_data加载错误')
+
+        try:
+            self.tradeitems_dict['link_line'] = TradeDataLinkLine(pen='w')
+            print(self.tradeitems_dict['link_line'].listPoints())
+            self.ohlc_plt.addItem(self.tradeitems_dict['link_line'])
+
+            def link_line(a, b):
+                if a is self.tradeitems_dict['open']:
+                    for i, d in enumerate(self.tradeitems_dict['open'].data):
+                        if b[0].pos().x() == d[0] and b[0].pos().y() == d[1]:
+                            index = i
+                            break
+                elif a is self.tradeitems_dict['close']:
+                    for i, d in enumerate(self.tradeitems_dict['close'].data):
+                        if b[0].pos().x() == d[0] and b[0].pos().y() == d[1]:
+                            index = i
+                            break
+                self.tradeitems_dict['link_line'].setData([[self.tradeitems_dict['open'].data[index][0],
+                                                            self.tradeitems_dict['open'].data[index][1]],
+                                                           [self.tradeitems_dict['close'].data[index][0],
+                                                            self.tradeitems_dict['close'].data[index][1]]
+                                                           ], 'r')
+                print([[self.tradeitems_dict['open'].data[index][0],
+                        self.tradeitems_dict['open'].data[index][1]],
+                       [self.tradeitems_dict['close'].data[index][0],
+                        self.tradeitems_dict['close'].data[index][1]]])
+                print(b[0].pos())
+            self.tradeitems_dict['open'].sigClicked.connect(link_line)
+            self.tradeitems_dict['close'].sigClicked.connect(link_line)
+        except Exception as e:
+            print(e)
+            raise e
+
+
 
     def init_date_slice(self):  # 初始化时间切片图
         self.date_slicer = self.makePI('date_slicer')
@@ -206,7 +253,9 @@ class OHlCWidget(KeyEventWidget):
         macd_items_dict = self.macd_items_dict
         std_items_dict = self.std_items_dict
         i_macd = self.i_macd
-        ohlc.update(last_ohlc_data)
+        trade_datas = self.trade_datas
+        ohlc.update(last_ohlc_data)  # 更新ohlc数据以及相关的指标等数据
+        trade_datas.update(1)  # 更新交易数据
         ohlcitems.setData(ohlc)
         # -----------------------------均线----------------------------------------------+
         for w in ma_items_dict:
@@ -232,6 +281,15 @@ class OHlCWidget(KeyEventWidget):
 
         self.close_curve.setData(ohlc.timeindex.values, ohlc.close.values)
         self.xaxis.update_tickval(ohlc.timestamp)
+        try:
+            self.tradeitems_dict['open'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
+                                                 .loc[self.trade_datas.open.index.start_time, 'index'],
+                                                 y=self.trade_datas['OpenPrice'])
+            self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
+                                                  .loc[self.trade_datas.close.index.start_time, 'index'],
+                                                  y=self.trade_datas['ClosePrice'])
+        except Exception as e:
+            print(e)
         self.ohlc_data_update_sync()
 
     def ohlc_Yrange_update(self):  # 更新主图和指标图的高度
