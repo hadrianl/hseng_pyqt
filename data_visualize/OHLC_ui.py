@@ -134,15 +134,15 @@ class OHlCWidget(KeyEventWidget):
         self.ma_items_dict = {}
         for w in self.i_ma._windows:
             self.ma_items_dict[w] = self.ohlc_plt.plot(self.ohlc.timeindex, getattr(self.i_ma, w),
-                                             pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
+                                                       pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
 
     def init_indicator(self):  # 初始化指标图
         self.macd_items_dict = {}
         self.indicator_plt = self.makePI('indicator')
         # self.indicator_plt.setXLink('ohlc')
         self.indicator_plt.setMaximumHeight(150)
-        macd_pens = pd.concat([self.i_macd.ohlc.close > self.i_macd.ohlc.open,self.i_macd.macd > 0], 1).\
-            apply(lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1:'y', 0: 'g'})
+        macd_pens = pd.concat([self.i_macd.ohlc.close > self.i_macd.ohlc.open, self.i_macd.macd > 0], 1).apply(
+            lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
         macd_brushs = [None if (self.i_macd.macd > self.i_macd.macd.shift(1))[i]
                        else v for i, v in macd_pens.iteritems()]
         self.macd_items_dict['Macd'] = pg.BarGraphItem(x=self.i_macd.timeindex, height=self.i_macd.macd,
@@ -162,8 +162,8 @@ class OHlCWidget(KeyEventWidget):
         # self.std_plt.setXLink('ohlc')
         self.std_plt.setMaximumHeight(150)
         self.brushes = std_brushes = pd.concat([self.i_std.inc > self.i_std.pos_std,
-                                self.i_std.inc < self.i_std.neg_std], 1)\
-            .apply(lambda x: {2: 'r', 1: 'b', 0: 'y'}[(x.iloc[0]<<1) + x.iloc[1]], 1)
+                                                self.i_std.inc < self.i_std.neg_std], 1).\
+            apply(lambda x: {2: 'r', 1: 'b', 0: 'y'}[(x.iloc[0] << 1) + x.iloc[1]], 1)
         self.std_items_dict['inc'] = pg.BarGraphItem(x=self.i_std.timeindex, height=self.i_std.inc,
                                                      width=0.5, brushes=std_brushes)
         self.std_plt.addItem(self.std_items_dict['inc'])
@@ -222,7 +222,7 @@ class OHlCWidget(KeyEventWidget):
                 pen_color_type = ((open_symbol == 't1') << 1) + (open_y < close_y)
                 pen_color_map_dict = {0: 'r', 1: 'g', 2: 'g', 3: 'r'}
                 self.tradeitems_dict['link_line'].setData([[open_x, open_y],
-                                                           [close_x,close_y]],
+                                                           [close_x, close_y]],
                                                           pen_color_map_dict[pen_color_type])
                 self.tradeitems_dict['info_text'].setHtml(f'<span style="color:white">Account:{self.trade_datas["Account_ID"].iloc[index]}<span/><br/>'
                                                           f'<span style="color:blue">Open :{open_y}<span/><br/>'
@@ -231,15 +231,13 @@ class OHlCWidget(KeyEventWidget):
                                                           f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/>')
                 self.tradeitems_dict['info_text'].setPos(self.ohlc_plt.getViewBox().viewRange()[0][1],
                                                          self.ohlc_plt.getViewBox().viewRange()[1][0])
-                print([[open_x, open_y],[close_x,close_y]])
+                print([[open_x, open_y], [close_x, close_y]])
                 print(b[0].pos())
             self.tradeitems_dict['open'].sigClicked.connect(link_line)
             self.tradeitems_dict['close'].sigClicked.connect(link_line)
         except Exception as e:
             print(e)
             raise e
-
-
 
     def init_date_slice(self):  # 初始化时间切片图
         self.date_slicer = self.makePI('date_slicer')
@@ -257,7 +255,7 @@ class OHlCWidget(KeyEventWidget):
                                 i_ma=self.i_ma, i_macd=self.i_macd, i_std=self.i_std)
 
     def init_buttons(self):
-        self.consolebutton = QtWidgets.QPushButton(text='交互console',parent=self.pw)
+        self.consolebutton = QtWidgets.QPushButton(text='交互console', parent=self.pw)
         self.consolebutton.setGeometry(QtCore.QRect(10, 250, 75, 23))
 
     def chart_replot(self, last_ohlc_data):  # 重新画图
@@ -282,13 +280,13 @@ class OHlCWidget(KeyEventWidget):
              self.i_macd.macd > 0], 1).apply(
             lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
         macd_brushes = [None if (self.i_macd.macd > self.i_macd.macd.shift(1))[i]
-                       else v for i, v in macd_pens.iteritems()]
+                        else v for i, v in macd_pens.iteritems()]
         self.macd_items_dict['Macd'].setOpts(x=i_macd.timeindex, height=i_macd.macd, pens=macd_pens, brushes=macd_brushes)
         # ----------------------------std-------------------------------------------------+
         self.brushes = std_brushes = pd.concat(
             [self.i_std.inc > self.i_std.pos_std,
              self.i_std.inc < self.i_std.neg_std], 1).apply(
-            lambda x: {2: 'r', 1: 'b', 0: 'y'}[(x.iloc[0]<<1) + x.iloc[1]], 1)
+            lambda x: {2: 'r', 1: 'b', 0: 'y'}[(x.iloc[0] << 1) + x.iloc[1]], 1)
         std_items_dict['pos_std'].setData(self.i_std.timeindex, self.i_std.pos_std)
         std_items_dict['neg_std'].setData(self.i_std.timeindex, self.i_std.neg_std)
         std_items_dict['inc'].setOpts(x=self.i_std.timeindex, height=self.i_std.inc, brushes=std_brushes)

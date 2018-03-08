@@ -57,7 +57,7 @@ win.tick_datas._timeindex = ohlc.timeindex.iloc[-1] + 1
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 
 
-def help():
+def help_doc():
     text = f'''主要命名空间：ohlc, tick_datas,trade_datas, win
     ohlc是数据类的历史K线数据；tick_datas是数据类的当前K线数据(包括当前k线内的tick数据）；
     trade_datas是交易数据；win是可视化类的主窗口

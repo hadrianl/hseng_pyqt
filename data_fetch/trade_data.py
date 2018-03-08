@@ -6,7 +6,6 @@
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
 import pandas as pd
-import pymysql
 import sqlalchemy
 from data_fetch.util import *
 import datetime as dt
@@ -77,6 +76,3 @@ class TradeData():
     @property
     def short(self):
         return self._trade_data.query('Type==1')[['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',  'CloseTime', 'ClosePrice', 'Lots']]
-
-
-

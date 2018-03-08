@@ -10,7 +10,8 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
 from pandas import DataFrame
 import time
-from  PyQt5.Qt import QLine
+
+
 class CandlestickItem(pg.GraphicsObject):
     """
     蜡烛图的图形件
@@ -30,6 +31,7 @@ class CandlestickItem(pg.GraphicsObject):
         self.RedBrush = pg.mkBrush('r')
         self.is_current_bar = False
         self.hline = pg.InfiniteLine(angle=0, movable=False, pen=self.WLinePen)
+
     def mark_line(self):
         self.is_current_bar = True
         self.htext = pg.InfLineLabel(self.hline)
@@ -40,10 +42,9 @@ class CandlestickItem(pg.GraphicsObject):
         self.generatePicture()
         self.informViewBoundsChanged()
 
-
     def generatePicture(self):
-        ## pre-computing a QPicture object allows paint() to run much more quickly,
-        ## rather than re-drawing the shapes every time.
+        # pre-computing a QPicture object allows paint() to run much more quickly,
+        # rather than re-drawing the shapes every time.
         self.picture = QtGui.QPicture()
         p = QtGui.QPainter(self.picture)
         p.setPen(self.WLinePen)
@@ -67,9 +68,9 @@ class CandlestickItem(pg.GraphicsObject):
             p.drawPicture(0, 0, self.picture)
 
     def boundingRect(self):
-        ## boundingRect _must_ indicate the entire area that will be drawn on
-        ## or else we will get artifacts and possibly crashing.
-        ## (in this case, QPicture does all the work of computing the bouning rect for us)
+        # boundingRect _must_ indicate the entire area that will be drawn on
+        # or else we will get artifacts and possibly crashing.
+        # (in this case, QPicture does all the work of computing the bouning rect for us)
         return QtCore.QRectF(self.picture.boundingRect())
 
 
@@ -77,11 +78,11 @@ class DateAxis(pg.AxisItem):
     """
     时间轴标签件，timestamp转换为string
     """
-    def __init__(self,timestamp_mapping, orientation='bottom', *args):
+    def __init__(self, timestamp_mapping, orientation='bottom', *args):
         super(DateAxis, self).__init__(orientation, *args)
         self._timestamp_mapping = timestamp_mapping
 
-    def update_tickval(self,timestamp_mapping):
+    def update_tickval(self, timestamp_mapping):
         self._timestamp_mapping = timestamp_mapping
 
     def tickStrings(self, values, scale, spacing):
@@ -92,7 +93,7 @@ class DateAxis(pg.AxisItem):
         except Exception as e:
             timestamp = []
             rng =0
-        #if rng < 120:
+        # if rng < 120:
         #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
         if rng < 3600*24:
             string = '%H:%M:%S'
@@ -106,7 +107,7 @@ class DateAxis(pg.AxisItem):
             string = '%b'
             label1 = '%Y -'
             label2 = ' %Y'
-        elif rng >=3600*24*30*24:
+        elif rng >= 3600*24*30*24:
             string = '%Y'
             label1 = ''
             label2 = ''
@@ -122,7 +123,7 @@ class DateAxis(pg.AxisItem):
                 strns.append('')
         try:
             label = time.strftime(label1, time.localtime(min(timestamp)))+time.strftime(label2, time.localtime(max(timestamp)))
-        except  Exception as e:
+        except Exception as e:
             # print(e)
             label = ''
         self.setLabel(text=label)
@@ -130,23 +131,21 @@ class DateAxis(pg.AxisItem):
 
 
 class TradeDataScatter(pg.ScatterPlotItem):
-    def __init__(self, brush='r',symbol='t'):
+    def __init__(self, brush='r', symbol='t'):
         self.PenWidth = 0.4
-        super(TradeDataScatter, self).__init__(pen= pg.mkPen('w', width=self.PenWidth),
-                                               symbol=symbol,brush=pg.mkBrush(brush))
-
+        super(TradeDataScatter, self).__init__(pen=pg.mkPen('w', width=self.PenWidth),
+                                               symbol=symbol, brush=pg.mkBrush(brush))
 
 
 class TradeDataLinkLine(pg.LineSegmentROI):
     def __init__(self, pen):
-        super(TradeDataLinkLine, self).__init__(positions=[[0,0],[0,0]], pen=pen, movable=False)
+        super(TradeDataLinkLine, self).__init__(positions=[[0, 0], [0, 0]], pen=pen, movable=False)
         self.setPen(pen)
 
-    def setData(self,positions, pen):
+    def setData(self, positions, pen):
         self.setPen(pen)
         handles = (None, None)
         for i in range(len(self.getHandles())):
             self.removeHandle(0)
         for i, p in enumerate(positions):
             self.addFreeHandle(p, item=handles[i])
-

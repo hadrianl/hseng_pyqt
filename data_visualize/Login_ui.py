@@ -8,6 +8,7 @@
 from login import Ui_LoginWindow
 from PyQt5.Qt import QDialog, QMessageBox
 
+
 class LoginDialog(QDialog, Ui_LoginWindow):
     def __init__(self):
         QDialog.__init__(self)

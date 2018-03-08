@@ -135,10 +135,12 @@ class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前�
         self._sub_socket.connect(f'tcp://{KAIRUI_SERVER_IP}:6868')
         self._sub_socket.set_string(zmq.SUBSCRIBE, '')
         try:
-            sql = 'select tickertime, price, qty from carry_investment.futures_tick where tickertime>=(select DATE_FORMAT(TIMESTAMP(max(tickertime)),"%%Y-%%m-%%d %%H:%%i:00") from carry_investment.futures_tick)'
+            sql = 'select tickertime, price, qty from carry_investment.futures_tick ' \
+                  'where tickertime>=(select DATE_FORMAT(TIMESTAMP(max(tickertime)),"%%Y-%%m-%%d %%H:%%i:00") ' \
+                  'from carry_investment.futures_tick)'
             self._ticker = pd.read_sql(sql, self._conn)
             self._ticker.tickertime = self._ticker.tickertime.apply(lambda x: x.timestamp())
-        except Exception:
+        except Exception as e:
             self._ticker = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
         while self.isactive:
             ticker = self._sub_socket.recv_pyobj()

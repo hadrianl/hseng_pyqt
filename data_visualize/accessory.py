@@ -82,8 +82,6 @@ class mouseaction(QtCore.QObject):
                         if isinstance(i, pg.InfiniteLine) and i.name() == 'vline':
                             i.setPos(x_index)
 
-
-
                 if self._if:
                     try:
                         if x_index == t_max + 1:
@@ -107,7 +105,6 @@ class mouseaction(QtCore.QObject):
                 if self._at:
                     self.xaxis_text.setPos(x_index, ohlc_plt.vb.viewRange()[1][0])
                     self.yaxis_text.setPos(ohlc_plt.vb.viewRange()[0][1], mousePoint.y()) if inside else ...
-
 
                 if 'i_ma' in indicator:
                     try:

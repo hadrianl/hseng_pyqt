@@ -12,6 +12,6 @@ import pyqtgraph.console
 
 class AnalysisConsole(pyqtgraph.console.ConsoleWidget):
     def __init__(self, namespace):
-        text = f'''实盘分析Console测试（help()调用帮助文档）'''
+        text = f'''实盘分析Console测试（help_doc()调用帮助文档）'''
         super(AnalysisConsole,self).__init__(namespace=namespace, text=text)
         self.setWindowTitle(text)
