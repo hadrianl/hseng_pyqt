@@ -180,23 +180,26 @@ class OHlCWidget(KeyEventWidget):
         self.tradeitems_dict['close'] = TradeDataScatter(brush='y', symbol='t')
         try:
             print(self.ohlc.datetime.reset_index().set_index('datetime').loc[self.trade_datas.open.index.start_time, 'index'])
+            self.ohlc_plt.addItem(self.tradeitems_dict['open'])
+            self.ohlc_plt.addItem(self.tradeitems_dict['close'])
             self.tradeitems_dict['open'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
                                                  .loc[self.trade_datas.open.index.start_time, 'index'],
                                                  y=self.trade_datas['OpenPrice'])
-            self.ohlc_plt.addItem(self.tradeitems_dict['open'])
+            self.tradeitems_dict['open'].setSymbol(['t1' if t == 0 else 't'for t in self.trade_datas['Type'] ])
             self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
                                                  .loc[self.trade_datas.close.index.start_time, 'index'],
                                                  y=self.trade_datas['ClosePrice'])
-            self.ohlc_plt.addItem(self.tradeitems_dict['close'])
+            self.tradeitems_dict['close'].setSymbol(['t' if t == 0 else 't1' for t in self.trade_datas['Type']])
         except Exception as e:
             print(e)
             # raise e
             QMessageBox.critical(self, '加载错误', 'trade_data加载错误')
 
         try:
-            self.tradeitems_dict['link_line'] = TradeDataLinkLine(pen='w')
-            print(self.tradeitems_dict['link_line'].listPoints())
+            self.tradeitems_dict['link_line'] = TradeDataLinkLine(pen=pg.mkPen('w', width=1))
+            self.tradeitems_dict['info_text'] = pg.TextItem(anchor=(1, 1))
             self.ohlc_plt.addItem(self.tradeitems_dict['link_line'])
+            self.ohlc_plt.addItem(self.tradeitems_dict['info_text'])
 
             def link_line(a, b):
                 if a is self.tradeitems_dict['open']:
@@ -209,15 +212,26 @@ class OHlCWidget(KeyEventWidget):
                         if b[0].pos().x() == d[0] and b[0].pos().y() == d[1]:
                             index = i
                             break
-                self.tradeitems_dict['link_line'].setData([[self.tradeitems_dict['open'].data[index][0],
-                                                            self.tradeitems_dict['open'].data[index][1]],
-                                                           [self.tradeitems_dict['close'].data[index][0],
-                                                            self.tradeitems_dict['close'].data[index][1]]
-                                                           ], 'r')
-                print([[self.tradeitems_dict['open'].data[index][0],
-                        self.tradeitems_dict['open'].data[index][1]],
-                       [self.tradeitems_dict['close'].data[index][0],
-                        self.tradeitems_dict['close'].data[index][1]]])
+
+                open_x = self.tradeitems_dict['open'].data[index][0]
+                open_y = self.tradeitems_dict['open'].data[index][1]
+                close_x = self.tradeitems_dict['close'].data[index][0]
+                close_y = self.tradeitems_dict['close'].data[index][1]
+                open_symbol = self.tradeitems_dict['open'].data[index][3]
+                profit = round(close_y - open_y, 2) if open_symbol == "t1" else round(open_y - close_y, 2)
+                pen_color_type = ((open_symbol == 't1') << 1) + (open_y < close_y)
+                pen_color_map_dict = {0: 'r', 1: 'g', 2: 'g', 3: 'r'}
+                self.tradeitems_dict['link_line'].setData([[open_x, open_y],
+                                                           [close_x,close_y]],
+                                                          pen_color_map_dict[pen_color_type])
+                self.tradeitems_dict['info_text'].setHtml(f'<span style="color:white">Account:{self.trade_datas["Account_ID"].iloc[index]}<span/><br/>'
+                                                          f'<span style="color:blue">Open :{open_y}<span/><br/>'
+                                                          f'<span style="color:yellow">Close:{close_y}<span/><br/>'
+                                                          f'<span style="color:white">Type  :{"Long" if open_symbol == "t1" else "Short"}<span/><br/>'
+                                                          f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/>')
+                self.tradeitems_dict['info_text'].setPos(self.ohlc_plt.getViewBox().viewRange()[0][1],
+                                                         self.ohlc_plt.getViewBox().viewRange()[1][0])
+                print([[open_x, open_y],[close_x,close_y]])
                 print(b[0].pos())
             self.tradeitems_dict['open'].sigClicked.connect(link_line)
             self.tradeitems_dict['close'].sigClicked.connect(link_line)
@@ -281,15 +295,19 @@ class OHlCWidget(KeyEventWidget):
 
         self.close_curve.setData(ohlc.timeindex.values, ohlc.close.values)
         self.xaxis.update_tickval(ohlc.timestamp)
+        # ------------------------------------------------更新交易数据标注--------------------------------------
         try:
             self.tradeitems_dict['open'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
                                                  .loc[self.trade_datas.open.index.start_time, 'index'],
                                                  y=self.trade_datas['OpenPrice'])
+            self.tradeitems_dict['open'].setSymbol(['t1' if t == 0 else 't' for t in self.trade_datas['Type']])
             self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
                                                   .loc[self.trade_datas.close.index.start_time, 'index'],
                                                   y=self.trade_datas['ClosePrice'])
+            self.tradeitems_dict['close'].setSymbol(['t' if t == 0 else 't1' for t in self.trade_datas['Type']])
         except Exception as e:
             print(e)
+        # ---------------------------------------------------------------------------------------------------------
         self.ohlc_data_update_sync()
 
     def ohlc_Yrange_update(self):  # 更新主图和指标图的高度
