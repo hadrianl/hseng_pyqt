@@ -131,10 +131,9 @@ class DateAxis(pg.AxisItem):
 
 
 class TradeDataScatter(pg.ScatterPlotItem):
-    def __init__(self, brush='r', symbol='t'):
+    def __init__(self):
         self.PenWidth = 0.4
-        super(TradeDataScatter, self).__init__(pen=pg.mkPen('w', width=self.PenWidth),
-                                               symbol=symbol, brush=pg.mkBrush(brush))
+        super(TradeDataScatter, self).__init__(pen=pg.mkPen('w', width=self.PenWidth))
 
 
 class TradeDataLinkLine(pg.LineSegmentROI):
@@ -149,3 +148,8 @@ class TradeDataLinkLine(pg.LineSegmentROI):
             self.removeHandle(0)
         for i, p in enumerate(positions):
             self.addFreeHandle(p, item=handles[i])
+
+    def offset(self,i=1):
+        self.setData([[self.handles[0]['item'].pos().x() - i,  self.handles[0]['item'].pos().y()],
+                      [self.handles[1]['item'].pos().x() - i,  self.handles[1]['item'].pos().y()]],
+                     self.pen)

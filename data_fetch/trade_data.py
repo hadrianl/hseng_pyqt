@@ -21,7 +21,8 @@ class TradeData():
         self._sql = f'select Ticket, Account_ID, OpenTime, OpenPrice, CloseTime, ClosePrice, Type, Lots, Status ' \
                     f'from `carry_investment`.`order_detail` ' \
                     f'where Symbol="{self.symbol}" ' \
-                    f'and OpenTime>="{self.start}" and CloseTime<"{self.end}"'
+                    f'and OpenTime>="{self.start}" and CloseTime<"{self.end}" ' \
+                    f'and Status>=0'
 
         try:
             self._trade_data = pd.read_sql(self._sql, self._conn)

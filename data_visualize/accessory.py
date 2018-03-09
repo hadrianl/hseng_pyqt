@@ -60,7 +60,7 @@ class mouseaction(QtCore.QObject):
             for plt in plt_list:
                 if plt.sceneBoundingRect().contains(pos):
                     inside = True
-                    mousePoint = plt.vb.mapSceneToView(pos)
+                    self.mousePoint = mousePoint = plt.vb.mapSceneToView(pos)
                     t_max = market_data.timeindex.max()
                     t_min = market_data.timeindex.min()
                     x_type = ((mousePoint.x() <= t_min - 3) << 1) + (mousePoint.x() <= t_max + 3)
