@@ -10,14 +10,10 @@ import pyqtgraph as pg
 from data_visualize.baseitems import DateAxis, CandlestickItem, TradeDataScatter, TradeDataLinkLine
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.Qt import QFont, QMessageBox
-import PyQt5
 from data_fetch.util import *
 import pandas as pd
 from data_visualize.accessory import mouseaction
-import numpy as np
-from threading import Thread
-from datetime import datetime
-import time
+
 
 
 class KeyEventWidget(QtWidgets.QWidget):
@@ -191,23 +187,23 @@ class OHlCWidget(KeyEventWidget):
                                                  y=self.trade_datas['OpenPrice'],
                                                  symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                  brush=self.trade_datas['Status'].map(
-                                                     {2: pg.mkBrush(0,0,255), 1: pg.mkBrush(255,0,255), 0: pg.mkBrush(	255,255,255)}).tolist())
+                                                     {2: pg.mkBrush(0, 0, 255), 1: pg.mkBrush(255, 0, 255),
+                                                      0: pg.mkBrush(255, 255, 255)}).tolist())
         except Exception as e:
             print(e)
             raise e
         try:
             self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
-                                                 .loc[self.trade_datas.close.index.start_time, 'index'],
-                                                 y=self.trade_datas['ClosePrice'],
+                                                  .loc[self.trade_datas.close.index.start_time, 'index'],
+                                                  y=self.trade_datas['ClosePrice'],
                                                   symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
                                                   brush=self.trade_datas['Status'].map(
-                                                      {2: pg.mkBrush(255,255,0), 1: pg.mkBrush(255, 0, 255),
+                                                      {2: pg.mkBrush(255, 255, 0), 1: pg.mkBrush(255, 0, 255),
                                                        0: pg.mkBrush(255, 255, 255)}).tolist())
         except Exception as e:
             print(e)
             raise e
             # QMessageBox.critical(self, '加载错误', 'trade_data加载错误')
-
 
         def link_line(a, b):
             if a is self.tradeitems_dict['open']:
@@ -373,6 +369,8 @@ class OHlCWidget(KeyEventWidget):
                 date_region.setRegion([ohlc.timeindex.max() + 4 - date_region_len, ohlc.timeindex.max() + 4])
             else:
                 date_region.setRegion([date_region_Max - date_region_len, date_region_Max])
+        self.tradeitems_dict['info_text'].setPos(self.ohlc_plt.getViewBox().viewRange()[0][1],  # 交易信息位置更新
+                                                 self.ohlc_plt.getViewBox().viewRange()[1][0])
         self.ohlc_Yrange_update()
         self.ohlc_plt.update()
 
