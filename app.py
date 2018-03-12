@@ -44,7 +44,7 @@ win.setWindowTitle(symbol + '实盘分钟图')
 win.binddata(ohlc=ohlc, tick_datas=tick_datas, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_datas=trade_datas)  # 把数据与UI绑定
 win.init_ohlc()  # 初始化ohlc主图
 win.init_ma()  # 初始化ma均线图
-win.init_indicator()  # 初始化指标
+win.init_macd()  # 初始化指标
 win.init_std()  # 初始化std指标
 win.init_trade_data()  # 初始化交易数据的对接
 win.init_date_slice()  # 初始化时间切片
