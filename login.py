@@ -50,4 +50,5 @@ class Ui_LoginWindow(object):
         LoginWindow.setWindowTitle(_translate("LoginWindow", "实盘分析登入"))
         self.label_2.setText(_translate("LoginWindow", "用户名"))
         self.label.setText(_translate("LoginWindow", "密码"))
+        self.UserName.setPlaceholderText(_translate("LoginWindow", "kairuitouzi"))
 

@@ -98,13 +98,12 @@ if __name__ == '__main__':
         else:
             console.focusWidget()
 
-
     win.resize(1200, 800)
     login_win = LoginDialog()
+    login_win.UserName.setFocus()
     login_win.show()
     login_win.accepted.connect(win.show)
     login_win.rejected.connect(app.closeAllWindows)
     win.sig_M_Left_Double_Click.connect(show)  # 绑定双击行为调出console
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         sys.exit(app.exec())
-        print('test')

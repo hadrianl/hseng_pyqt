@@ -7,20 +7,18 @@
 
 
 import pandas as pd
-import pymysql
-import sqlalchemy
+import pymysql as pm
 from data_fetch.util import *
 from threading import Thread, Lock
 from queue import Queue
 import zmq
 from datetime import datetime
-pymysql.install_as_MySQLdb()
+
 
 
 class market_data_base():
     def __init__(self):
-        self._conn = sqlalchemy.create_engine(
-            f'mysql+pymysql://{KAIRUI_MYSQL_USER}:{KAIRUI_MYSQL_PASSWD}@{KAIRUI_SERVER_IP}')
+        self._conn = pm.connect(host=KAIRUI_SERVER_IP, user=KAIRUI_MYSQL_USER, password=KAIRUI_MYSQL_PASSWD)
         self._data = pd.DataFrame(columns=['datetime', 'open', 'high', 'low', 'close'])
 
     @property
@@ -136,7 +134,7 @@ class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前�
         self._sub_socket.set_string(zmq.SUBSCRIBE, '')
         try:
             sql = 'select tickertime, price, qty from carry_investment.futures_tick ' \
-                  'where tickertime>=(select DATE_FORMAT(TIMESTAMP(max(tickertime)),"%%Y-%%m-%%d %%H:%%i:00") ' \
+                  'where tickertime>=(select DATE_FORMAT(TIMESTAMP(max(tickertime)),"%Y-%m-%d %H:%i:00") ' \
                   'from carry_investment.futures_tick)'
             self._ticker = pd.read_sql(sql, self._conn)
             self._ticker.tickertime = self._ticker.tickertime.apply(lambda x: x.timestamp())

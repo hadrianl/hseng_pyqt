@@ -6,15 +6,13 @@
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
 import pandas as pd
-import sqlalchemy
+import pymysql as pm
 from data_fetch.util import *
 import datetime as dt
 
 class TradeData():
     def __init__(self, start, end, symbol):
-        self._conn = sqlalchemy.create_engine(
-            f'mysql+pymysql://{KAIRUI_MYSQL_USER}:{KAIRUI_MYSQL_PASSWD}@{KAIRUI_SERVER_IP}'
-        )
+        self._conn = pm.connect(host=KAIRUI_SERVER_IP, user=KAIRUI_MYSQL_USER, password=KAIRUI_MYSQL_PASSWD)
         self.start = start - dt.timedelta(hours=8)
         self.end = end - dt.timedelta(hours=8)
         self.symbol = symbol
