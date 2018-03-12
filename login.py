@@ -34,6 +34,7 @@ class Ui_LoginWindow(object):
         self.UserName.setObjectName("UserName")
         self.gridLayout.addWidget(self.UserName, 0, 1, 1, 1)
         self.Password = QtWidgets.QLineEdit(self.gridLayoutWidget)
+        self.Password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.Password.setObjectName("Password")
         self.gridLayout.addWidget(self.Password, 2, 1, 1, 1)
         self.label_2.setBuddy(self.UserName)

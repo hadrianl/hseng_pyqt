@@ -107,3 +107,4 @@ if __name__ == '__main__':
     win.sig_M_Left_Double_Click.connect(show)  # 绑定双击行为调出console
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         sys.exit(app.exec())
+        print('test')
