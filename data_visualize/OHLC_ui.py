@@ -13,7 +13,7 @@ from PyQt5.Qt import QFont, QMessageBox
 from data_fetch.util import *
 import pandas as pd
 from data_visualize.accessory import mouseaction
-
+import numpy as np
 
 
 class KeyEventWidget(QtWidgets.QWidget):
@@ -157,11 +157,15 @@ class OHlCWidget(KeyEventWidget):
         self.std_plt = self.makePI('std')
         # self.std_plt.setXLink('ohlc')
         self.std_plt.setMaximumHeight(150)
-        self.brushes = std_brushes = pd.concat([self.i_std.inc > self.i_std.pos_std,
-                                                self.i_std.inc < self.i_std.neg_std], 1).\
-            apply(lambda x: {2: 'r', 1: 'b', 0: 'y'}[(x.iloc[0] << 1) + x.iloc[1]], 1)
+        # std_inc_brushes = pd.concat([self.i_std.inc > self.i_std.pos_std / 2,
+        #                                         self.i_std.inc < self.i_std.neg_std / 2], 1).\
+        #     apply(lambda x: {2: 'r', 1: 'b', 0: None}[(x.iloc[0] << 1) + x.iloc[1]], 1)
+        std_inc_pens = pd.cut((self.i_std.inc /self.i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
+                                 labels=['g', 'y', 'l', 'b', 'r'])
+        inc_gt_std = (self.i_std.inc.abs() / self.i_std.std) > 1
+        std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)
         self.std_items_dict['inc'] = pg.BarGraphItem(x=self.i_std.timeindex, height=self.i_std.inc,
-                                                     width=0.5, brushes=std_brushes)
+                                                     width=0.5, pens=std_inc_pens, brushes=std_inc_brushes)
         self.std_plt.addItem(self.std_items_dict['inc'])
         self.std_items_dict['pos_std'] = self.std_plt.plot(self.i_std.timeindex, self.i_std.pos_std, pen='r')
         self.std_items_dict['neg_std'] = self.std_plt.plot(self.i_std.timeindex, self.i_std.neg_std, pen='g')
@@ -181,7 +185,7 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc_plt.addItem(self.tradeitems_dict['link_line'])
         self.ohlc_plt.addItem(self.tradeitems_dict['info_text'])
         try:
-            print(self.ohlc.datetime.reset_index().set_index('datetime').loc[self.trade_datas.open.index.start_time, 'index'])
+            # print(self.ohlc.datetime.reset_index().set_index('datetime').loc[self.trade_datas.open.index.start_time, 'index'])
             self.tradeitems_dict['open'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
                                                  .loc[self.trade_datas.open.index.start_time, 'index'],
                                                  y=self.trade_datas['OpenPrice'],
@@ -191,7 +195,7 @@ class OHlCWidget(KeyEventWidget):
                                                       0: pg.mkBrush(255, 255, 255)}).tolist())
         except Exception as e:
             print(e)
-            raise e
+            # raise e
         try:
             self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
                                                   .loc[self.trade_datas.close.index.start_time, 'index'],
@@ -202,7 +206,7 @@ class OHlCWidget(KeyEventWidget):
                                                        0: pg.mkBrush(255, 255, 255)}).tolist())
         except Exception as e:
             print(e)
-            raise e
+            # raise e
             # QMessageBox.critical(self, '加载错误', 'trade_data加载错误')
 
         def link_line(a, b):
@@ -235,8 +239,8 @@ class OHlCWidget(KeyEventWidget):
                                                       f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/>')
             self.tradeitems_dict['info_text'].setPos(self.ohlc_plt.getViewBox().viewRange()[0][1],
                                                      self.ohlc_plt.getViewBox().viewRange()[1][0])
-            print([[open_x, open_y], [close_x, close_y]])
-            print(b[0].pos())
+            # print([[open_x, open_y], [close_x, close_y]])
+            # print(b[0].pos())
 
         self.tradeitems_dict['open'].sigClicked.connect(link_line)
         self.tradeitems_dict['close'].sigClicked.connect(link_line)
@@ -289,13 +293,14 @@ class OHlCWidget(KeyEventWidget):
                         else v for i, v in macd_pens.iteritems()]
         self.macd_items_dict['Macd'].setOpts(x=i_macd.timeindex, height=i_macd.macd, pens=macd_pens, brushes=macd_brushes)
         # ----------------------------std-------------------------------------------------+
-        self.brushes = std_brushes = pd.concat(
-            [self.i_std.inc > self.i_std.pos_std,
-             self.i_std.inc < self.i_std.neg_std], 1).apply(
-            lambda x: {2: 'r', 1: 'b', 0: 'y'}[(x.iloc[0] << 1) + x.iloc[1]], 1)
+        std_inc_pens = pd.cut((self.i_std.inc / self.i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
+                              labels=['g', 'y', 'l', 'b', 'r'])
+        inc_gt_std = (self.i_std.inc.abs() / self.i_std.std) > 1
+        std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)
         std_items_dict['pos_std'].setData(self.i_std.timeindex, self.i_std.pos_std)
         std_items_dict['neg_std'].setData(self.i_std.timeindex, self.i_std.neg_std)
-        std_items_dict['inc'].setOpts(x=self.i_std.timeindex, height=self.i_std.inc, brushes=std_brushes)
+        std_items_dict['inc'].setOpts(x=self.i_std.timeindex, height=self.i_std.inc,
+                                      pens=std_inc_pens, brushes=std_inc_brushes)
 
         self.close_curve.setData(ohlc.timeindex.values, ohlc.close.values)
         self.xaxis.update_tickval(ohlc.timestamp)
@@ -346,6 +351,7 @@ class OHlCWidget(KeyEventWidget):
         except Exception as e:
             print('ohlc_Yrange_update', e)
 
+
     def date_slicer_update(self):  # 当时间切片发生变化时触发
         try:
             self.ohlc_plt.setXRange(*self.date_region.getRegion(), padding=0)
@@ -357,8 +363,8 @@ class OHlCWidget(KeyEventWidget):
         ohlc = self.ohlc
         date_region_Max = int(date_region.getRegion()[1])
         date_region_len = int(date_region.getRegion()[1] - date_region.getRegion()[0])
-        print(f'可视区域最大值：{date_region_Max}')
-        print(f'图表timeindex最大值：{ohlc.timeindex.max()}')
+        # print(f'可视区域最大值：{date_region_Max}')
+        # print(f'图表timeindex最大值：{ohlc.timeindex.max()}')
         if len(ohlc.data) >= ohlc.bar_size:
             if date_region_Max == ohlc.timeindex.max() + 3:  # 判断最新数据是否是在图表边缘
                 date_region.setRegion([ohlc.timeindex.max() + 3 - date_region_len, ohlc.timeindex.max() + 3])
@@ -369,9 +375,9 @@ class OHlCWidget(KeyEventWidget):
                 date_region.setRegion([ohlc.timeindex.max() + 4 - date_region_len, ohlc.timeindex.max() + 4])
             else:
                 date_region.setRegion([date_region_Max - date_region_len, date_region_Max])
-        self.tradeitems_dict['info_text'].setPos(self.ohlc_plt.getViewBox().viewRange()[0][1],  # 交易信息位置更新
-                                                 self.ohlc_plt.getViewBox().viewRange()[1][0])
         self.ohlc_Yrange_update()
+        self.tradeitems_dict['info_text'].setPos(self.ohlc_plt.getViewBox().viewRange()[0][1],
+                                                 self.ohlc_plt.getViewBox().viewRange()[1][0])
         self.ohlc_plt.update()
 
     def update_data_plot(self):  # 当前K线根据ticker数据的更新

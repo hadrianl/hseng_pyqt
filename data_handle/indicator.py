@@ -133,6 +133,10 @@ class Std(indicator_base):
     def neg_std(self):
         return self._neg_std.rename('neg_std')
 
+    @property
+    def std(self):
+        return self._std.rename('std')
+
 
 if __name__ == '__main__':
     _df = OHLC('2017-12-15', '2017-12-18', 'HSIc1')
