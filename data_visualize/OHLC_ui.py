@@ -234,7 +234,8 @@ class OHlCWidget(KeyEventWidget):
                                                       f'<span style="color:blue">Open :{open_y}<span/><br/>'
                                                       f'<span style="color:yellow">Close:{close_y}<span/><br/>'
                                                       f'<span style="color:white">Type  :{"Long" if open_symbol == "t1" else "Short"}<span/><br/>'
-                                                      f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/>')
+                                                      f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/><br/>'
+                                                      f'<span style="color:"white">trader:{self.trade_datas["trader_name"].iloc[index]}<span/>')
             self.tradeitems_dict['info_text'].setPos(self.ohlc_plt.getViewBox().viewRange()[0][1],
                                                      self.ohlc_plt.getViewBox().viewRange()[1][0])
 

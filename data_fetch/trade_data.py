@@ -16,11 +16,13 @@ class TradeData():
         self.start = start - dt.timedelta(hours=8)
         self.end = end - dt.timedelta(hours=8)
         self.symbol = symbol
-        self._sql = f'select Ticket, Account_ID, OpenTime, OpenPrice, CloseTime, ClosePrice, Type, Lots, Status ' \
-                    f'from `carry_investment`.`order_detail` ' \
+        self._sql = f'select Ticket, Account_ID, OpenTime, OpenPrice, CloseTime, ClosePrice, Type, Lots, Status, trader_name ' \
+                    f'from `carry_investment`.`order_detail` as od ' \
+                    f'join (select id, trader_name from `carry_investment`.`account_info`) as ai on ai.id=od.Account_id ' \
                     f'where Symbol="{self.symbol}" ' \
                     f'and OpenTime>="{self.start}" and CloseTime<"{self.end}" ' \
                     f'and Status>=0'
+
 
         try:
             self._trade_data = pd.read_sql(self._sql, self._conn)
@@ -30,7 +32,7 @@ class TradeData():
             print(e)
             self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
                                                      'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
-
+        print(self._trade_data)
     def __str__(self):
         return f'TradeData:<{self.symbol}> *{self.start} --> {self.end}*'
 
