@@ -12,7 +12,8 @@ import datetime as dt
 
 class TradeData():
     def __init__(self, start, end, symbol):
-        self._conn = pm.connect(host=KAIRUI_SERVER_IP, user=KAIRUI_MYSQL_USER, password=KAIRUI_MYSQL_PASSWD)
+        self._conn = pm.connect(host=KAIRUI_SERVER_IP, user=KAIRUI_MYSQL_USER,
+                                password=KAIRUI_MYSQL_PASSWD, charset='utf8')
         self.start = start - dt.timedelta(hours=8)
         self.end = end - dt.timedelta(hours=8)
         self.symbol = symbol
@@ -32,7 +33,7 @@ class TradeData():
             print(e)
             self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
                                                      'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
-        print(self._trade_data)
+
     def __str__(self):
         return f'TradeData:<{self.symbol}> *{self.start} --> {self.end}*'
 

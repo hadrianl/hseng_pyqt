@@ -18,7 +18,8 @@ from datetime import datetime
 
 class market_data_base():
     def __init__(self):
-        self._conn = pm.connect(host=KAIRUI_SERVER_IP, user=KAIRUI_MYSQL_USER, password=KAIRUI_MYSQL_PASSWD)
+        self._conn = pm.connect(host=KAIRUI_SERVER_IP, user=KAIRUI_MYSQL_USER,
+                                password=KAIRUI_MYSQL_PASSWD, charset='utf8')
         self._data = pd.DataFrame(columns=['datetime', 'open', 'high', 'low', 'close'])
 
     @property
