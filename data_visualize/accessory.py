@@ -18,17 +18,18 @@ class mouseaction(QtCore.QObject):
         self._at = axis_text
         self.xaxis_text = pg.TextItem(anchor=(1, 1))
         self.yaxis_text = pg.TextItem(anchor=(1, 0))
+        self.cross_hair_pen = pg.mkPen(color='y', dash=[3, 4])
 
     def __call__(self, ohlc_plt, indicator_plt, std_plt, date_slicer, market_data, ticker_data, **indicator):
         self._ohlc_plt = ohlc_plt
         self._indicator_plt = indicator_plt
         if self._ch:
-            ohlc_plt.addItem(pg.InfiniteLine(angle=90, movable=False, name='vline'), ignoreBounds=True)
-            ohlc_plt.addItem(pg.InfiniteLine(angle=0, movable=False, name='hline'), ignoreBounds=True)
-            indicator_plt.addItem(pg.InfiniteLine(angle=90, movable=False, name='vline'), ignoreBounds=True)
-            indicator_plt.addItem(pg.InfiniteLine(angle=0, movable=False, name='hline'), ignoreBounds=True)
-            std_plt.addItem(pg.InfiniteLine(angle=90, movable=False, name='vline'), ignoreBounds=True)
-            std_plt.addItem(pg.InfiniteLine(angle=0, movable=False, name='hline'), ignoreBounds=True)
+            ohlc_plt.addItem(pg.InfiniteLine(angle=90, movable=False, name='vline', pen=self.cross_hair_pen), ignoreBounds=True)
+            ohlc_plt.addItem(pg.InfiniteLine(angle=0, movable=False, name='hline', pen=self.cross_hair_pen), ignoreBounds=True)
+            indicator_plt.addItem(pg.InfiniteLine(angle=90, movable=False, name='vline', pen=self.cross_hair_pen), ignoreBounds=True)
+            indicator_plt.addItem(pg.InfiniteLine(angle=0, movable=False, name='hline', pen=self.cross_hair_pen), ignoreBounds=True)
+            std_plt.addItem(pg.InfiniteLine(angle=90, movable=False, name='vline', pen=self.cross_hair_pen), ignoreBounds=True)
+            std_plt.addItem(pg.InfiniteLine(angle=0, movable=False, name='hline', pen=self.cross_hair_pen), ignoreBounds=True)
             date_slicer.addItem(pg.InfiniteLine(angle=90, movable=False, name='vline'), ignoreBounds=True)
             date_slicer.addItem(pg.InfiniteLine(angle=0, movable=False, name='hline'), ignoreBounds=True)
         if self._if:

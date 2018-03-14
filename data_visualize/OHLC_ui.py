@@ -9,11 +9,13 @@
 import pyqtgraph as pg
 from data_visualize.baseitems import DateAxis, CandlestickItem, TradeDataScatter, TradeDataLinkLine
 from PyQt5 import QtGui, QtWidgets, QtCore
-from PyQt5.Qt import QFont
+from PyQt5.Qt import QFont, QBrush, QColor
+from PyQt5.QtCore import Qt
 from data_fetch.util import *
 import pandas as pd
 from data_visualize.accessory import mouseaction
 import numpy as np
+import datetime as dt
 
 
 
@@ -91,6 +93,7 @@ class OHlCWidget(KeyEventWidget):
         self.vb.addWidget(self.pw)
         self.setLayout(self.vb)
         self.xaxis = DateAxis({}, orientation='bottom')
+        self.interlines = []
 
     def makePI(self, name):  # 生成PlotItem的工厂函数
         # vb = CustomViewBox()
@@ -124,8 +127,24 @@ class OHlCWidget(KeyEventWidget):
         self.tickitems.mark_line()
         self.ohlc_plt.addItem(self.tickitems)
         self.ohlc_plt.addItem(self.tickitems.hline)
+        self.draw_interline()
         self.main_layout.addItem(self.ohlc_plt)
         self.main_layout.nextRow()
+
+    def draw_interline(self):  # 画出时间分割线
+        if self.interlines:
+            for item in self.interlines:
+                self.ohlc_plt.removeItem(item)
+        self.interlines=[]
+        for i,v in (self.ohlc.datetime - self.ohlc.datetime.shift()).iteritems():
+            if v != dt.timedelta(minutes=1):
+                interline = pg.InfiniteLine(angle=90, pen=pg.mkPen(color='w', width=0.5, dash=[1, 4, 5, 4]))
+                interline.setPos(i-0.5)
+                self.interlines.append(interline)
+
+        for line in self.interlines:
+            self.ohlc_plt.addItem(line)
+
 
     def init_ma(self):  # 初始化主图均线ma
         self.ma_items_dict = {}
@@ -182,15 +201,16 @@ class OHlCWidget(KeyEventWidget):
         self.tradeitems_dict['info_text'] = pg.TextItem(anchor=(1, 1))
         self.ohlc_plt.addItem(self.tradeitems_dict['link_line'])
         self.ohlc_plt.addItem(self.tradeitems_dict['info_text'])
-        # --------------------------------添加交易数据-----------------------------------------------------------------
+    # --------------------------------添加交易数据-----------------------------------------------------------------
         try:
             self.tradeitems_dict['open'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
                                                  .loc[self.trade_datas.open.index.start_time, 'index'],
                                                  y=self.trade_datas['OpenPrice'],
                                                  symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                  brush=self.trade_datas['Status'].map(
-                                                     {2: pg.mkBrush(0, 0, 255), 1: pg.mkBrush(255, 0, 255),
-                                                      0: pg.mkBrush(255, 255, 255)}).tolist())
+                                                     {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
+                                                      1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
+                                                      0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
             print(e)
             # raise e
@@ -200,13 +220,15 @@ class OHlCWidget(KeyEventWidget):
                                                   y=self.trade_datas['ClosePrice'],
                                                   symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
                                                   brush=self.trade_datas['Status'].map(
-                                                      {2: pg.mkBrush(255, 255, 0), 1: pg.mkBrush(255, 0, 255),
-                                                       0: pg.mkBrush(255, 255, 255)}).tolist())
+                                                      {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
+                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
+                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
             print(e)
             # raise e
             # QMessageBox.critical(self, '加载错误', 'trade_data加载错误')
         # -------------------------------------------------------------------------------------------------------------
+
         def link_line(a, b):
             if a is self.tradeitems_dict['open']:
                 for i, d in enumerate(self.tradeitems_dict['open'].data):
@@ -273,6 +295,7 @@ class OHlCWidget(KeyEventWidget):
         trade_datas.update(1)  # 更新交易数据
         self.tradeitems_dict['link_line'].offset()
         ohlcitems.setData(ohlc)
+        self.draw_interline()
         # -----------------------------均线----------------------------------------------+
         for w in ma_items_dict:
             ma_items_dict[w].setData(ohlc.timeindex.values, getattr(self.i_ma, w).values)
@@ -305,15 +328,17 @@ class OHlCWidget(KeyEventWidget):
                                                  y=self.trade_datas['OpenPrice'],
                                                  symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                  brush=self.trade_datas['Status'].map(
-                                                     {2: pg.mkBrush(0, 0, 255), 1: pg.mkBrush(255, 0, 255),
-                                                      0: pg.mkBrush(255, 255, 255)}).tolist())
+                                                     {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
+                                                      1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
+                                                      0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
             self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
                                                   .loc[self.trade_datas.close.index.start_time, 'index'],
                                                   y=self.trade_datas['ClosePrice'],
                                                   symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
                                                   brush=self.trade_datas['Status'].map(
-                                                      {2: pg.mkBrush(255, 255, 0), 1: pg.mkBrush(255, 0, 255),
-                                                       0: pg.mkBrush(255, 255, 255)}).tolist())
+                                                      {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
+                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
+                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
             print(e)
         # ---------------------------------------------------------------------------------------------------------
