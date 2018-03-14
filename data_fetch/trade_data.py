@@ -27,6 +27,7 @@ class TradeData():
 
         try:
             self._trade_data = pd.read_sql(self._sql, self._conn)
+            self._conn.commit()
             self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
             self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
         except Exception as e:
@@ -46,8 +47,15 @@ class TradeData():
     def update(self, t):
         self.start = self.start + dt.timedelta(minutes=t)
         self.end = self.end + dt.timedelta(minutes=t)
+        self._sql = f'select Ticket, Account_ID, OpenTime, OpenPrice, CloseTime, ClosePrice, Type, Lots, Status, trader_name ' \
+                    f'from `carry_investment`.`order_detail` as od ' \
+                    f'join (select id, trader_name from `carry_investment`.`account_info`) as ai on ai.id=od.Account_id ' \
+                    f'where Symbol="{self.symbol}" ' \
+                    f'and OpenTime>="{self.start}" and CloseTime<"{self.end}" ' \
+                    f'and Status>=0'
         try:
             self._trade_data = pd.read_sql(self._sql, self._conn)
+            self._conn.commit()
             self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
             self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
         except Exception as e:
