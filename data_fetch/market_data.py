@@ -10,17 +10,19 @@ import pandas as pd
 import pymysql as pm
 from data_fetch.util import *
 from threading import Thread, Lock
+from PyQt5 import QtCore
 from queue import Queue
 import zmq
 from datetime import datetime
+from sp_struct import SPApiTicker
 
 
-
-class market_data_base():
+class market_data_base(QtCore.QObject):
     def __init__(self):
         self._conn = pm.connect(host=KAIRUI_SERVER_IP, user=KAIRUI_MYSQL_USER,
                                 password=KAIRUI_MYSQL_PASSWD, charset='utf8')
         self._data = pd.DataFrame(columns=['datetime', 'open', 'high', 'low', 'close'])
+        super(market_data_base, self).__init__()
 
     @property
     def open(self):
@@ -64,8 +66,10 @@ class market_data_base():
 
 
 class OHLC(market_data_base):  # 主图表的OHLC数据类
+    resample_sig = QtCore.pyqtSignal(str)
+    update_sig = QtCore.pyqtSignal()
     def __init__(self, start, end,  symbol, minbar=None, ktype=1):
-        super(OHLC, self).__init__()
+        market_data_base.__init__(self)
         self.start = start
         self.end = end
         self.ktype = ktype
@@ -90,11 +94,17 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def __repr__(self):
         return self.data.__repr__()
 
-    def __add__(self, indicator):  # 重载+号，能够通过“OHLC + 指标”的语句添加指标
+    def __add__(self, indicator):  # 重载+运算符，能够通过“OHLC + 指标”的语句添加指标
         self._indicator_register(indicator)
 
+    def __sub__(self, indicator):  # 重载-运算符，能够通过“OHLC - 指标”的语句取出指标指标
+        self._indicator_unregister(indicator)
+
     def _indicator_register(self, indicator):  # 添加注册指标进入图表的函数
-            self.indicators[indicator.name] = indicator(self)
+        self.indicators[indicator.name] = indicator(self)
+
+    def _indicator_unregister(self, indicator):
+        self.indicators.pop(indicator.name, None)
 
     def update(self, last_ohlc_data):
         if len(self.data) >= self.bar_size:
@@ -111,12 +121,14 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         return self.data_resampled
 
 
-class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前最新处于活跃交易状态的OHLC
+class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前最新处于活跃交易状态的OHLC，多重继承QObject增加其信号槽特性
+    ticker_sig = QtCore.pyqtSignal(SPApiTicker)
+    ohlc_sig = QtCore.pyqtSignal(pd.DataFrame)
     def __init__(self, symbol, ktype=1):
-        super(NewOHLC, self).__init__()
+        market_data_base.__init__(self)
         self._symbol = symbol
         self.ktype = ktype
-        self._ticker = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
+        self._tickers = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
         self.isactive = False
         self._data_queue = Queue()
         self._tick_sig = None
@@ -124,10 +136,6 @@ class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前�
 
         self._thread_lock = Lock()
         self._last_tick = None
-
-    def bindsignal(self, tick_signal, ohlc_signal):
-        self._tick_sig = tick_signal
-        self._ohlc_sig = ohlc_signal
 
     def _ticker_sub(self):
         self._sub_socket = zmq.Context().socket(zmq.SUB)
@@ -137,10 +145,10 @@ class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前�
             sql = 'select tickertime, price, qty from carry_investment.futures_tick ' \
                   'where tickertime>=(select DATE_FORMAT(TIMESTAMP(max(tickertime)),"%Y-%m-%d %H:%i:00") ' \
                   'from carry_investment.futures_tick)'
-            self._ticker = pd.read_sql(sql, self._conn)
-            self._ticker.tickertime = self._ticker.tickertime.apply(lambda x: x.timestamp())
+            self._tickers = pd.read_sql(sql, self._conn)
+            self._tickers.tickertime = self._tickers.tickertime.apply(lambda x: x.timestamp())
         except Exception as e:
-            self._ticker = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
+            self._tickers = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
         while self.isactive:
             ticker = self._sub_socket.recv_pyobj()
             if ticker.ProdCode.decode() == self._symbol and ticker.DealSrc == 1:
@@ -155,21 +163,19 @@ class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前�
                 self._last_tick = ticker
             self._thread_lock.acquire()
             if self._last_tick.TickerTime//(60*self.ktype) == ticker.TickerTime//(60*self.ktype):
-                self._ticker = self._ticker.append({'tickertime': ticker.TickerTime,
+                self._tickers = self._tickers.append({'tickertime': ticker.TickerTime,
                                                     'price': ticker.Price,
                                                     'qty': ticker.Qty}, ignore_index=True)
             else:
-                self._ohlc_sig.emit(self.data)
-                self._ticker = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
-                self._ticker = self._ticker.append({'tickertime': ticker.TickerTime,
+                self.ohlc_sig.emit(self.data)  # 发出ohlc信号
+                self._tickers = pd.DataFrame(columns=['tickertime', 'price', 'qty'])
+                self._tickers = self._tickers.append({'tickertime': ticker.TickerTime,
                                                     'price': ticker.Price,
                                                     'qty': ticker.Qty}, ignore_index=True)
             self._thread_lock.release()
             self._last_tick = ticker
-            if self._tick_sig:
-                # print(f'{datetime.fromtimestamp(ticker.TickerTime)}-price:{ticker.Price}-qty:{ticker.Qty}')
-                # print(f'{datetime.now()}剩余data_queue队列数量：{self._data_queue.qsize()}')
-                self._tick_sig.emit()
+            if self.ticker_sig:
+                self.ticker_sig.emit(self._last_tick)  # 发出ticker信号
 
     def active(self):
         self.isactive = True
@@ -185,15 +191,15 @@ class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前�
 
     @property
     def ticker(self):
-        return self._ticker
+        return self._tickers
 
     @property
     def data(self):
-        d = {'datetime': datetime.fromtimestamp((self._ticker.iloc[0].tickertime // 60) * 60),
-             'open': self._ticker.price.iloc[0],
-             'high': self._ticker.price.max(),
-             'low': self._ticker.price.min(),
-             'close': self._ticker.price.iloc[-1]}
+        d = {'datetime': datetime.fromtimestamp((self._tickers.iloc[0].tickertime // 60) * 60),
+             'open': self._tickers.price.iloc[0],
+             'high': self._tickers.price.max(),
+             'low': self._tickers.price.min(),
+             'close': self._tickers.price.iloc[-1]}
         return pd.DataFrame(d, index=[self._timeindex], columns=['datetime', 'open', 'high', 'low', 'close'])
 
 

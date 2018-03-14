@@ -10,7 +10,7 @@ from data_handle.indicator import Ma, Macd, Std
 from data_visualize.OHLC_ui import OHlCWidget
 from data_visualize.console import AnalysisConsole
 from data_visualize.Login_ui import LoginDialog
-from data_fetch.util import MONTH_LETTER_MAPS
+from data_fetch.util import MONTH_LETTER_MAPS, print_tick
 from data_fetch.trade_data import TradeData
 import datetime as dt
 import pyqtgraph as pg
@@ -54,6 +54,8 @@ win.tick_datas.active()  # 启动tick_datas
 win.date_region.setRegion([win.ohlc.timeindex.max() - 120, win.ohlc.timeindex.max() + 5])  # 初始化可视区域
 win.tick_datas._timeindex = ohlc.timeindex.iloc[-1] + 1
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
+tick_datas.ticker_sig.connect(print_tick)
+
 
 
 def help_doc():

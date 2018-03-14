@@ -399,7 +399,7 @@ class OHlCWidget(KeyEventWidget):
                                                  self.ohlc_plt.getViewBox().viewRange()[1][0])
         self.ohlc_plt.update()
 
-    def update_data_plot(self):  # 当前K线根据ticker数据的更新
+    def update_data_plot(self, new_ticker):  # 当前K线根据ticker数据的更新
         tickitems = self.tickitems
         tick_datas = self.tick_datas
         # ---------------------------更新数据到图表----------------------------------------------------+
@@ -417,9 +417,9 @@ class OHlCWidget(KeyEventWidget):
     def init_signal(self):  # 信号的连接与绑定
         self.ohlc_plt.sigXRangeChanged.connect(self.ohlc_Yrange_update)
         self.date_region.sigRegionChanged.connect(self.date_slicer_update)
-        self.tickitems.tick_signal.connect(self.update_data_plot)
-        self.tickitems.ohlc_replot_signal.connect(self.chart_replot)
-        self.tick_datas.bindsignal(self.tickitems.tick_signal, self.tickitems.ohlc_replot_signal)
+        if hasattr(self, 'tick_datas'):
+            self.tick_datas.ticker_sig.connect(self.update_data_plot)
+            self.tick_datas.ohlc_sig.connect(self.chart_replot)
 
     def on_K_Up(self):  # 键盘up键触发，放大
         ohlc_xrange = self.ohlc_plt.getViewBox().viewRange()[0]
