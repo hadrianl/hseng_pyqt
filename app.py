@@ -25,7 +25,7 @@ start_time = dt.datetime.now() - dt.timedelta(minutes=680)
 end_time = dt.datetime.now() + dt.timedelta(minutes=10)
 symbol = 'HSI' + MONTH_LETTER_MAPS[dt.datetime.now().month] + str(dt.datetime.now().year)[-1]  # 根据当前时间生成品种代码
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
-ohlc = OHLC(start_time, end_time, 'HSIH8', minbar=580)
+ohlc = OHLC(start_time, end_time, 'HSIH8', minbar=580, ktype='5T')
 tick_datas = NewOHLC('HSIH8')
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
@@ -50,7 +50,7 @@ win.init_trade_data()  # 初始化交易数据的对接
 win.init_date_slice()  # 初始化时间切片
 win.init_mouseaction()  # 初始化十字光标与鼠标交互
 win.init_signal()  # 初始化指标
-win.tick_datas.active()  # 启动tick_datas
+# win.tick_datas.active()  # 启动tick_datas
 win.date_region.setRegion([win.ohlc.timeindex.max() - 120, win.ohlc.timeindex.max() + 5])  # 初始化可视区域
 win.tick_datas._timeindex = ohlc.timeindex.iloc[-1] + 1
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整

@@ -39,6 +39,8 @@ MYSQL = {'host': '192.168.2.226',
          'password': 'kairuitouzi',
          'db': 'carry_investment'}
 
+# KTYPE_MAPS = {'1T': }
+
 
 def print_tick(new_ticker):
     print(f'tickertime: {new_ticker.TickerTime}-price: {new_ticker.Price}-qty: {new_ticker.Qty}')

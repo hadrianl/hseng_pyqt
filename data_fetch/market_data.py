@@ -68,7 +68,7 @@ class market_data_base(QtCore.QObject):
 class OHLC(market_data_base):  # 主图表的OHLC数据类
     resample_sig = QtCore.pyqtSignal(str)
     update_sig = QtCore.pyqtSignal()
-    def __init__(self, start, end,  symbol, minbar=None, ktype=1):
+    def __init__(self, start, end,  symbol, minbar=None, ktype='1T'):
         market_data_base.__init__(self)
         self.start = start
         self.end = end
@@ -83,8 +83,8 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
                                         where datetime>=\"{start}\" \
                                         and datetime<\"{end} \"\
                                         and prodcode=\"{symbol}\""
-        self.data = pd.read_sql(self._sql, self._conn)
-        self.data.datetime = pd.to_datetime(self.data.datetime)
+        self._data = pd.read_sql(self._sql, self._conn)
+        self._data.datetime = pd.to_datetime(self._data.datetime)
         self.indicators = {}
         self.bar_size = 200
 
@@ -100,6 +100,13 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def __sub__(self, indicator):  # 重载-运算符，能够通过“OHLC - 指标”的语句取出指标指标
         self._indicator_unregister(indicator)
 
+    @property
+    def data(self):
+        if self.ktype == '1T':
+            return self._data
+        else:
+            return self._resample()
+
     def _indicator_register(self, indicator):  # 添加注册指标进入图表的函数
         self.indicators[indicator.name] = indicator(self)
 
@@ -113,18 +120,18 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         for i, v in self.indicators.items():
             v.update(self)
 
-    def _resample(self, ktype):
-        self.data_resampled = self.data.resample(ktype, on='datetime').agg({'open': lambda x: x.head(1),
-                                                                            'high': lambda x: x.max(),
-                                                                            'low': lambda x: x.min(),
-                                                                            'close': lambda x: x.tail(1)})
-        return self.data_resampled
+    def _resample(self):
+        self.data_resampled = self._data.resample(self.ktype, on='datetime').apply({'open': 'first',
+                                                                            'high': 'max',
+                                                                            'low': 'min',
+                                                                            'close': 'last'})
+        return self.data_resampled.dropna(how='any').reset_index()
 
 
 class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前最新处于活跃交易状态的OHLC，多重继承QObject增加其信号槽特性
     ticker_sig = QtCore.pyqtSignal(SPApiTicker)
     ohlc_sig = QtCore.pyqtSignal(pd.DataFrame)
-    def __init__(self, symbol, ktype=1):
+    def __init__(self, symbol, ktype='1T'):
         market_data_base.__init__(self)
         self._symbol = symbol
         self.ktype = ktype
@@ -162,7 +169,7 @@ class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前�
             if not self._last_tick:
                 self._last_tick = ticker
             self._thread_lock.acquire()
-            if self._last_tick.TickerTime//(60*self.ktype) == ticker.TickerTime//(60*self.ktype):
+            if self._last_tick.TickerTime // 60 == ticker.TickerTime // 60:
                 self._tickers = self._tickers.append({'tickertime': ticker.TickerTime,
                                                     'price': ticker.Price,
                                                     'qty': ticker.Qty}, ignore_index=True)

@@ -119,7 +119,7 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc_plt = self.makePI('ohlc')
         self.ohlc_plt.setMinimumHeight(300)
         self.ohlcitems = CandlestickItem()
-        self.ohlcitems.setData(self.ohlc)
+        self.ohlcitems.setData(self.ohlc.data)
         self.ohlc_plt.addItem(self.ohlcitems)
         self.ohlc_plt.setWindowTitle('market data')
         self.ohlc_plt.showGrid(x=True, y=True)
@@ -135,9 +135,10 @@ class OHlCWidget(KeyEventWidget):
         if self.interlines:
             for item in self.interlines:
                 self.ohlc_plt.removeItem(item)
-        self.interlines=[]
+        self.interlines = []
+        timedelta = int(self.ohlc.ktype[0])
         for i,v in (self.ohlc.datetime - self.ohlc.datetime.shift()).iteritems():
-            if v != dt.timedelta(minutes=1):
+            if v > dt.timedelta(minutes=timedelta):
                 interline = pg.InfiniteLine(angle=90, pen=pg.mkPen(color='w', width=0.5, dash=[1, 4, 5, 4]))
                 interline.setPos(i-0.5)
                 self.interlines.append(interline)
@@ -208,7 +209,7 @@ class OHlCWidget(KeyEventWidget):
                                                  y=self.trade_datas['OpenPrice'],
                                                  symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                  brush=self.trade_datas['Status'].map(
-                                                     {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
+                                                     {2: pg.mkBrush(QBrush(QColor(0, 0, 255))),
                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
@@ -243,9 +244,13 @@ class OHlCWidget(KeyEventWidget):
 
             open_x = self.tradeitems_dict['open'].data[index][0]
             open_y = self.tradeitems_dict['open'].data[index][1]
-            close_x = self.tradeitems_dict['close'].data[index][0]
-            close_y = self.tradeitems_dict['close'].data[index][1]
-            open_symbol = self.tradeitems_dict['open'].data[index][3]
+            open_symbol = self.tradeitems_dict['open'].data[index][3]  # open_symbol来区别开仓平仓
+            if self.trade_datas["Status"].iloc[index] == 2:
+                close_x = self.tradeitems_dict['close'].data[index][0]
+                close_y = self.tradeitems_dict['close'].data[index][1]
+            else:
+                close_x = self.tradeitems_dict['close'].data[index][0]
+                close_y = self.tick_datas._last_tick.Price
             profit = round(close_y - open_y, 2) if open_symbol == "t1" else round(open_y - close_y, 2)
             pen_color_type = ((open_symbol == 't1') << 1) + (open_y < close_y)
             pen_color_map_dict = {0: 'r', 1: 'g', 2: 'g', 3: 'r'}
@@ -294,7 +299,7 @@ class OHlCWidget(KeyEventWidget):
         ohlc.update(last_ohlc_data)  # 更新ohlc数据以及相关的指标等数据
         trade_datas.update(1)  # 更新交易数据
         self.tradeitems_dict['link_line'].offset()
-        ohlcitems.setData(ohlc)
+        ohlcitems.setData(ohlc.data)
         self.draw_interline()
         # -----------------------------均线----------------------------------------------+
         for w in ma_items_dict:
@@ -328,7 +333,7 @@ class OHlCWidget(KeyEventWidget):
                                                  y=self.trade_datas['OpenPrice'],
                                                  symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                  brush=self.trade_datas['Status'].map(
-                                                     {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
+                                                     {2: pg.mkBrush(QBrush(QColor(0, 0, 255))),
                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
             self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
@@ -405,7 +410,8 @@ class OHlCWidget(KeyEventWidget):
         # ---------------------------更新数据到图表----------------------------------------------------+
         tickitems.update()
         tick_datas._timeindex = self.ohlc.timeindex.iloc[-1] + 1
-        tickitems.setData(tick_datas)
+        new_ohlc_data = tick_datas.data if tick_datas.ktype == '1T' else ...
+        tickitems.setData(new_ohlc_data)
         tickitems.update()
         # ---------------------------调整画图界面高度----------------------------------------------------+
         viewrange = self.ohlc_plt.getViewBox().viewRange()

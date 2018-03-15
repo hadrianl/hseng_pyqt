@@ -35,8 +35,8 @@ class CandlestickItem(pg.GraphicsObject):
         self.is_current_bar = True
         self.htext = pg.InfLineLabel(self.hline)
 
-    def setData(self, ohlc):
-        self.data = ohlc.data  # data must have fields: time, open, close, min, max
+    def setData(self, ohlc_data):
+        self.data = ohlc_data # data must have fields: time, open, close, min, max
         self.flagHasData = True
         self.generatePicture()
         self.informViewBoundsChanged()
