@@ -23,18 +23,9 @@ class indicator_base():
 
     def __call__(self, ohlc):
         self.ohlc = ohlc
-        self._timestamp = self.ohlc.timestamp
-        self._timeindex = self.ohlc.timeindex
+        self.x = self.ohlc.x
         self.calc()
         return self
-
-    @property
-    def timestamp(self):
-        return self._timestamp
-
-    @property
-    def timeindex(self):
-        return self._timeindex
 
     def update(self, new_data):
             self.ohlc = new_data
@@ -50,8 +41,6 @@ class Macd(indicator_base):
 
     def calc(self):
         close = self.ohlc.close
-        self._timestamp = self.ohlc.timestamp
-        self._timeindex = self.ohlc.timeindex
         self._diff = close.ewm(self._short).mean() - close.ewm(self._long).mean()
         self._dea = self._diff.ewm(self._m).mean()
         self._macd = (self._diff - self._dea) * 2
@@ -81,8 +70,7 @@ class Ma(indicator_base):
 
     def __call__(self, ohlc):
         self.ohlc = ohlc
-        self._timestamp = self.ohlc.timestamp
-        self._timeindex = self.ohlc.timeindex
+        self.x = self.ohlc.x
         self.calc()
         return self
 
@@ -90,8 +78,6 @@ class Ma(indicator_base):
         return f'<MA>----'+','.join(['Ma' + str(w) for w in self._windows])
 
     def calc(self):
-        self._timestamp = self.ohlc.timestamp
-        self._timeindex = self.ohlc.timeindex
         for k, v in self._windows.items():
             self.__dict__[k] = self.ohlc.close.rolling(v).mean().rename(k)
 
@@ -112,8 +98,7 @@ class Std(indicator_base):
         return f'<STD>----WINDOW{self._window}-MIN_PERIOUS:{self._min_periods}'
 
     def calc(self):
-        self._timestamp = self.ohlc.timestamp
-        self._timeindex = self.ohlc.timeindex
+        self.x = self.ohlc.x
         # self._inc = (self.ohlc.close - self.ohlc.close.shift(1))/self.ohlc.close.shift(1)*1000
         self._inc = self.ohlc.close - self.ohlc.open
         self._avg = self._inc.rolling(window=self._window, min_periods=self._min_periods).mean()

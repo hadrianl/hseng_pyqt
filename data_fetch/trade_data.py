@@ -73,11 +73,11 @@ class TradeData():
 
     @property
     def open(self):
-        return self._trade_data[['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice', 'Type', 'Lots']].set_index('OpenTime').to_period('T')
+        return self._trade_data[['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice', 'Type', 'Lots']].set_index('OpenTime')
 
     @property
     def close(self):
-        return self._trade_data[['Ticket', 'Account_ID', 'CloseTime', 'ClosePrice', 'Type', 'Lots']].set_index('CloseTime').to_period('T')
+        return self._trade_data[['Ticket', 'Account_ID', 'CloseTime', 'ClosePrice', 'Type', 'Lots']].set_index('CloseTime')
 
     @property
     def long(self):

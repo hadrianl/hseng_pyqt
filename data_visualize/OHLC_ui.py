@@ -140,7 +140,7 @@ class OHlCWidget(KeyEventWidget):
         for i,v in (self.ohlc.datetime - self.ohlc.datetime.shift()).iteritems():
             if v > dt.timedelta(minutes=timedelta):
                 interline = pg.InfiniteLine(angle=90, pen=pg.mkPen(color='w', width=0.5, dash=[1, 4, 5, 4]))
-                interline.setPos(i-0.5)
+                interline.setPos(self.ohlc.x[i]-0.5)
                 self.interlines.append(interline)
 
         for line in self.interlines:
@@ -149,8 +149,9 @@ class OHlCWidget(KeyEventWidget):
 
     def init_ma(self):  # 初始化主图均线ma
         self.ma_items_dict = {}
+        ma_x = range(len(self.ohlc.data))
         for w in self.i_ma._windows:
-            self.ma_items_dict[w] = self.ohlc_plt.plot(self.ohlc.timeindex, getattr(self.i_ma, w),
+            self.ma_items_dict[w] = self.ohlc_plt.plot(self.i_ma.x, getattr(self.i_ma, w),
                                                        pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
 
     def init_macd(self):  # 初始化macd
@@ -158,15 +159,16 @@ class OHlCWidget(KeyEventWidget):
         self.macd_plt = self.makePI('indicator')
         # self.indicator_plt.setXLink('ohlc')
         self.macd_plt.setMaximumHeight(150)
+        macd_x = range(len(self.ohlc.data))
         macd_pens = pd.concat([self.i_macd.ohlc.close > self.i_macd.ohlc.open, self.i_macd.macd > 0], 1).apply(
             lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
         macd_brushs = [None if (self.i_macd.macd > self.i_macd.macd.shift(1))[i]
                        else v for i, v in macd_pens.iteritems()]
-        self.macd_items_dict['Macd'] = pg.BarGraphItem(x=self.i_macd.timeindex, height=self.i_macd.macd,
+        self.macd_items_dict['Macd'] = pg.BarGraphItem(x=self.i_macd.x, height=self.i_macd.macd,
                                                        width=0.5, pens=macd_pens, brushes=macd_brushs)
         self.macd_plt.addItem(self.macd_items_dict['Macd'])
-        self.macd_items_dict['diff'] = self.macd_plt.plot(self.i_macd.timeindex, self.i_macd.diff, pen='y')
-        self.macd_items_dict['dea'] = self.macd_plt.plot(self.i_macd.timeindex, self.i_macd.dea, pen='w')
+        self.macd_items_dict['diff'] = self.macd_plt.plot(self.i_macd.x, self.i_macd.diff, pen='y')
+        self.macd_items_dict['dea'] = self.macd_plt.plot(self.i_macd.x, self.i_macd.dea, pen='w')
         self.macd_plt.showGrid(x=True, y=True)
         self.macd_plt.hideAxis('bottom')
         self.macd_plt.getViewBox().setXLink(self.ohlc_plt.getViewBox())  # 建立指标图表与主图表的viewbox连接
@@ -178,15 +180,16 @@ class OHlCWidget(KeyEventWidget):
         self.std_plt = self.makePI('std')
         # self.std_plt.setXLink('ohlc')
         self.std_plt.setMaximumHeight(150)
+        std_x = range(len(self.ohlc.data))
         std_inc_pens = pd.cut((self.i_std.inc /self.i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],  # 设置画笔颜色
                                  labels=['g', 'y', 'l', 'b', 'r'])
         inc_gt_std = (self.i_std.inc.abs() / self.i_std.std) > 1
         std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)  # 设置画刷颜色
-        self.std_items_dict['inc'] = pg.BarGraphItem(x=self.i_std.timeindex, height=self.i_std.inc,
+        self.std_items_dict['inc'] = pg.BarGraphItem(x=self.i_std.x, height=self.i_std.inc,
                                                      width=0.5, pens=std_inc_pens, brushes=std_inc_brushes)
         self.std_plt.addItem(self.std_items_dict['inc'])
-        self.std_items_dict['pos_std'] = self.std_plt.plot(self.i_std.timeindex, self.i_std.pos_std, pen='r')
-        self.std_items_dict['neg_std'] = self.std_plt.plot(self.i_std.timeindex, self.i_std.neg_std, pen='g')
+        self.std_items_dict['pos_std'] = self.std_plt.plot(self.i_std.x, self.i_std.pos_std, pen='r')
+        self.std_items_dict['neg_std'] = self.std_plt.plot(self.i_std.x, self.i_std.neg_std, pen='g')
         self.std_plt.hideAxis('bottom')
         self.std_plt.getViewBox().setXLink(self.ohlc_plt.getViewBox())
         self.main_layout.addItem(self.std_plt)
@@ -204,8 +207,7 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc_plt.addItem(self.tradeitems_dict['info_text'])
     # --------------------------------添加交易数据-----------------------------------------------------------------
         try:
-            self.tradeitems_dict['open'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
-                                                 .loc[self.trade_datas.open.index.start_time, 'index'],
+            self.tradeitems_dict['open'].setData(x=self.ohlc.x.loc[self.trade_datas.open.index.floor(self.ohlc.ktype)],
                                                  y=self.trade_datas['OpenPrice'],
                                                  symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                  brush=self.trade_datas['Status'].map(
@@ -216,8 +218,7 @@ class OHlCWidget(KeyEventWidget):
             print(e)
             # raise e
         try:
-            self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
-                                                  .loc[self.trade_datas.close.index.start_time, 'index'],
+            self.tradeitems_dict['close'].setData(x=self.ohlc.x.loc[self.trade_datas.close.index.floor(self.ohlc.ktype)],
                                                   y=self.trade_datas['ClosePrice'],
                                                   symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
                                                   brush=self.trade_datas['Status'].map(
@@ -274,7 +275,7 @@ class OHlCWidget(KeyEventWidget):
         self.date_slicer.hideAxis('right')
         self.date_slicer.setMaximumHeight(80)
         self.date_slicer.setMouseEnabled(False, False)
-        self.close_curve = self.date_slicer.plot(self.ohlc.timeindex, self.ohlc.close)
+        self.close_curve = self.date_slicer.plot(self.ohlc.x, self.ohlc.close)
         self.date_region = pg.LinearRegionItem([1, 100])
         self.date_slicer.addItem(self.date_region)
         self.main_layout.addItem(self.date_slicer)
@@ -295,6 +296,7 @@ class OHlCWidget(KeyEventWidget):
         macd_items_dict = self.macd_items_dict
         std_items_dict = self.std_items_dict
         i_macd = self.i_macd
+        i_std = self.i_std
         trade_datas = self.trade_datas
         ohlc.update(last_ohlc_data)  # 更新ohlc数据以及相关的指标等数据
         trade_datas.update(1)  # 更新交易数据
@@ -303,41 +305,39 @@ class OHlCWidget(KeyEventWidget):
         self.draw_interline()
         # -----------------------------均线----------------------------------------------+
         for w in ma_items_dict:
-            ma_items_dict[w].setData(ohlc.timeindex.values, getattr(self.i_ma, w).values)
+            ma_items_dict[w].setData(self.i_ma.x, getattr(self.i_ma, w).values)
         # ----------------------------Macd----------------------------------------------+
-        macd_items_dict['diff'].setData(i_macd.timeindex.values, i_macd.diff.values)
-        macd_items_dict['dea'].setData(i_macd.timeindex.values, i_macd.dea.values)
+        macd_items_dict['diff'].setData(i_macd.x, i_macd.diff.values)
+        macd_items_dict['dea'].setData(i_macd.x, i_macd.dea.values)
         macd_pens = pd.concat(
             [self.i_macd.ohlc.close > self.i_macd.ohlc.open,
              self.i_macd.macd > 0], 1).apply(
             lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
         macd_brushes = [None if (self.i_macd.macd > self.i_macd.macd.shift(1))[i]
                         else v for i, v in macd_pens.iteritems()]
-        self.macd_items_dict['Macd'].setOpts(x=i_macd.timeindex, height=i_macd.macd, pens=macd_pens, brushes=macd_brushes)
+        self.macd_items_dict['Macd'].setOpts(x=i_macd.x, height=i_macd.macd, pens=macd_pens, brushes=macd_brushes)
         # ----------------------------std-------------------------------------------------+
         std_inc_pens = pd.cut((self.i_std.inc / self.i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
                               labels=['g', 'y', 'l', 'b', 'r'])
         inc_gt_std = (self.i_std.inc.abs() / self.i_std.std) > 1
         std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)
-        std_items_dict['pos_std'].setData(self.i_std.timeindex, self.i_std.pos_std)
-        std_items_dict['neg_std'].setData(self.i_std.timeindex, self.i_std.neg_std)
-        std_items_dict['inc'].setOpts(x=self.i_std.timeindex, height=self.i_std.inc,
+        std_items_dict['pos_std'].setData(i_std.x, self.i_std.pos_std)
+        std_items_dict['neg_std'].setData(i_std.x, self.i_std.neg_std)
+        std_items_dict['inc'].setOpts(x=i_std.x, height=self.i_std.inc,
                                       pens=std_inc_pens, brushes=std_inc_brushes)
 
-        self.close_curve.setData(ohlc.timeindex.values, ohlc.close.values)
+        self.close_curve.setData(ohlc.x, ohlc.close.values)
         self.xaxis.update_tickval(ohlc.timestamp)
         # ------------------------------------------------更新交易数据标注--------------------------------------
         try:
-            self.tradeitems_dict['open'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
-                                                 .loc[self.trade_datas.open.index.start_time, 'index'],
+            self.tradeitems_dict['open'].setData(x=self.ohlc.x.loc[self.trade_datas.open.index.floor(self.ohlc.ktype)],
                                                  y=self.trade_datas['OpenPrice'],
                                                  symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                  brush=self.trade_datas['Status'].map(
                                                      {2: pg.mkBrush(QBrush(QColor(0, 0, 255))),
                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
-            self.tradeitems_dict['close'].setData(x=self.ohlc.datetime.reset_index().set_index('datetime')
-                                                  .loc[self.trade_datas.close.index.start_time, 'index'],
+            self.tradeitems_dict['close'].setData(x=self.ohlc.x.loc[self.trade_datas.close.index.floor(self.ohlc.ktype)],
                                                   y=self.trade_datas['ClosePrice'],
                                                   symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
                                                   brush=self.trade_datas['Status'].map(
@@ -358,19 +358,19 @@ class OHlCWidget(KeyEventWidget):
         viewrange = ohlc_plt.getViewBox().viewRange()
         date_region.setRegion(viewrange[0])
         try:
-            ohlc_plt.setYRange(ohlc.low[ohlc.timeindex.between(*viewrange[0])].min(),
-                               ohlc.high[ohlc.timeindex.between(*viewrange[0])].max())
-            self.macd_plt.setYRange(min(i_macd.macd[i_macd.timeindex.between(*viewrange[0])].min(),
-                                        i_macd.diff[i_macd.timeindex.between(*viewrange[0])].min(),
-                                        i_macd.dea[i_macd.timeindex.between(*viewrange[0])].min()),
-                                    max(i_macd.macd[i_macd.timeindex.between(*viewrange[0])].max(),
-                                             i_macd.diff[i_macd.timeindex.between(*viewrange[0])].max(),
-                                             i_macd.dea[i_macd.timeindex.between(*viewrange[0])].max())
+            ohlc_plt.setYRange(ohlc.low[ohlc.x.between(*viewrange[0])].min(),
+                               ohlc.high[ohlc.x.between(*viewrange[0])].max())
+            self.macd_plt.setYRange(min(i_macd.macd[i_macd.x.between(*viewrange[0])].min(),
+                                        i_macd.diff[i_macd.x.between(*viewrange[0])].min(),
+                                        i_macd.dea[i_macd.x.between(*viewrange[0])].min()),
+                                    max(i_macd.macd[i_macd.x.between(*viewrange[0])].max(),
+                                             i_macd.diff[i_macd.x.between(*viewrange[0])].max(),
+                                             i_macd.dea[i_macd.x.between(*viewrange[0])].max())
                                     )
-            self.std_plt.setYRange(min(i_std.inc[i_std.timeindex.between(*viewrange[0])].min(),
-                                       i_std.neg_std[i_std.timeindex.between(*viewrange[0])].min()),
-                                   max(i_std.inc[i_std.timeindex.between(*viewrange[0])].max(),
-                                       i_std.pos_std[i_std.timeindex.between(*viewrange[0])].max()))
+            self.std_plt.setYRange(min(i_std.inc[i_std.x.between(*viewrange[0])].min(),
+                                       i_std.neg_std[i_std.x.between(*viewrange[0])].min()),
+                                   max(i_std.inc[i_std.x.between(*viewrange[0])].max(),
+                                       i_std.pos_std[i_std.x.between(*viewrange[0])].max()))
             self.date_slicer.setYRange(ohlc.close.min(), ohlc.close.max())
         except Exception as e:
             print('ohlc_Yrange_update', e)
@@ -390,13 +390,13 @@ class OHlCWidget(KeyEventWidget):
         # print(f'可视区域最大值：{date_region_Max}')
         # print(f'图表timeindex最大值：{ohlc.timeindex.max()}')
         if len(ohlc.data) >= ohlc.bar_size:
-            if date_region_Max == ohlc.timeindex.max() + 3:  # 判断最新数据是否是在图表边缘
-                date_region.setRegion([ohlc.timeindex.max() + 3 - date_region_len, ohlc.timeindex.max() + 3])
+            if date_region_Max == ohlc.x.max() + 3:  # 判断最新数据是否是在图表边缘
+                date_region.setRegion([ohlc.x.max() + 3 - date_region_len, ohlc.x.max() + 3])
             else:
                 date_region.setRegion([date_region_Max - date_region_len - 1, date_region_Max - 1])
         else:
-            if date_region_Max == ohlc.timeindex.max() + 3:  # 判断最新数据是否是在图表边缘
-                date_region.setRegion([ohlc.timeindex.max() + 4 - date_region_len, ohlc.timeindex.max() + 4])
+            if date_region_Max == ohlc.x.max() + 3:  # 判断最新数据是否是在图表边缘
+                date_region.setRegion([ohlc.x.max() + 4 - date_region_len, ohlc.x.max() + 4])
             else:
                 date_region.setRegion([date_region_Max - date_region_len, date_region_Max])
         self.ohlc_Yrange_update()
@@ -409,7 +409,7 @@ class OHlCWidget(KeyEventWidget):
         tick_datas = self.tick_datas
         # ---------------------------更新数据到图表----------------------------------------------------+
         tickitems.update()
-        tick_datas._timeindex = self.ohlc.timeindex.iloc[-1] + 1
+        tick_datas._x = self.ohlc.x.iloc[-1] + 1
         new_ohlc_data = tick_datas.data if tick_datas.ktype == '1T' else ...
         tickitems.setData(new_ohlc_data)
         tickitems.update()
@@ -432,8 +432,8 @@ class OHlCWidget(KeyEventWidget):
         length = ohlc_xrange[1] - ohlc_xrange[0]
         new_length = length - length//7
         new_xrange = [self.mouse.mousePoint.x() - new_length/2, self.mouse.mousePoint.x() + new_length/2]
-        if new_xrange[1] >= self.ohlc.timeindex.max():
-            new_xrange = [self.ohlc.timeindex.max() + 4 - new_length, self.ohlc.timeindex.max() + 4]
+        if new_xrange[1] >= self.ohlc.x.max():
+            new_xrange = [self.ohlc.x.max() + 4 - new_length, self.ohlc.x.max() + 4]
         self.ohlc_plt.setXRange(*new_xrange)
 
     def on_K_Down(self):  # 键盘down键触发，缩小
@@ -441,12 +441,12 @@ class OHlCWidget(KeyEventWidget):
         length = ohlc_xrange[1] - ohlc_xrange[0]
         new_length = length + length//7
         new_xrange = [self.mouse.mousePoint.x() - new_length / 2, self.mouse.mousePoint.x() + new_length / 2]
-        if new_xrange[1] >= self.ohlc.timeindex.max():
-            new_xrange = [self.ohlc.timeindex.max() + 4 - new_length, self.ohlc.timeindex.max() + 4]
+        if new_xrange[1] >= self.ohlc.x.max():
+            new_xrange = [self.ohlc.x.max() + 4 - new_length, self.ohlc.x.max() + 4]
         self.ohlc_plt.setXRange(*new_xrange)
 
     def on_M_Right_Double_Click(self):  # 鼠标右键双击触发，跳转到当前视图
-        self.ohlc_plt.setXRange(self.ohlc.timeindex.max() - 120, self.ohlc.timeindex.max() + 3)
+        self.ohlc_plt.setXRange(self.ohlc.x.max() - 120, self.ohlc.x.max() + 3)
 
     def on_M_Left_Double_Click(self):
         self.sig_M_Left_Double_Click.emit()

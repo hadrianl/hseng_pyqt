@@ -48,7 +48,7 @@ class CandlestickItem(pg.GraphicsObject):
         p = QtGui.QPainter(self.picture)
         p.setPen(self.WLinePen)
         w = self.PenWidth
-        for (i, t, open, high, low, close) in self.data.itertuples():
+        for (i, (t, open, high, low, close)) in enumerate(self.data.itertuples()):
             p.drawLine(QtCore.QPointF(i, low), QtCore.QPointF(i, high))
             if self.is_current_bar:
                 self.hline.setPos(close)
@@ -87,7 +87,7 @@ class DateAxis(pg.AxisItem):
     def tickStrings(self, values, scale, spacing):
         strns = []
         try:
-            timestamp = self._timestamp_mapping.loc[values]
+            timestamp = self._timestamp_mapping.iloc[values]
             rng = max(timestamp)-min(timestamp)
         except Exception as e:
             timestamp = []

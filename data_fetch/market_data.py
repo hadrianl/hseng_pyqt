@@ -42,15 +42,21 @@ class market_data_base(QtCore.QObject):
 
     @property
     def datetime(self):
-        return self.data['datetime']
+        return self.data.index.to_series()
 
     @property
     def timestamp(self):
-        return self.data['datetime'].apply(lambda x: x.timestamp()).rename('timestamp')
-
+        return self.datatime.apply(lambda x: x.timestamp())
+    # @property
+    # def timestamp(self):
+    #     return self.data['datetime'].apply(lambda x: x.timestamp()).rename('timestamp')
+    #
+    # @property
+    # def timeindex(self):
+    #     return self.timestamp.index.to_series()
     @property
-    def timeindex(self):
-        return self.timestamp.index.to_series()
+    def x(self):
+        return pd.Series(range(len(self.data)), index=self.data.index)
 
     @property
     def data(self):
@@ -83,8 +89,8 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
                                         where datetime>=\"{start}\" \
                                         and datetime<\"{end} \"\
                                         and prodcode=\"{symbol}\""
-        self._data = pd.read_sql(self._sql, self._conn)
-        self._data.datetime = pd.to_datetime(self._data.datetime)
+        self._data = pd.read_sql(self._sql, self._conn, index_col='datetime')
+        # self._data.datetime = pd.to_datetime(self._data.datetime)
         self.indicators = {}
         self.bar_size = 200
 
@@ -121,11 +127,11 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             v.update(self)
 
     def _resample(self):
-        self.data_resampled = self._data.resample(self.ktype, on='datetime').apply({'open': 'first',
+        self.data_resampled = self._data.resample(self.ktype).apply({'open': 'first',
                                                                             'high': 'max',
                                                                             'low': 'min',
                                                                             'close': 'last'})
-        return self.data_resampled.dropna(how='any').reset_index()
+        return self.data_resampled.dropna(how='any')
 
 
 class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前最新处于活跃交易状态的OHLC，多重继承QObject增加其信号槽特性
@@ -207,7 +213,7 @@ class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前�
              'high': self._tickers.price.max(),
              'low': self._tickers.price.min(),
              'close': self._tickers.price.iloc[-1]}
-        return pd.DataFrame(d, index=[self._timeindex], columns=['datetime', 'open', 'high', 'low', 'close'])
+        return pd.DataFrame(d, index=[self._x], columns=['datetime', 'open', 'high', 'low', 'close'])
 
 
 if __name__ == '__main__':

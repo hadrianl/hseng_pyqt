@@ -62,13 +62,13 @@ class mouseaction(QtCore.QObject):
                 if plt.sceneBoundingRect().contains(pos):
                     inside = True
                     self.mousePoint = mousePoint = plt.vb.mapSceneToView(pos)
-                    t_max = market_data.timeindex.max()
-                    t_min = market_data.timeindex.min()
+                    t_max = market_data.x.max()
+                    t_min = market_data.x.min()
                     x_type = ((mousePoint.x() <= t_min - 3) << 1) + (mousePoint.x() <= t_max + 3)
                     x_index = {0: t_max + 3, 1: int(mousePoint.x()), 3: t_min - 3}.get(x_type)
                     break
                 else:
-                    t_max = market_data.timeindex.max()
+                    t_max = market_data.x.max()
                     x_index = t_max + 1
 
             for plt in plt_list:
@@ -90,7 +90,7 @@ class mouseaction(QtCore.QObject):
                         else:
                             text_df = market_data.data.iloc[x_index]
                         html = f"""
-                        <span style="color:white;font-size:16px">时间:<span/><span style="color:blue">{str(text_df.datetime)[8:16].replace(" ", "日")}<span/><br/>
+                        <span style="color:white;font-size:16px">时间:<span/><span style="color:blue">{str(text_df.name)[8:16].replace(" ", "日")}<span/><br/>
                         <span style="color:white;font-size:16px">开盘:<span/><span style="color:red">{text_df.open}<span/><br/>
                         <span style="color:white;font-size:16px">最高:<span/><span style="color:red">{text_df.high}<span/><br/>
                         <span style="color:white;font-size:16px">最低:<span/><span style="color:red">{text_df.low}<span/><br/>
@@ -98,7 +98,7 @@ class mouseaction(QtCore.QObject):
                         """
                         self.info_text.setPos(ohlc_plt.getViewBox().viewRange()[0][0], ohlc_plt.getViewBox().viewRange()[1][1])
                         self.info_text.setHtml(html)
-                        self.xaxis_text.setText(str(text_df.datetime))
+                        self.xaxis_text.setText(str(text_df.name))
                         self.yaxis_text.setText('{:.2f}'.format(mousePoint.y())) if inside else ...
                     except IndexError:
                         pass
