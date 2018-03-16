@@ -35,8 +35,20 @@ class CandlestickItem(pg.GraphicsObject):
         self.is_current_bar = True
         self.htext = pg.InfLineLabel(self.hline)
 
-    def setData(self, ohlc_data):
-        self.data = ohlc_data # data must have fields: time, open, close, min, max
+    def setHisData(self, ohlc):
+        length = len(ohlc.data)
+        self.ohlc_x = ohlc.x.iloc[0: (length-1)]
+        self.ohlc_data = ohlc.data.iloc[0: (length-1)]
+        print(self.ohlc_x)
+        print(self.ohlc_data)
+        self.flagHasData = True
+        self.generatePicture()
+        self.informViewBoundsChanged()
+
+    def setCurData(self, ohlc):
+        length = len(ohlc.data)
+        self.ohlc_x = ohlc.x.iloc[-1: length]
+        self.ohlc_data = ohlc.data.iloc[-1: length]
         self.flagHasData = True
         self.generatePicture()
         self.informViewBoundsChanged()
@@ -48,7 +60,7 @@ class CandlestickItem(pg.GraphicsObject):
         p = QtGui.QPainter(self.picture)
         p.setPen(self.WLinePen)
         w = self.PenWidth
-        for (i, (t, open, high, low, close)) in enumerate(self.data.itertuples()):
+        for (i, (t, open, high, low, close)) in zip(self.ohlc_x, self.ohlc_data.itertuples()):
             p.drawLine(QtCore.QPointF(i, low), QtCore.QPointF(i, high))
             if self.is_current_bar:
                 self.hline.setPos(close)

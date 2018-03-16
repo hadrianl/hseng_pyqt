@@ -20,7 +20,7 @@ class mouseaction(QtCore.QObject):
         self.yaxis_text = pg.TextItem(anchor=(1, 0))
         self.cross_hair_pen = pg.mkPen(color='y', dash=[3, 4])
 
-    def __call__(self, ohlc_plt, indicator_plt, std_plt, date_slicer, market_data, ticker_data, **indicator):
+    def __call__(self, ohlc_plt, indicator_plt, std_plt, date_slicer, market_data, **indicator):
         self._ohlc_plt = ohlc_plt
         self._indicator_plt = indicator_plt
         if self._ch:
@@ -68,8 +68,7 @@ class mouseaction(QtCore.QObject):
                     x_index = {0: t_max + 3, 1: int(mousePoint.x()), 3: t_min - 3}.get(x_type)
                     break
                 else:
-                    t_max = market_data.x.max()
-                    x_index = t_max + 1
+                    x_index = market_data.x.max()
 
             for plt in plt_list:
                 if self._ch:
@@ -85,10 +84,11 @@ class mouseaction(QtCore.QObject):
 
                 if self._if:
                     try:
-                        if x_index == t_max + 1:
-                            text_df = ticker_data.data.iloc[0]
-                        else:
-                            text_df = market_data.data.iloc[x_index]
+                        # if x_index == t_max + 1:
+                        #     text_df = ticker_data.data.iloc[0]
+                        # else:
+                        #     text_df = market_data.data.iloc[x_index]
+                        text_df = market_data.data.iloc[x_index]
                         html = f"""
                         <span style="color:white;font-size:16px">时间:<span/><span style="color:blue">{str(text_df.name)[8:16].replace(" ", "日")}<span/><br/>
                         <span style="color:white;font-size:16px">开盘:<span/><span style="color:red">{text_df.open}<span/><br/>

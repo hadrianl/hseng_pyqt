@@ -5,7 +5,7 @@
 # @File    : app.py
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
-from data_fetch.market_data import OHLC, NewOHLC
+from data_fetch.market_data import OHLC
 from data_handle.indicator import Ma, Macd, Std
 from data_visualize.OHLC_ui import OHlCWidget
 from data_visualize.console import AnalysisConsole
@@ -25,8 +25,8 @@ start_time = dt.datetime.now() - dt.timedelta(minutes=680)
 end_time = dt.datetime.now() + dt.timedelta(minutes=10)
 symbol = 'HSI' + MONTH_LETTER_MAPS[dt.datetime.now().month] + str(dt.datetime.now().year)[-1]  # 根据当前时间生成品种代码
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
-ohlc = OHLC(start_time, end_time, 'HSIH8', minbar=580, ktype='1T')
-tick_datas = NewOHLC('HSIH8')
+ohlc = OHLC(start_time, end_time, 'HSIH8', minbar=580, ktype='5T')
+# tick_datas = NewOHLC('HSIH8')
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
@@ -35,13 +35,15 @@ trade_datas = TradeData(start_time, end_time, 'HSENG$.MAR8')
 ohlc + i_ma
 ohlc + i_macd
 ohlc + i_std
+ohlc.update()
+
 # -----------------------------------------------------------------------+
 # -----------------------窗口与app初始化---------------------------------+
 app = QtWidgets.QApplication(sys.argv)
 win = OHlCWidget()
 win.setWindowTitle(symbol + '实盘分钟图')
 # 各个初始化之间存在依赖关系，需要按照以下顺序初始化
-win.binddata(ohlc=ohlc, tick_datas=tick_datas, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_datas=trade_datas)  # 把数据与UI绑定
+win.binddata(ohlc=ohlc, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_datas=trade_datas)  # 把数据与UI绑定
 win.init_ohlc()  # 初始化ohlc主图
 win.init_ma()  # 初始化ma均线图
 win.init_macd()  # 初始化指标
@@ -52,9 +54,10 @@ win.init_mouseaction()  # 初始化十字光标与鼠标交互
 win.init_signal()  # 初始化指标
 # win.tick_datas.active()  # 启动tick_datas
 win.date_region.setRegion([win.ohlc.x.max() - 120, win.ohlc.x.max() + 5])  # 初始化可视区域
-win.tick_datas._x = ohlc.x.iloc[-1] + 1
+win.ohlc.active_ticker()
+# win.tick_datas._x = ohlc.x.iloc[-1] + 1
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
-tick_datas.ticker_sig.connect(print_tick)
+# tick_datas.ticker_sig.connect(print_tick)
 
 
 
@@ -87,7 +90,7 @@ def help_doc():
     return
 
 
-namespace = {'ohlc': ohlc, 'tick_datas': tick_datas, 'trade_datas': trade_datas, 'win': win, 'help_doc': help_doc}  # console的命名空间
+namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'help_doc': help_doc}  # console的命名空间
 console = AnalysisConsole(namespace)
 
 
