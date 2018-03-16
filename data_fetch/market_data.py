@@ -129,7 +129,6 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         while self.isactive:
             ticker = self._sub_socket.recv_pyobj()
             if ticker.ProdCode.decode() == self.symbol and ticker.DealSrc == 1:
-                # print(f'data_sub队列数量：{self._data_queue.qsize()}')
                 self._data_queue.put(ticker)
         self._sub_socket.disconnect()
 
@@ -138,7 +137,6 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             ticker = self._data_queue.get()
             if not self._last_tick:
                 self._last_tick = ticker
-            print(f'Tickertime:{datetime.fromtimestamp(ticker.TickerTime)}-Price:{ticker.Price}-Qty:{ticker.Qty}')
             # self._thread_lock.acquire()
             if not self._last_tick.TickerTime // 60 == ticker.TickerTime // 60:
                 if len(self._data) >= self.bar_size:
@@ -165,11 +163,6 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             if self.ticker_sig:
                 self.ticker_sig.emit(self._last_tick)  # 发出ticker信号
 
-    # def _ohlc_1m_update(self):
-    #     self._thread_lock.acquire()
-    #     ticker_resampled = self._tickers.resample('1T').apply({'price': 'ohlc'})
-    #     self._data = self._data.append(ticker_resampled.iloc[0]['price'])
-    #     self._thread_lock.release()
 
     def active_ticker(self):
         self.isactive = True
@@ -212,99 +205,6 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def update(self):
         for i, v in self.indicators.items():
             v.update(self)
-
-
-
-
-# class NewOHLC(market_data_base):  # 主图表的最新OHLC数据类，即当前最新处于活跃交易状态的OHLC，多重继承QObject增加其信号槽特性
-#     ticker_sig = QtCore.pyqtSignal(SPApiTicker)
-#     ohlc_1m_sig = QtCore.pyqtSignal(pd.DataFrame)
-#     def __init__(self, symbol, ktype='1T'):
-#         market_data_base.__init__(self)
-#         self._symbol = symbol
-#         self.ktype = ktype
-#         self._tickers = pd.DataFrame(columns=['price', 'qty'],index=pd.Index([],name='tickertime'))
-#         self.isactive = False
-#         self._data_queue = Queue()
-#         self._tick_sig = None
-#         self._ohlc_sig = None
-#
-#         self._thread_lock = Lock()
-#         self._last_tick = None
-#
-#     def _ticker_sub(self):
-#         self._sub_socket = zmq.Context().socket(zmq.SUB)
-#         self._sub_socket.connect(f'tcp://{KAIRUI_SERVER_IP}:6868')
-#         self._sub_socket.set_string(zmq.SUBSCRIBE, '')
-#         try:
-#             sql = 'select tickertime, price, qty from carry_investment.futures_tick ' \
-#                   'where tickertime>=(select DATE_FORMAT(TIMESTAMP(max(tickertime)),"%Y-%m-%d %H:%i:00") ' \
-#                   'from carry_investment.futures_tick)'
-#             self._tickers = pd.read_sql(sql, self._conn, index_col='tickertime')
-#             print(self._tickers)
-#             # self._tickers.index = pd.to_datetime(self._tickers.index, unit='s')
-#         except Exception as e:
-#             self._tickers = pd.DataFrame(columns=['price', 'qty'], index=pd.Index([],name='tickertime'))
-#         while self.isactive:
-#             ticker = self._sub_socket.recv_pyobj()
-#             if ticker.ProdCode.decode() == self._symbol and ticker.DealSrc == 1:
-#                 # print(f'data_sub队列数量：{self._data_queue.qsize()}')
-#                 self._data_queue.put(ticker)
-#         self._sub_socket.disconnect()
-#
-#     def _ticker_update(self):
-#         while self.isactive:
-#             ticker = self._data_queue.get()
-#             if not self._last_tick:
-#                 self._last_tick = ticker
-#             self._thread_lock.acquire()
-#             if self._last_tick.TickerTime // 60 == ticker.TickerTime // 60:
-#                 self._tickers = self._tickers.append(pd.DataFrame({'price': ticker.Price,'qty': ticker.Qty},
-#                                                                   index=[pd.to_datetime(ticker.TickerTime, unit='s')]))
-#             else:
-#                 self.ohlc_1m_sig.emit(self.data)  # 发出ohlc信号
-#                 self._tickers = pd.DataFrame(columns=['price', 'qty'],index=pd.Index([],name='tickertime'))
-#                 self._tickers = self._tickers.append(pd.DataFrame({'price': ticker.Price, 'qty': ticker.Qty},
-#                                                                   index=[ticker.TickerTime]))
-#             self._thread_lock.release()
-#             self._last_tick = ticker
-#             if self.ticker_sig:
-#                 self.ticker_sig.emit(self._last_tick)  # 发出ticker信号
-#
-#     def active(self):
-#         self.isactive = True
-#         self._ticker_sub_thread = Thread(target=self._ticker_sub)
-#         self._data_update_thread = Thread(target=self._ticker_update)
-#         self._ticker_sub_thread.start()
-#         self._data_update_thread.start()
-#
-#     def inactive(self):
-#         self.isactive = False
-#         self._ticker_sub_thread.join()
-#         self._data_update_thread.join()
-#
-#     @property
-#     def ticker(self):
-#         return self._tickers
-#
-#     @property
-#     def data(self):
-#         # d = {'datetime': datetime.fromtimestamp((self._tickers.iloc[0].tickertime // 60) * 60),
-#         #      'open': self._tickers.price.iloc[0],
-#         #      'high': self._tickers.price.max(),
-#         #      'low': self._tickers.price.min(),
-#         #      'close': self._tickers.price.iloc[-1]}
-#         # d = self._tickers.resample('1T', how={'price':'ohlc'})
-#         d=pd.DataFrame({'open': self._tickers.price.iloc[0],
-#                         'high': self._tickers.price.max(),
-#                         'low': self._tickers.price.min(),
-#                         'close': self._tickers.price.iloc[-1]}, index=[self._tickers.index.floor('1T')[0]])
-#         print(d)
-#         return d
-#
-#     @property
-#     def x(self):
-#         return [self._x]
 
 
 if __name__ == '__main__':

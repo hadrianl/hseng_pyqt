@@ -31,7 +31,7 @@ class TradeData():
             self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
             self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
         except Exception as e:
-            print(e)
+            print('trade_data_error', e)
             self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
                                                      'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
 
@@ -59,7 +59,7 @@ class TradeData():
             self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
             self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
         except Exception as e:
-            print(e)
+            print('trade_data_update_error:', e)
             self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
                                                      'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
 

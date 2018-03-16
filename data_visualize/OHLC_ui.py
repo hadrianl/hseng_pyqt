@@ -216,7 +216,7 @@ class OHlCWidget(KeyEventWidget):
                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
-            print(e)
+            print('tradeitems_open_error:', e)
             # raise e
         try:
             self.tradeitems_dict['close'].setData(x=self.ohlc.x.loc[self.trade_datas.close.index.floor(self.ohlc.ktype)],
@@ -227,7 +227,7 @@ class OHlCWidget(KeyEventWidget):
                                                        1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                        0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
-            print(e)
+            print('tradeitems_close_error:',e)
             # raise e
             # QMessageBox.critical(self, '加载错误', 'trade_data加载错误')
         # -------------------------------------------------------------------------------------------------------------
@@ -345,7 +345,7 @@ class OHlCWidget(KeyEventWidget):
                                                        0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
             raise e
-            print(e)
+            print('tradeitems_error:', e)
         # ---------------------------------------------------------------------------------------------------------
         self.ohlc_data_update_sync()
 
