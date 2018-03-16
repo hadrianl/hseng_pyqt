@@ -39,8 +39,6 @@ class CandlestickItem(pg.GraphicsObject):
         length = len(ohlc.data)
         self.ohlc_x = ohlc.x.iloc[0: (length-1)]
         self.ohlc_data = ohlc.data.iloc[0: (length-1)]
-        print(self.ohlc_x)
-        print(self.ohlc_data)
         self.flagHasData = True
         self.generatePicture()
         self.informViewBoundsChanged()
