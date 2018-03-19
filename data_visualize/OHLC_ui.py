@@ -115,6 +115,7 @@ class OHlCWidget(KeyEventWidget):
     def binddata(self, **data):  # 实现数据与UI界面的绑定
         for k, v in data.items():
             setattr(self, k, v)
+            V_logger.info(f'绑定{k}数据到图表')
 
     def init_ohlc(self):  # 初始化主图OHLC k线
         self.ohlc_plt = self.makePI('ohlc')
@@ -147,8 +148,7 @@ class OHlCWidget(KeyEventWidget):
 
         for line in self.interlines:
             self.ohlc_plt.addItem(line)
-
-        V_logger.info(f'加入时间分割线interline')
+        V_logger.info(f'初始化时间分割线interline')
 
 
     def init_ma(self):  # 初始化主图均线ma
@@ -432,6 +432,7 @@ class OHlCWidget(KeyEventWidget):
         # app.processEvents()
 
     def init_signal(self):  # 信号的连接与绑定
+        V_logger.info(f'初始化交互信号绑定')
         self.ohlc_plt.sigXRangeChanged.connect(self.ohlc_Yrange_update)
         self.date_region.sigRegionChanged.connect(self.date_slicer_update)
         self.ohlc.ohlc_sig.connect(self.chart_replot)

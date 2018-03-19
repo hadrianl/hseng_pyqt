@@ -23,7 +23,7 @@ pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 Start_Time, End_Time = date_range('history', start='2018/03/15', bar_num=680)
 Symbol = symbol('HSI')
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
-ohlc = OHLC(Start_Time, End_Time, 'HSIH8', minbar=580, ktype='1T')
+ohlc = OHLC(Start_Time, End_Time, 'HSIH8', minbar=580, ktype='5T')
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
@@ -33,9 +33,10 @@ ohlc + i_ma
 ohlc + i_macd
 ohlc + i_std
 ohlc.update()
-F_logger.info('OHLC数据初始化完成')
+F_logger.info('初始化OHLC数据完成')
 # -----------------------------------------------------------------------+
 # -----------------------窗口与app初始化---------------------------------+
+V_logger.info('初始化app')
 app = QtWidgets.QApplication(sys.argv)
 win = OHlCWidget()
 win.setWindowTitle(Symbol + '实盘分钟图')
@@ -48,11 +49,11 @@ win.init_std()  # 初始化std指标
 win.init_trade_data()  # 初始化交易数据的对接
 win.init_date_slice()  # 初始化时间切片
 win.init_mouseaction()  # 初始化十字光标与鼠标交互
-win.init_signal()  # 初始化指标
+win.init_signal()  # 初始化指标信号
 win.date_region.setRegion([win.ohlc.x.max() - 120, win.ohlc.x.max() + 5])  # 初始化可视区域
 win.ohlc.active_ticker()
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
-V_logger.info(f'ohlc图表初始化完成')
+V_logger.info(f'初始化ohlc图表完成')
 
 
 
