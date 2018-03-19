@@ -20,10 +20,10 @@ import sys
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
 # 确定需要展示的K线范围
-Start_Time, End_Time = date_range('history', start='2018/03/15', bar_num=680)
+Start_Time, End_Time = date_range('present', bar_num=680)
 Symbol = symbol('HSI')
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
-ohlc = OHLC(Start_Time, End_Time, 'HSIH8', minbar=580, ktype='5T')
+ohlc = OHLC(Start_Time, End_Time, 'HSIH8', minbar=580, ktype='1T')
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
@@ -42,6 +42,7 @@ win = OHlCWidget()
 win.setWindowTitle(Symbol + '实盘分钟图')
 # 各个初始化之间存在依赖关系，需要按照以下顺序初始化
 win.binddata(ohlc=ohlc, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_datas=trade_datas)  # 把数据与UI绑定
+win.ohlc.active_ticker()
 win.init_ohlc()  # 初始化ohlc主图
 win.init_ma()  # 初始化ma均线图
 win.init_macd()  # 初始化指标
@@ -51,7 +52,6 @@ win.init_date_slice()  # 初始化时间切片
 win.init_mouseaction()  # 初始化十字光标与鼠标交互
 win.init_signal()  # 初始化指标信号
 win.date_region.setRegion([win.ohlc.x.max() - 120, win.ohlc.x.max() + 5])  # 初始化可视区域
-win.ohlc.active_ticker()
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 V_logger.info(f'初始化ohlc图表完成')
 

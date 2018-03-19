@@ -127,6 +127,7 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc_plt.showGrid(x=True, y=True)
         self.tickitems = CandlestickItem()
         self.tickitems.setCurData(self.ohlc)
+        self.ohlc.update()
         self.tickitems.mark_line()
         self.ohlc_plt.addItem(self.tickitems)
         self.ohlc_plt.addItem(self.tickitems.hline)
