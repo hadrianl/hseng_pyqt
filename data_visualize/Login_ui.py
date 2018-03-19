@@ -9,7 +9,7 @@ from login import Ui_LoginWindow
 from PyQt5.Qt import QDialog, QMessageBox
 from Crypto.Hash import SHA256
 import pymysql as pm
-from data_fetch.util import *
+from util import *
 
 
 class LoginDialog(QDialog, Ui_LoginWindow):

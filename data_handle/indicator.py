@@ -10,7 +10,7 @@
 
 
 from data_fetch.market_data import OHLC
-from data_fetch.util import H_logger
+from util import H_logger
 import pandas as pd
 
 
@@ -96,7 +96,7 @@ class Ma(indicator_base):
 
 class Std(indicator_base):
     def __init__(self, window=60, min_periods=2):
-        super(Std, self).__init__('std', window=window, min_periods=min_periods)
+        super(Std, self).__init__('STD', window=window, min_periods=min_periods)
 
     def __str__(self):
         return f'<STD>----WINDOW{self._window}-MIN_PERIOUS:{self._min_periods}'

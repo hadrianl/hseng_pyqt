@@ -8,7 +8,7 @@
 
 import pandas as pd
 import pymysql as pm
-from data_fetch.util import *
+from util import *
 from threading import Thread, Lock
 from PyQt5 import QtCore
 from queue import Queue

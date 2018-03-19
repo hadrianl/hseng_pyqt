@@ -10,7 +10,7 @@ from data_handle.indicator import Ma, Macd, Std  # 导入指标
 from data_visualize.OHLC_ui import OHlCWidget  # 导入OHLC可视化类
 from data_visualize.console import AnalysisConsole # 导入分析交互界面类
 from data_visualize.Login_ui import LoginDialog  # 导入登录界面类
-from data_fetch.util import *  # 导入常用函数
+from util import *  # 导入常用函数
 from data_fetch.trade_data import TradeData  # 导入交易数据类
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
@@ -20,12 +20,10 @@ import sys
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
 # 确定需要展示的K线范围
-# Start_Time, End_Time = date_range('present', bar_num=680)
 Start_Time, End_Time = date_range('history', start='2018/03/15', bar_num=680)
 Symbol = symbol('HSI')
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
 ohlc = OHLC(Start_Time, End_Time, 'HSIH8', minbar=580, ktype='1T')
-# tick_datas = NewOHLC('HSIH8')
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
@@ -54,7 +52,7 @@ win.init_signal()  # 初始化指标
 win.date_region.setRegion([win.ohlc.x.max() - 120, win.ohlc.x.max() + 5])  # 初始化可视区域
 win.ohlc.active_ticker()
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
-V_logger.info(f'OHLC图表初始化完成')
+V_logger.info(f'ohlc图表初始化完成')
 
 
 
@@ -90,9 +88,8 @@ def help_doc():
 namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'help_doc': help_doc}  # console的命名空间
 console = AnalysisConsole(namespace)
 
+
 if __name__ == '__main__':
-    from login import Ui_LoginWindow
-    from PyQt5.Qt import QDialog
 
     win.resize(1200, 800)
     login_win = LoginDialog()

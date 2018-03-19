@@ -10,8 +10,7 @@ import pyqtgraph as pg
 from data_visualize.baseitems import DateAxis, CandlestickItem, TradeDataScatter, TradeDataLinkLine
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.Qt import QFont, QBrush, QColor
-from PyQt5.QtCore import Qt
-from data_fetch.util import *
+from util import *
 import pandas as pd
 from data_visualize.accessory import mouseaction
 import numpy as np

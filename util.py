@@ -54,12 +54,6 @@ MONTH_LETTER_MAPS = {1: 'F',
                      12: 'Z'
                      }
 
-MYSQL = {'host': '192.168.2.226',
-         'port': 3306,
-         'user': 'kairuitouzi',
-         'password': 'kairuitouzi',
-         'db': 'carry_investment'}
-
 # 确定需要展示的K线范围
 def date_range(type, **kwargs):
     """

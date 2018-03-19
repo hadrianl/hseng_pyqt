@@ -7,7 +7,7 @@
 
 
 import pyqtgraph.console
-from data_fetch.util import V_logger
+from util import V_logger
 
 class AnalysisConsole(pyqtgraph.console.ConsoleWidget):
     def __init__(self, namespace):

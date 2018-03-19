@@ -7,7 +7,7 @@
 
 import pandas as pd
 import pymysql as pm
-from data_fetch.util import *
+from util import *
 import datetime as dt
 
 class TradeData():
@@ -29,7 +29,7 @@ class TradeData():
             self._conn.commit()
             self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
             self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
-            F_logger.info(f'初始化请求{self.symbol}交易数据,<{self.start}>-<{self.end}>成功')
+            F_logger.info(f'初始化请求{self.symbol}交易数据,<{self.start}>-<{self.end}>')
         except Exception as e:
             self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
                                                      'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
@@ -58,7 +58,7 @@ class TradeData():
             self._conn.commit()
             self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
             self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
-            F_logger.info(f'更新{self.symbol}交易数据,<{self.start}>-<{self.end}>成功')
+            F_logger.info(f'更新{self.symbol}交易数据,<{self.start}>-<{self.end}>')
         except Exception as e:
             self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
                                                      'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
