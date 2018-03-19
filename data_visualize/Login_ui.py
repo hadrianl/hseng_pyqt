@@ -9,7 +9,7 @@ from login import Ui_LoginWindow
 from PyQt5.Qt import QDialog, QMessageBox
 from Crypto.Hash import SHA256
 import pymysql as pm
-from data_fetch.util import MYSQL
+from data_fetch.util import *
 
 
 class LoginDialog(QDialog, Ui_LoginWindow):
@@ -18,13 +18,14 @@ class LoginDialog(QDialog, Ui_LoginWindow):
         Ui_LoginWindow.__init__(self)
         self.setupUi(self)
         self.init_login_info()
+        V_logger.info(f'初始化登录界面')
 
     def init_login_info(self):
-        dbconfig = {'host': MYSQL['host'],
-                    'port': MYSQL['port'],
-                    'user': MYSQL['user'],
-                    'password': MYSQL['password'],
-                    'db': MYSQL['db'],
+        dbconfig = {'host': KAIRUI_MYSQL_HOST,
+                    'port': KAIRUI_MYSQL_PORT,
+                    'user': KAIRUI_MYSQL_USER,
+                    'password': KAIRUI_MYSQL_PASSWD,
+                    'db': KAIRUI_MYSQL_DB,
                     'cursorclass': pm.cursors.DictCursor
                     }
         conn = pm.connect(**dbconfig)
@@ -43,10 +44,12 @@ class LoginDialog(QDialog, Ui_LoginWindow):
             if name_hexdigest == i['username']:
                 if password_hexdigest == i['password']:
                     self.accept()
+                    H_logger.info(f'帐号:{self.UserName.text()}登入成功！')
                 else:
                     QMessageBox.critical(self, '登录异常', '密码错误！')
+                    H_logger.info(f'帐号:{self.UserName.text()}登入,密码错误！')
                 break
 
         else:
             QMessageBox.critical(self, '登录异常', '用户名不存在！')
-
+            H_logger.info(f'帐号:{self.UserName.text()}登入失败, 帐号不存在')

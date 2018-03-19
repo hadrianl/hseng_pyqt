@@ -16,6 +16,7 @@ import pandas as pd
 from data_visualize.accessory import mouseaction
 import numpy as np
 import datetime as dt
+from functools import partial
 
 
 
@@ -109,6 +110,7 @@ class OHlCWidget(KeyEventWidget):
         plotItem.getAxis('right').setPen(color=(255, 255, 255, 255), width=0.8)
         plotItem.showGrid(True, True)
         plotItem.hideButtons()
+        V_logger.info(f'初始化{name}图表')
         return plotItem
 
     def binddata(self, **data):  # 实现数据与UI界面的绑定
@@ -137,7 +139,7 @@ class OHlCWidget(KeyEventWidget):
             for item in self.interlines:
                 self.ohlc_plt.removeItem(item)
         self.interlines = []
-        timedelta = int(self.ohlc.ktype[0])
+        timedelta = int(self.ohlc.ktype[:-1])
         for i,v in (self.ohlc.datetime - self.ohlc.datetime.shift()).iteritems():
             if v > dt.timedelta(minutes=timedelta):
                 interline = pg.InfiniteLine(angle=90, pen=pg.mkPen(color='w', width=0.5, dash=[1, 4, 5, 4]))
@@ -147,13 +149,17 @@ class OHlCWidget(KeyEventWidget):
         for line in self.interlines:
             self.ohlc_plt.addItem(line)
 
+        V_logger.info(f'加入时间分割线interline')
+
 
     def init_ma(self):  # 初始化主图均线ma
+        V_logger.info(f'初始化ma图表')
         self.ma_items_dict = {}
         ma_x = range(len(self.ohlc.data))
         for w in self.i_ma._windows:
             self.ma_items_dict[w] = self.ohlc_plt.plot(self.ohlc.x, getattr(self.i_ma, w),
                                                        pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
+
 
     def init_macd(self):  # 初始化macd
         self.macd_items_dict = {}
@@ -197,6 +203,7 @@ class OHlCWidget(KeyEventWidget):
         self.main_layout.nextRow()
 
     def init_trade_data(self):
+        V_logger.info(f'初始化交易数据标记TradeDataScatter及link_line')
         self.tradeitems_dict = {}
         self.tradeitems_dict['open'] = TradeDataScatter()
         self.tradeitems_dict['close'] = TradeDataScatter()
@@ -216,8 +223,7 @@ class OHlCWidget(KeyEventWidget):
                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
-            print('tradeitems_open_error:', e)
-            # raise e
+            V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败.ERROR:', e)
         try:
             self.tradeitems_dict['close'].setData(x=self.ohlc.x.loc[self.trade_datas.close.index.floor(self.ohlc.ktype)],
                                                   y=self.trade_datas['ClosePrice'],
@@ -227,9 +233,7 @@ class OHlCWidget(KeyEventWidget):
                                                        1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                        0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
-            print('tradeitems_close_error:',e)
-            # raise e
-            # QMessageBox.critical(self, '加载错误', 'trade_data加载错误')
+            V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败.ERROR:', e)
         # -------------------------------------------------------------------------------------------------------------
 
         def link_line(a, b):
@@ -282,6 +286,7 @@ class OHlCWidget(KeyEventWidget):
         self.main_layout.addItem(self.date_slicer)
 
     def init_mouseaction(self):  # 初始化鼠标十字光标动作以及光标所在位置的信息
+        V_logger.info(f'初始化mouseaction交互行为')
         self.mouse = mouseaction()
         self.proxy = self.mouse(self.ohlc_plt, self.macd_plt, self.std_plt, self.date_slicer, self.ohlc,
                                 i_ma=self.i_ma, i_macd=self.i_macd, i_std=self.i_std)
@@ -291,6 +296,7 @@ class OHlCWidget(KeyEventWidget):
         self.consolebutton.setGeometry(QtCore.QRect(10, 250, 75, 23))
 
     def chart_replot(self):  # 重新画图
+        V_logger.info('更新全部图表')
         ohlc = self.ohlc
         ohlcitems = self.ohlcitems
         ma_items_dict = self.ma_items_dict
@@ -344,8 +350,7 @@ class OHlCWidget(KeyEventWidget):
                                                        1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                        0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
         except Exception as e:
-            raise e
-            print('tradeitems_error:', e)
+            V_logger.debug(f'更新交易数据标注失败.ERROR:', e)
         # ---------------------------------------------------------------------------------------------------------
         self.ohlc_data_update_sync()
 
@@ -373,14 +378,14 @@ class OHlCWidget(KeyEventWidget):
                                        i_std.pos_std[i_std.x.between(*viewrange[0])].max()))
             self.date_slicer.setYRange(ohlc.close.min(), ohlc.close.max())
         except Exception as e:
-            print('ohlc_Yrange_update', e)
+            V_logger.debug(f'图表高度更新错误.ERROR:', e)
 
 
     def date_slicer_update(self):  # 当时间切片发生变化时触发
         try:
             self.ohlc_plt.setXRange(*self.date_region.getRegion(), padding=0)
         except Exception as e:
-            print('date_slicer_update', e)
+            V_logger.debug(f'date_slicer更新错误.ERROR:', e)
 
     def ohlc_data_update_sync(self):  # 主图横坐标变化的实现
         date_region = self.date_region
@@ -404,13 +409,19 @@ class OHlCWidget(KeyEventWidget):
                                                  self.ohlc_plt.getViewBox().viewRange()[1][0])
         self.ohlc_plt.update()
 
+    def readjust_Xrange(self, left_offset=120, right_offset=3):
+        """
+        重新调整X轴范围，最右侧的数据为基准，向左向右偏移
+        :param left_offset:
+        :param right_offset:
+        :return:
+        """
+        self.ohlc_plt.setXRange(self.ohlc.x.max() - left_offset, self.ohlc.x.max() + right_offset)
+
     def update_data_plot(self, new_ticker):  # 当前K线根据ticker数据的更新
         tickitems = self.tickitems
-        # tick_datas = self.tick_datas
         # ---------------------------更新数据到图表----------------------------------------------------+
         tickitems.update()
-        # tick_datas._x = self.ohlc.x.iloc[-1] + 1
-        # new_ohlc_data = tick_datas if tick_datas.ktype == '1T' else ...
         last_ohlc = self.ohlc.data.iloc[-1]
         tickitems.setCurData(self.ohlc)
         tickitems.update()
@@ -424,11 +435,10 @@ class OHlCWidget(KeyEventWidget):
     def init_signal(self):  # 信号的连接与绑定
         self.ohlc_plt.sigXRangeChanged.connect(self.ohlc_Yrange_update)
         self.date_region.sigRegionChanged.connect(self.date_slicer_update)
-        # if hasattr(self, 'tick_datas'):
-            # self.tick_datas.ticker_sig.connect(self.update_data_plot)
-            # self.tick_datas.ohlc_1m_sig.connect(self.ohlc.update)
         self.ohlc.ohlc_sig.connect(self.chart_replot)
         self.ohlc.ticker_sig.connect(self.update_data_plot)
+        self.ohlc.resample_sig.connect(self.chart_replot)
+        self.ohlc.resample_sig.connect(partial(self.readjust_Xrange))
 
     def on_K_Up(self):  # 键盘up键触发，放大
         ohlc_xrange = self.ohlc_plt.getViewBox().viewRange()[0]
@@ -449,7 +459,7 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc_plt.setXRange(*new_xrange)
 
     def on_M_Right_Double_Click(self):  # 鼠标右键双击触发，跳转到当前视图
-        self.ohlc_plt.setXRange(self.ohlc.x.max() - 120, self.ohlc.x.max() + 3)
+        self.readjust_Xrange()
 
     def on_M_Left_Double_Click(self):
         self.sig_M_Left_Double_Click.emit()

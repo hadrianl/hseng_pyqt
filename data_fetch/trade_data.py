@@ -12,7 +12,7 @@ import datetime as dt
 
 class TradeData():
     def __init__(self, start, end, symbol):
-        self._conn = pm.connect(host=KAIRUI_SERVER_IP, user=KAIRUI_MYSQL_USER,
+        self._conn = pm.connect(host=KAIRUI_MYSQL_HOST, user=KAIRUI_MYSQL_USER,
                                 password=KAIRUI_MYSQL_PASSWD, charset='utf8')
         self.start = start - dt.timedelta(hours=8)
         self.end = end - dt.timedelta(hours=8)
@@ -24,16 +24,16 @@ class TradeData():
                     f'and OpenTime>="{self.start}" and CloseTime<"{self.end}" ' \
                     f'and Status>=0'
 
-
         try:
             self._trade_data = pd.read_sql(self._sql, self._conn)
             self._conn.commit()
             self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
             self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
+            F_logger.info(f'初始化请求{self.symbol}交易数据,<{self.start}>-<{self.end}>成功')
         except Exception as e:
-            print('trade_data_error', e)
             self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
                                                      'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
+            F_logger.debug(f'初始化请求{self.symbol}交易数据,<{self.start}>-<{self.end}>失败.ERROR:', e)
 
     def __str__(self):
         return f'TradeData:<{self.symbol}> *{self.start} --> {self.end}*'
@@ -58,10 +58,11 @@ class TradeData():
             self._conn.commit()
             self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
             self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
+            F_logger.info(f'更新{self.symbol}交易数据,<{self.start}>-<{self.end}>成功')
         except Exception as e:
-            print('trade_data_update_error:', e)
             self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
                                                      'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
+            F_logger.debug(f'更新{self.symbol}交易数据,<{self.start}>-<{self.end}>失败.ERROR:', e)
 
     @property
     def account(self):

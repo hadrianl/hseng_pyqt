@@ -10,6 +10,7 @@
 
 
 from data_fetch.market_data import OHLC
+from data_fetch.util import H_logger
 import pandas as pd
 
 
@@ -18,6 +19,7 @@ class indicator_base():
         self.name = name
         for k, v in kwargs.items():
             setattr(self, '_' + k, v)
+        H_logger.info(f'初始化指标{self.name}数据-{[k + "=" + str(v) for k, v in kwargs.items()]}')
 
     def calc(self): ...
 
@@ -31,6 +33,7 @@ class indicator_base():
         self.ohlc = new_data
         self.x = self.ohlc.x
         self.calc()
+        H_logger.info(f'更新指标{self.name}数据')
 
 
 class Macd(indicator_base):
