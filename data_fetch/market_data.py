@@ -208,7 +208,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def inactive_ticker(self):
         self.__is_ticker_active = False
         self._ticker_sub_thread.join()
-        self._sub_socket.disconnect()
+        self._sub_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}')
         F_logger.info(f'断开{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口连接')
         self._data_update_thread.join()
 
