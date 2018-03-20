@@ -16,6 +16,7 @@ from data_visualize.accessory import mouseaction
 import numpy as np
 import datetime as dt
 from functools import partial
+from data_visualize.Console_ui import AnalysisConsole
 
 
 
@@ -291,6 +292,31 @@ class OHlCWidget(KeyEventWidget):
         self.proxy = self.mouse(self.ohlc_plt, self.macd_plt, self.std_plt, self.date_slicer, self.ohlc,
                                 i_ma=self.i_ma, i_macd=self.i_macd, i_std=self.i_std)
 
+    def init_console_widget(self, namespace):
+        self.console = AnalysisConsole(namespace)
+
+
+    def init_signal(self):  # 信号的连接与绑定
+        V_logger.info(f'初始化交互信号绑定')
+        self.ohlc_plt.sigXRangeChanged.connect(self.ohlc_Yrange_update)  # 主图X轴变化绑定Y轴更新高度
+        self.date_region.sigRegionChanged.connect(self.date_slicer_update)  # 时间切片变化信号绑定调整画图
+        self.ohlc.ohlc_sig.connect(self.chart_replot) # K线更新信号绑定更新画图
+        self.ohlc.ticker_sig.connect(self.update_data_plot) # ticker更新信号绑定最后的bar的画图
+        self.ohlc.resample_sig.connect(self.chart_replot)  # 重采样重画
+        self.ohlc.resample_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
+        # ----------------------重采样信号--------------------------------------
+        self.console.min_1.clicked.connect(partial(self.ohlc.set_ktype, '1T'))
+        self.console.min_5.clicked.connect(partial(self.ohlc.set_ktype, '5T'))
+        self.console.min_10.clicked.connect(partial(self.ohlc.set_ktype, '10T'))
+        self.console.min_30.clicked.connect(partial(self.ohlc.set_ktype, '30T'))
+        # -----------------------------------------------------------------------
+        self.sig_M_Left_Double_Click.connect(self.console.focus) #主图双击信号绑定console弹出
+        self.ohlc.ohlc_sig.connect(lambda :self.console.update_daterange(self.ohlc.datetime.min(),
+                                                                         self.ohlc.datetime.max()))
+        self.console.Button_daterange.released.connect(lambda : self.goto_history(self.console.dateTime_start.dateTime(),
+                                                                                  self.console.dateTime_end.dateTime()))
+
+
     def init_buttons(self):
         self.consolebutton = QtWidgets.QPushButton(text='交互console', parent=self.pw)
         self.consolebutton.setGeometry(QtCore.QRect(10, 250, 75, 23))
@@ -304,7 +330,6 @@ class OHlCWidget(KeyEventWidget):
         std_items_dict = self.std_items_dict
         i_macd = self.i_macd
         i_std = self.i_std
-        trade_datas = self.trade_datas
         ohlcitems.setHisData(self.ohlc)
         self.draw_interline()
         # -----------------------------均线更新----------------------------------------------+
@@ -437,26 +462,23 @@ class OHlCWidget(KeyEventWidget):
                                     max(viewrange[1][1], last_ohlc.high))
         # app.processEvents()
 
-    def init_signal(self):  # 信号的连接与绑定
-        V_logger.info(f'初始化交互信号绑定')
-        self.ohlc_plt.sigXRangeChanged.connect(self.ohlc_Yrange_update)
-        self.date_region.sigRegionChanged.connect(self.date_slicer_update)
-        self.ohlc.ohlc_sig.connect(self.chart_replot)
-        self.ohlc.ticker_sig.connect(self.update_data_plot)
-        self.ohlc.resample_sig.connect(self.chart_replot)
-        self.ohlc.resample_sig.connect(partial(self.readjust_Xrange))
-
-
     def goto_history(self, start, end):
+        from PyQt5.QtCore import QDateTime
+        if isinstance(start, QDateTime):
+            start = start.toPyDateTime()
+        if isinstance(end, QDateTime):
+            end = end.toPyDateTime()
         self.ohlc.inactive_ticker()
-        self.ohlc.start = start
-        self.ohlc.end = end
-        self.ohlc.init_data()
+        self.ohlc([start, end])
         self.ohlc.update()
+        self.chart_replot()
 
-
-
-    # def goto_present(self):
+    def goto_present(self):
+        start, end = date_range('present', bar_num=680)
+        self.ohlc([start, end])
+        self.ohlc.active_ticker()
+        self.ohlc.update()
+        self.chart_replot()
 
     def on_K_Up(self):  # 键盘up键触发，放大
         ohlc_xrange = self.ohlc_plt.getViewBox().viewRange()[0]
