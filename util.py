@@ -90,3 +90,31 @@ def symbol(code_prefix, type='futures', **kwargs):
 
 def print_tick(new_ticker):
     print(f'tickertime: {new_ticker.TickerTime}-price: {new_ticker.Price}-qty: {new_ticker.Qty}')
+
+def help_doc():
+    text = f'''主要命名空间：ohlc, tick_datas,trade_datas, win
+    ohlc是数据类的历史K线数据；tick_datas是数据类的当前K线数据(包括当前k线内的tick数据）；
+    trade_datas是交易数据；win是可视化类的主窗口
+    主要用法：
+    ohlc.data-历史K线数据
+    ohlc.indicator-历史K线指标数据
+    ohlc.open-历史K线open
+    ohlc.high-历史K线high
+    ohlc.low-历史K线low
+    ohlc.close-历史K线close
+    ohlc.datetime-历史K线时间
+    ohlc.timestamp-历史K线时间戳
+    ohlc.timeindex-历史k线时间序列
+    tick_datas有ohlc以上的所有属性，另外
+    tick_datas.ticker-当前K线的ticker数据
+    trade_datas.account-交易数据包含的账户
+    win.ohlc_plt-主窗口主图
+    win.indicator_plt-主窗口指标图
+    win.ma_items_dict-主窗口ma
+    win.macd_items_dict-主窗口macd
+    win.std_plt-主窗口std图
+    win.std_items_dict-主窗口std
+    win.mouse-主窗口鼠标
+    '''
+    print(text)
+    return
