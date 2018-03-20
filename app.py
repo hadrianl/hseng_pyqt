@@ -24,7 +24,8 @@ pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 Start_Time, End_Time = date_range('present', bar_num=680)
 Symbol = symbol('HSI')
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
-ohlc = OHLC(Start_Time, End_Time, 'HSIH8', minbar=580, ktype='1T')
+ohlc = OHLC('HSIH8', minbar=580, ktype='1T')
+ohlc(daterange=[Start_Time, End_Time])
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
@@ -39,14 +40,15 @@ ohlc + trade_datas
 ohlc._thread_lock.release()
 F_logger.info('初始化OHLC数据完成')
 # -----------------------------------------------------------------------+
-# -----------------------窗口与app初始化---------------------------------+
+# -----------------------app初始化---------------------------------+
 V_logger.info('初始化app')
 app = QtWidgets.QApplication(sys.argv)
+# -----------------------OHLC窗口初始化---------------------------------+
+V_logger.info(f'初始化ohlc图表')
 win = OHlCWidget()
 win.setWindowTitle(Symbol + '实盘分钟图')
 # 各个初始化之间存在依赖关系，需要按照以下顺序初始化
 win.binddata(ohlc=ohlc, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_datas=trade_datas)  # 把数据与UI绑定
-# win.ohlc.active_ticker()
 win.init_ohlc()  # 初始化ohlc主图
 win.init_ma()  # 初始化ma均线图
 win.init_macd()  # 初始化指标
@@ -54,49 +56,12 @@ win.init_std()  # 初始化std指标
 win.init_trade_data()  # 初始化交易数据的对接
 win.init_date_slice()  # 初始化时间切片
 win.init_mouseaction()  # 初始化十字光标与鼠标交互
+namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'help_doc': help_doc}  # console的命名空间
+win.init_console_widget(namespace)  # 初始化交互界面
 win.init_signal()  # 初始化指标信号
 win.date_region.setRegion([win.ohlc.x.max() - 120, win.ohlc.x.max() + 5])  # 初始化可视区域
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 V_logger.info(f'初始化ohlc图表完成')
-
-
-
-def help_doc():
-    text = f'''主要命名空间：ohlc, tick_datas,trade_datas, win
-    ohlc是数据类的历史K线数据；tick_datas是数据类的当前K线数据(包括当前k线内的tick数据）；
-    trade_datas是交易数据；win是可视化类的主窗口
-    主要用法：
-    ohlc.data-历史K线数据
-    ohlc.indicator-历史K线指标数据
-    ohlc.open-历史K线open
-    ohlc.high-历史K线high
-    ohlc.low-历史K线low
-    ohlc.close-历史K线close
-    ohlc.datetime-历史K线时间
-    ohlc.timestamp-历史K线时间戳
-    ohlc.timeindex-历史k线时间序列
-    tick_datas有ohlc以上的所有属性，另外
-    tick_datas.ticker-当前K线的ticker数据
-    trade_datas.account-交易数据包含的账户
-    win.ohlc_plt-主窗口主图
-    win.indicator_plt-主窗口指标图
-    win.ma_items_dict-主窗口ma
-    win.macd_items_dict-主窗口macd
-    win.std_plt-主窗口std图
-    win.std_items_dict-主窗口std
-    win.mouse-主窗口鼠标
-    '''
-    print(text)
-    return
-
-
-namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'help_doc': help_doc}  # console的命名空间
-console = AnalysisConsole(namespace)
-console.min_1.clicked.connect(partial(ohlc.set_ktype, '1T'))
-console.min_5.clicked.connect(partial(ohlc.set_ktype, '5T'))
-console.min_10.clicked.connect(partial(ohlc.set_ktype, '10T'))
-console.min_30.clicked.connect(partial(ohlc.set_ktype, '30T'))
-# console.Button_daterange.released.connect()
 
 if __name__ == '__main__':
 
@@ -106,6 +71,5 @@ if __name__ == '__main__':
     login_win.show()
     login_win.accepted.connect(win.show)
     login_win.rejected.connect(app.closeAllWindows)
-    win.sig_M_Left_Double_Click.connect(console.focus)  # 绑定双击行为调出console
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         sys.exit(app.exec())

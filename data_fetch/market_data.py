@@ -74,10 +74,8 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     ohlc_sig = QtCore.pyqtSignal()
     ticker_sig = QtCore.pyqtSignal(SPApiTicker)
 
-    def __init__(self, start, end,  symbol, minbar=None, ktype='1T'):
+    def __init__(self, symbol, minbar=None, ktype='1T'):
         market_data_base.__init__(self)
-        self.start = start
-        self.end = end
         self.__ktype = ktype
         self.symbol = symbol
         self._minbar = minbar
@@ -88,8 +86,6 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self.indicators = {}
         self.bar_size = 200
         F_logger.info(f'初始化请求{self.symbol}数据')
-        self.init_data()
-        # self.__init_sub()
 
     def __str__(self):
         return f"<{self.__ktype}-{self.symbol}> *{self.data['datetime'].min()}-->{self.data['datetime'].max()}*"
@@ -103,26 +99,28 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def __sub__(self, data):  # 重载-运算符，能够通过“OHLC - 指标”的语句取出指标指标
         self._data_unregister(data)
 
-    def init_data(self):
+    def __call__(self, daterange):
+        start, end = daterange
         if self._minbar:
             self._sql = f"select datetime, open, high, low, close from " \
                         f"(select * from carry_investment.futures_min " \
-                        f"where datetime<\"{self.end} \" and prodcode=\"{self.symbol}\" " \
+                        f"where datetime<\"{end} \" and prodcode=\"{self.symbol}\" " \
                         f"order by id desc limit 0,{self._minbar}) as fm order by fm.id asc"
-            F_logger.info(f'更新{self.symbol}数据,结束时间：<{self.end}>前至{self._minbar}条1min bar')
+            F_logger.info(f'更新{self.symbol}数据,请求结束时间：<{end}>前至{self._minbar}条1min bar')
         else:
             self._sql = f"select datetime, open, high, low, close from carry_investment.futures_min \
-                                        where datetime>=\"{self.start}\" \
-                                        and datetime<\"{self.end} \"\
+                                        where datetime>=\"{start}\" \
+                                        and datetime<\"{end} \"\
                                         and prodcode=\"{self.symbol}\""
-            F_logger.info(f'更新{self.symbol}数据,<{self.start}>-<{self.end}>')
+            F_logger.info(f'更新{self.symbol}数据,请求时间<{start}>-<{end}>')
         try:
             self._data = pd.read_sql(self._sql, self._conn, index_col='datetime')  # _data是一分钟的OHLC
             self.last_bar_timerange = [self.data.index.floor(self.__ktype)[-1],
                                        self.data.index.ceil(self.__ktype).shift(int(self.__ktype[:-1]), self.__ktype[-1])[-1]]
-            F_logger.info(f'更新{self.symbol}数据完成.')
+            F_logger.info(f'更新{self.symbol}数据完成.{self.data["datetime"].min()}-->{self.data["datetime"].max()}')
         except:
             F_logger.info(f'更新{self.symbol}数据失败.')
+        return self
 
     def __init_sub(self):
         """
@@ -202,23 +200,33 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
 
 
     def active_ticker(self):
-        self.__is_ticker_active = True
-        self.__init_sub()
-        self._ticker_sub_thread = Thread(target=self.__ticker_sub)
-        self._data_update_thread = Thread(target=self.__ticker_update)
-        self._ticker_sub_thread.start()
-        self._data_update_thread.start()
+        if not self.__is_ticker_active:
+            self.__is_ticker_active = True
+            self.__init_sub()
+            self._ticker_sub_thread = Thread(target=self.__ticker_sub)
+            self._data_update_thread = Thread(target=self.__ticker_update)
+            self._ticker_sub_thread.start()
+            self._data_update_thread.start()
 
     def inactive_ticker(self):
-        self.__is_ticker_active = False
-        self._ticker_sub_thread.join()
-        self._sub_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}')
-        F_logger.info(f'断开{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口连接')
-        self._data_update_thread.join()
+        if self.__is_ticker_active:
+            self.__is_ticker_active = False
+            self._ticker_sub_thread.join()
+            self._sub_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}')
+            F_logger.info(f'断开{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口连接')
+            self._data_update_thread.join()
 
     @property
     def ticker(self):
         return self._tickers
+
+    @property
+    def start(self):
+        return self.datetime.min()
+
+    @property
+    def end(self):
+        return self.datetime.max()
 
     @property
     def data(self):
