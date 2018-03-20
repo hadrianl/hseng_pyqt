@@ -10,6 +10,7 @@ import pyqtgraph.console
 from util import V_logger
 from console import *
 from PyQt5.Qt import QWidget
+# from PyQt5.QtCore.Qt.WindowType import WindowStaysOnTopHint
 
 # class AnalysisConsole(pyqtgraph.console.ConsoleWidget):
 #     def __init__(self, namespace):
@@ -39,3 +40,8 @@ class AnalysisConsole(QWidget, Ui_Console):
             self.show()
         else:
             self.focusWidget()
+            # self.setWindowFlags(WindowStaysOnTopHint)
+
+    def update_daterange(self, start, end):
+        self.dateTime_start.setDateTime(start)
+        self.dateTime_end.setDateTime(end)
