@@ -87,6 +87,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self._thread_lock = Lock()
         self.indicators = {}
         self.bar_size = 200
+        F_logger.info(f'初始化请求{self.symbol}数据')
         self.init_data()
         # self.__init_sub()
 
@@ -96,11 +97,11 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def __repr__(self):
         return self.data.__repr__()
 
-    def __add__(self, indicator):  # 重载+运算符，能够通过“OHLC + 指标”的语句添加指标
-        self._indicator_register(indicator)
+    def __add__(self, data):  # 重载+运算符，能够通过“OHLC + 指标”的语句添加指标
+        self._data_register(data)
 
-    def __sub__(self, indicator):  # 重载-运算符，能够通过“OHLC - 指标”的语句取出指标指标
-        self._indicator_unregister(indicator)
+    def __sub__(self, data):  # 重载-运算符，能够通过“OHLC - 指标”的语句取出指标指标
+        self._data_unregister(data)
 
     def init_data(self):
         if self._minbar:
@@ -108,17 +109,20 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
                         f"(select * from carry_investment.futures_min " \
                         f"where datetime<\"{self.end} \" and prodcode=\"{self.symbol}\" " \
                         f"order by id desc limit 0,{self._minbar}) as fm order by fm.id asc"
-            F_logger.info(f'初始化请求{self.symbol}数据,结束时间：<{self.end}>前至{self._minbar}条1min bar')
+            F_logger.info(f'更新{self.symbol}数据,结束时间：<{self.end}>前至{self._minbar}条1min bar')
         else:
             self._sql = f"select datetime, open, high, low, close from carry_investment.futures_min \
                                         where datetime>=\"{self.start}\" \
                                         and datetime<\"{self.end} \"\
                                         and prodcode=\"{self.symbol}\""
-            F_logger.info(f'初始化请求{self.symbol}数据,<{self.start}>-<{self.end}>')
-        self._data = pd.read_sql(self._sql, self._conn, index_col='datetime')  # _data是一分钟的OHLC
-        self.last_bar_timerange = [self.data.index.floor(self.__ktype)[-1],
-                                   self.data.index.ceil(self.__ktype).shift(int(self.__ktype[:-1]), self.__ktype[-1])[-1]]
-        F_logger.info(f'初始化{self.symbol}数据完成')
+            F_logger.info(f'更新{self.symbol}数据,<{self.start}>-<{self.end}>')
+        try:
+            self._data = pd.read_sql(self._sql, self._conn, index_col='datetime')  # _data是一分钟的OHLC
+            self.last_bar_timerange = [self.data.index.floor(self.__ktype)[-1],
+                                       self.data.index.ceil(self.__ktype).shift(int(self.__ktype[:-1]), self.__ktype[-1])[-1]]
+            F_logger.info(f'更新{self.symbol}数据完成.')
+        except:
+            F_logger.info(f'更新{self.symbol}数据失败.')
 
     def __init_sub(self):
         """
@@ -238,24 +242,25 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
 
     def set_ktype(self, value):
         KTYPES = ['1T', '5T', '10T', '30T', '60T']
-        if self.__ktype in KTYPES:
+        if value in KTYPES and value != self.__ktype:
             self.__ktype = value
             F_logger.info(f'更新OHLC数据,重采样->{self.ktype}')
             self.update()
             self.resample_sig.emit()
 
 
-    def _indicator_register(self, indicator):  # 添加注册指标进入图表的函数
-        self.indicators[indicator.name] = indicator(self)
-        F_logger.info(f'加入指标{indicator.name}')
-    def _indicator_unregister(self, indicator):
-        if self.indicators.pop(indicator.name, None):
-            F_logger.info(f'删除指标{indicator.name}')
+    def _data_register(self, data):  # 添加注册指标进入图表的函数
+        self.indicators[data.name] = data(self)
+        F_logger.info(f'加入{data.type}-{data.name}')
+    def _data_unregister(self, data):
+        if self.indicators.pop(data.name, None):
+            F_logger.info(f'删除{data.type}-{data.name}')
 
     def update(self):
+        self._thread_lock.acquire()
         for i, v in self.indicators.items():
             v.update(self)
-
+        self._thread_lock.release()
 
 if __name__ == '__main__':
     df = OHLC('2018-01-18', '2018-01-19 11:00:00', 'HSIF8')

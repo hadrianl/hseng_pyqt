@@ -8,13 +8,14 @@
 from data_fetch.market_data import OHLC  # 导入主图OHLC数据类
 from data_handle.indicator import Ma, Macd, Std  # 导入指标
 from data_visualize.OHLC_ui import OHlCWidget  # 导入OHLC可视化类
-from data_visualize.console import AnalysisConsole # 导入分析交互界面类
+from data_visualize.Console_ui import AnalysisConsole # 导入分析交互界面类
 from data_visualize.Login_ui import LoginDialog  # 导入登录界面类
 from util import *  # 导入常用函数
 from data_fetch.trade_data import TradeData  # 导入交易数据类
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
 import sys
+from functools import partial
 
 
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
@@ -27,12 +28,15 @@ ohlc = OHLC(Start_Time, End_Time, 'HSIH8', minbar=580, ktype='1T')
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
-trade_datas = TradeData(Start_Time, End_Time, 'HSENG$.MAR8')
+trade_datas = TradeData('HSENG$.MAR8')
+ohlc.active_ticker()
 # 将指标假如到主图数据里
+ohlc._thread_lock.acquire()
 ohlc + i_ma
 ohlc + i_macd
 ohlc + i_std
-ohlc.update()
+ohlc + trade_datas
+ohlc._thread_lock.release()
 F_logger.info('初始化OHLC数据完成')
 # -----------------------------------------------------------------------+
 # -----------------------窗口与app初始化---------------------------------+
@@ -42,7 +46,7 @@ win = OHlCWidget()
 win.setWindowTitle(Symbol + '实盘分钟图')
 # 各个初始化之间存在依赖关系，需要按照以下顺序初始化
 win.binddata(ohlc=ohlc, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_datas=trade_datas)  # 把数据与UI绑定
-win.ohlc.active_ticker()
+# win.ohlc.active_ticker()
 win.init_ohlc()  # 初始化ohlc主图
 win.init_ma()  # 初始化ma均线图
 win.init_macd()  # 初始化指标
@@ -88,7 +92,11 @@ def help_doc():
 
 namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'help_doc': help_doc}  # console的命名空间
 console = AnalysisConsole(namespace)
-
+console.min_1.clicked.connect(partial(ohlc.set_ktype, '1T'))
+console.min_5.clicked.connect(partial(ohlc.set_ktype, '5T'))
+console.min_10.clicked.connect(partial(ohlc.set_ktype, '10T'))
+console.min_30.clicked.connect(partial(ohlc.set_ktype, '30T'))
+# console.Button_daterange.released.connect()
 
 if __name__ == '__main__':
 

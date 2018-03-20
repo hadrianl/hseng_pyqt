@@ -150,8 +150,9 @@ class TradeDataLinkLine(pg.LineSegmentROI):
         super(TradeDataLinkLine, self).__init__(positions=[[0, 0], [0, 0]], pen=pen, movable=False)
         self.setPen(pen)
 
-    def setData(self, positions, pen):
-        self.setPen(pen)
+    def setData(self, positions, pen=None):
+        if pen:
+            self.setPen(pen)
         handles = (None, None)
         for i in range(len(self.getHandles())):
             self.removeHandle(0)

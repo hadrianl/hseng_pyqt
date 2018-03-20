@@ -16,6 +16,7 @@ import pandas as pd
 
 class indicator_base():
     def __init__(self, name, **kwargs):
+        self.type = 'Indicator'
         self.name = name
         for k, v in kwargs.items():
             setattr(self, '_' + k, v)
@@ -24,9 +25,7 @@ class indicator_base():
     def calc(self): ...
 
     def __call__(self, ohlc):
-        self.ohlc = ohlc
-        self.x = self.ohlc.x
-        self.calc()
+        self.update(ohlc)
         return self
 
     def update(self, new_data):
