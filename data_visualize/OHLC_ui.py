@@ -294,7 +294,8 @@ class OHlCWidget(KeyEventWidget):
 
     def init_console_widget(self, namespace):
         self.console = AnalysisConsole(namespace)
-
+        self.console.update_daterange(self.ohlc.datetime.min(),
+                                      self.ohlc.datetime.max())
 
     def init_signal(self):  # 信号的连接与绑定
         V_logger.info(f'初始化交互信号绑定')
@@ -311,11 +312,12 @@ class OHlCWidget(KeyEventWidget):
         self.console.min_30.clicked.connect(partial(self.ohlc.set_ktype, '30T'))
         # -----------------------------------------------------------------------
         self.sig_M_Left_Double_Click.connect(self.console.focus) #主图双击信号绑定console弹出
-        self.ohlc.ohlc_sig.connect(lambda :self.console.update_daterange(self.ohlc.datetime.min(),
-                                                                         self.ohlc.datetime.max()))
-        self.console.Button_daterange.released.connect(lambda : self.goto_history(self.console.dateTime_start.dateTime(),
+        self.ohlc.ohlc_sig.connect(lambda : self.console.update_daterange(self.ohlc.datetime.min(),
+                                                                          self.ohlc.datetime.max()))
+        self.console.Button_history.released.connect(lambda : self.goto_history(self.console.dateTime_start.dateTime(),
                                                                                   self.console.dateTime_end.dateTime()))
-
+        self.console.Button_current.released.connect(self.goto_current)
+        self.ohlc.ticker_sig.connect(self.console.add_ticker_to_table)
 
     def init_buttons(self):
         self.consolebutton = QtWidgets.QPushButton(text='交互console', parent=self.pw)
@@ -473,12 +475,13 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc.update()
         self.chart_replot()
 
-    def goto_present(self):
-        start, end = date_range('present', bar_num=680)
-        self.ohlc([start, end])
-        self.ohlc.active_ticker()
-        self.ohlc.update()
-        self.chart_replot()
+    def goto_current(self):
+        if not self.ohlc._OHLC__is_ticker_active:
+            start, end = date_range('present', bar_num=680)
+            self.ohlc([start, end])
+            self.ohlc.active_ticker()
+            self.ohlc.update()
+            self.chart_replot()
 
     def on_K_Up(self):  # 键盘up键触发，放大
         ohlc_xrange = self.ohlc_plt.getViewBox().viewRange()[0]

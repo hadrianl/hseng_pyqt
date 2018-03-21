@@ -64,7 +64,6 @@ win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 V_logger.info(f'初始化ohlc图表完成')
 
 if __name__ == '__main__':
-
     win.resize(1200, 800)
     login_win = LoginDialog()
     login_win.UserName.setFocus()
