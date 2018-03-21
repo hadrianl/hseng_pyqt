@@ -12,9 +12,9 @@ import datetime as dt
 from dateutil.parser import parse
 import configparser
 import logging.config
-
+import os
 server_conf = configparser.ConfigParser()
-server_conf.read(r'conf\server.conf')
+server_conf.read(os.path.join('conf', 'server.conf'))
 
 # 服务器的MYSQL
 KAIRUI_MYSQL_HOST = server_conf.get('MYSQL', 'host')
@@ -28,7 +28,7 @@ ZMQ_SOCKET_HOST = server_conf.get('ZMQ_SOCKET', 'host')
 ZMQ_TICKER_PORT = server_conf.getint('ZMQ_SOCKET', 'ticker_port')
 
 # 日志的配置
-logging.config.fileConfig(r'conf\log.conf')
+logging.config.fileConfig(os.path.join('conf','log.conf'))
 A_logger = logging.getLogger('root')
 F_logger = logging.getLogger('root.data_fetch')
 H_logger = logging.getLogger('root.data_handle')
