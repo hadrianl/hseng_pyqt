@@ -115,11 +115,12 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             F_logger.info(f'更新{self.symbol}数据,请求时间<{start}>-<{end}>')
         try:
             self._data = pd.read_sql(self._sql, self._conn, index_col='datetime')  # _data是一分钟的OHLC
+            self._conn.commit()
             self.last_bar_timerange = [self.data.index.floor(self.__ktype)[-1],
                                        self.data.index.ceil(self.__ktype).shift(int(self.__ktype[:-1]), self.__ktype[-1])[-1]]
-            F_logger.info(f'更新{self.symbol}数据完成.{self.data["datetime"].min()}-->{self.data["datetime"].max()}')
+            F_logger.info(f'更新{self.symbol}数据完成.{self.start}-->{self.end}')
         except:
-            F_logger.info(f'更新{self.symbol}数据失败.')
+            F_logger.info(f'更新{self.symbol}数据失败.ERROR,')
         return self
 
     def __init_sub(self):
@@ -134,6 +135,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             # if len(self._data) >= self.bar_size:
             #     self._data.drop(self._data.index[0], inplace=True)
             self._tickers = pd.read_sql(sql, self._conn, index_col='tickertime')
+            self._conn.commit()
             ticker_resampled = self._tickers.resample('1T').apply({'price': 'ohlc'})
             self._data = self._data.append(ticker_resampled.iloc[0]['price'])
             F_logger.info(f'初始化请求{self.symbol}当前min-TICKER数据')
