@@ -216,7 +216,7 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc_plt.addItem(self.tradeitems_dict['info_text'])
     # --------------------------------添加交易数据-----------------------------------------------------------------
         try:
-            self.tradeitems_dict['open'].setData(x=self.ohlc.x.loc[self.trade_datas.open.index.floor(self.ohlc.ktype)],
+            self.tradeitems_dict['open'].setData(x=self.ohlc.x.reindex(self.trade_datas.open.index.floor(self.ohlc.ktype)),
                                                  y=self.trade_datas['OpenPrice'],
                                                  symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                  brush=self.trade_datas['Status'].map(
@@ -226,7 +226,7 @@ class OHlCWidget(KeyEventWidget):
         except Exception as e:
             V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
         try:
-            self.tradeitems_dict['close'].setData(x=self.ohlc.x.loc[self.trade_datas.close.index.floor(self.ohlc.ktype)],
+            self.tradeitems_dict['close'].setData(x=self.ohlc.x.reindex(self.trade_datas.close.index.floor(self.ohlc.ktype)),
                                                   y=self.trade_datas['ClosePrice'],
                                                   symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
                                                   brush=self.trade_datas['Status'].map(
@@ -360,14 +360,14 @@ class OHlCWidget(KeyEventWidget):
         self.xaxis.update_tickval(ohlc.timestamp)
         # ------------------------------------------------更新交易数据标注--------------------------------------
         try:
-            self.tradeitems_dict['open'].setData(x=self.ohlc.x.loc[self.trade_datas.open.index.floor(self.ohlc.ktype)],
+            self.tradeitems_dict['open'].setData(x=self.ohlc.x.reindex(self.trade_datas.open.index.floor(self.ohlc.ktype)),
                                                  y=self.trade_datas['OpenPrice'],
                                                  symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                  brush=self.trade_datas['Status'].map(
                                                      {2: pg.mkBrush(QBrush(QColor(0, 0, 255))),
                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
-            self.tradeitems_dict['close'].setData(x=self.ohlc.x.loc[self.trade_datas.close.index.floor(self.ohlc.ktype)],
+            self.tradeitems_dict['close'].setData(x=self.ohlc.x.reindex(self.trade_datas.close.index.floor(self.ohlc.ktype)),
                                                   y=self.trade_datas['ClosePrice'],
                                                   symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
                                                   brush=self.trade_datas['Status'].map(
