@@ -12,35 +12,20 @@
 from data_fetch.market_data import OHLC
 from util import H_logger
 import pandas as pd
+from data_handle import handle_base
 
 
-class indicator_base():
+class indicator_base(handle_base):
     def __init__(self, name, **kwargs):
-        self.type = 'Indicator'
         self.name = name
-        for k, v in kwargs.items():
-            setattr(self, '_' + k, v)
-        H_logger.info(f'初始化指标{self.name}数据-{[k + "=" + str(v) for k, v in kwargs.items()]}')
-
-    def calc(self): ...
-
-    def __call__(self, ohlc):
-        self.update(ohlc)
-        return self
-
-    def update(self, new_data):
-        self.ohlc = new_data
-        self.x = self.ohlc.x
-        self.calc()
-        H_logger.info(f'更新指标{self.name}数据')
-
+        super(indicator_base, self).__init__('Indicator', **kwargs)
 
 class Macd(indicator_base):
     def __init__(self, short=12, long=26, m=9):
         super(Macd, self).__init__('MACD', short=short, long=long, m=m)
 
     def __str__(self):
-        return f'<MACD>----SHORT:{self._short} LONG:{self._long} SIGNAL:{self._m}'
+        return f'<{self.name}>----SHORT:{self._short} LONG:{self._long} SIGNAL:{self._m}'
 
     def calc(self):
         close = self.ohlc.close
@@ -68,26 +53,13 @@ class Ma(indicator_base):
     def __init__(self, **windows):
         super(Ma, self).__init__('MA', **windows)
         self._windows = {('_'+k): v for k, v in windows.items()}
-        # for w in self._windows:
-        #     self.__dict__['Ma' + str(w)] = self._close.rolling(w).mean().rename('Ma'+str(w))
-
-    # def __call__(self, ohlc):
-    #     self.ohlc = ohlc
-    #     self.x = self.ohlc.x
-    #     self.calc()
-    #     return self
 
     def __str__(self):
-        return f'<MA>----'+','.join(['Ma' + str(w) for w in self._windows])
+        return f'<{self.name}>----'+','.join(['Ma' + str(w) for w in self._windows])
 
     def calc(self):
         for k, v in self._windows.items():
             self.__dict__[k] = self.ohlc.close.rolling(v).mean().rename(k)
-
-    # def update(self,newdata):
-    #     for n, w in self._windows.items():
-    #         new_ma = (getattr(self, n).iloc[-(w-1)]*(w-1) + newdata.close)/w
-    #         self.__dict__[n]=self.__dict__[n].append(pd.Series(new_ma), ignore_index=True)
 
     def to_df(self):
         return pd.concat([getattr(self, w) for w in self._windows], axis=1)
@@ -98,7 +70,7 @@ class Std(indicator_base):
         super(Std, self).__init__('STD', window=window, min_periods=min_periods)
 
     def __str__(self):
-        return f'<STD>----WINDOW{self._window}-MIN_PERIOUS:{self._min_periods}'
+        return f'<{self.name}>----WINDOW{self._window}-MIN_PERIOUS:{self._min_periods}'
 
     def calc(self):
         self._inc = self.ohlc.close - self.ohlc.open
