@@ -303,6 +303,7 @@ class OHlCWidget(KeyEventWidget):
         self.date_region.sigRegionChanged.connect(self.date_slicer_update)  # 时间切片变化信号绑定调整画图
         self.ohlc.ohlc_sig.connect(self.chart_replot) # K线更新信号绑定更新画图
         self.ohlc.ticker_sig.connect(self.update_data_plot) # ticker更新信号绑定最后的bar的画图
+        self.ohlc.price_sig.connect(self.console.add_price_to_table)
         self.ohlc.resample_sig.connect(self.chart_replot)  # 重采样重画
         self.ohlc.resample_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
         # ----------------------重采样信号--------------------------------------

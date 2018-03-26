@@ -39,7 +39,20 @@ class AnalysisConsole(QWidget, Ui_Console):
         self.tickers_tableWidget.setItem(0, 0, QTableWidgetItem(dt.datetime.fromtimestamp(ticker.TickerTime).strftime('%H:%M:%S')))
         self.tickers_tableWidget.setItem(0, 1, QTableWidgetItem(str(ticker.Price)))
         qty = QTableWidgetItem(str(ticker.Qty))
-        qty.setBackground(QColor('r')) if ticker.Qty >= 10 else ...
+        # qty.setBackground(QColor('r')) if ticker.Qty >= 10 else ...
         self.tickers_tableWidget.setItem(0, 2, qty)
         if self.tickers_tableWidget.rowCount() > 100:
             self.tickers_tableWidget.removeRow(100)
+
+
+    def add_price_to_table(self, price):
+        max_depth = 5
+        for i, bid, bid_qty, ask, ask_qty in zip(range(20), price.Bid, price.BidQty, price.Ask, price.AskQty):
+            self.prices_tableWidget.setItem(5+i, 0, QTableWidgetItem(str(bid)))
+            self.prices_tableWidget.setItem(5+i, 1, QTableWidgetItem(str(bid_qty)))
+            self.prices_tableWidget.setItem(4-i, 0, QTableWidgetItem(str(ask)))
+            self.prices_tableWidget.setItem(4-i, 1, QTableWidgetItem(str(ask_qty)))
+            if max_depth == i + 1:
+                break
+
+

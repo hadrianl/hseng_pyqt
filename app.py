@@ -31,6 +31,7 @@ i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
 trade_datas = TradeData('HSENG$.MAR8')
 ohlc.active_ticker()
+ohlc.active_price()
 # 将指标假如到主图数据里
 ohlc._thread_lock.acquire()
 ohlc + i_ma

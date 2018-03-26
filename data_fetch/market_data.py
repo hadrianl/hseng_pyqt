@@ -15,7 +15,8 @@ from queue import Queue
 import queue
 import zmq
 from datetime import datetime
-from sp_struct import SPApiTicker
+from sp_struct import SPApiTicker, SPApiPrice
+from collections import deque
 
 
 class market_data_base(QtCore.QObject):
@@ -73,6 +74,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     new_ohlc_1m_sig = QtCore.pyqtSignal()
     ohlc_sig = QtCore.pyqtSignal()
     ticker_sig = QtCore.pyqtSignal(SPApiTicker)
+    price_sig = QtCore.pyqtSignal(SPApiPrice)
 
     def __init__(self, symbol, minbar=None, ktype='1T'):
         market_data_base.__init__(self)
@@ -80,7 +82,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self.symbol = symbol
         self._minbar = minbar
         self.__is_ticker_active = False
-        self._data_queue = Queue()
+        self.__is_price_active = False
         self._last_tick = None
         self._thread_lock = Lock()
         self.indicators = {}
@@ -123,7 +125,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             F_logger.info(f'更新{self.symbol}数据失败.ERROR,')
         return self
 
-    def __init_sub(self):
+    def __init_ticker_sub(self):
         """
         初始化订阅连接
         :return:
@@ -143,19 +145,20 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             self._tickers = pd.DataFrame(columns=['price', 'qty'], index=pd.Index([], name='tickertime'))
             F_logger.info(f'初始化请求{self.symbol}当前min-TICKER数据失败')
 
-        self._sub_socket = zmq.Context().socket(zmq.SUB)
-        self._sub_socket.connect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}')
-        self._sub_socket.set_string(zmq.SUBSCRIBE, '')
-        self._sub_socket.setsockopt(zmq.RCVTIMEO, 5000)
+        self._sub_tickers_queue = Queue()
+        self._tickers_sub_socket = zmq.Context().socket(zmq.SUB)
+        self._tickers_sub_socket.connect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}')
+        self._tickers_sub_socket.set_string(zmq.SUBSCRIBE, '')
+        self._tickers_sub_socket.setsockopt(zmq.RCVTIMEO, 5000)
         F_logger.info(f'初始化{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口')
 
     def __ticker_sub(self):
         F_logger.info(f'开始订阅{self.symbol}-TICKER数据')
         while self.__is_ticker_active:
             try:
-                ticker = self._sub_socket.recv_pyobj()
+                ticker = self._tickers_sub_socket.recv_pyobj()
                 if ticker.ProdCode.decode() == self.symbol and ticker.DealSrc == 1:
-                    self._data_queue.put(ticker)
+                    self._sub_tickers_queue.put(ticker)
             except zmq.error.ZMQError:
                 F_logger.debug('接收{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口TICKER数据超时')
                 ...
@@ -166,7 +169,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         F_logger.info(f'开始更新{self.symbol}-TICKER数据')
         while self.__is_ticker_active:
             try:
-                ticker = self._data_queue.get(timeout=5)
+                ticker = self._sub_tickers_queue.get(timeout=5)
                 if not self._last_tick:
                     self._last_tick = ticker
                 # self._thread_lock.acquire()
@@ -197,26 +200,25 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             except queue.Empty :
                 F_logger.debug('接收TICKER队列数据超时')
                 ...
-        self._data_queue = Queue()
         F_logger.info(f'暂停更新{self.symbol}-TICKER数据')
 
 
     def active_ticker(self):
         if not self.__is_ticker_active:
             self.__is_ticker_active = True
-            self.__init_sub()
+            self.__init_ticker_sub()
             self._ticker_sub_thread = Thread(target=self.__ticker_sub)
-            self._data_update_thread = Thread(target=self.__ticker_update)
+            self._ticker_update_thread = Thread(target=self.__ticker_update)
             self._ticker_sub_thread.start()
-            self._data_update_thread.start()
+            self._ticker_update_thread.start()
 
     def inactive_ticker(self):
         if self.__is_ticker_active:
             self.__is_ticker_active = False
             self._ticker_sub_thread.join()
-            self._sub_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}')
+            self._tickers_sub_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}')
             F_logger.info(f'断开{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口连接')
-            self._data_update_thread.join()
+            self._ticker_update_thread.join()
 
     @property
     def ticker(self):
@@ -257,7 +259,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             F_logger.info(f'更新OHLC数据,重采样->{self.ktype}')
             self.update()
             self.resample_sig.emit()
-
+    # -----------------------------------------------------------------------------------------------------
 
     def _data_register(self, data):  # 添加注册指标进入图表的函数
         self.indicators[data.name] = data(self)
@@ -271,6 +273,123 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         for i, v in self.indicators.items():
             v.update(self)
         self._thread_lock.release()
+    # -------------------------------------price---------------------------------------------------------------
+    def __init_price_sub(self):
+        self.maxlen = 300
+        self._sub_price_queue = Queue()
+        self.price_queue = deque(maxlen=self.maxlen)
+        self._price_sub_socket = zmq.Context().socket(zmq.SUB)
+        self._price_sub_socket.connect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}')
+        self._price_sub_socket.set_string(zmq.SUBSCRIBE, '')
+        self._price_sub_socket.setsockopt(zmq.RCVTIMEO, 5000)
+
+    def __price_sub(self):
+        F_logger.info(f'开始订阅{self.symbol}-PRICE数据')
+        while self.__is_price_active:
+            try:
+                price = self._price_sub_socket.recv_pyobj()
+                # if price.ProdCode.decode() == self.symbol:
+                self._sub_price_queue.put(price)
+                self.price_queue.append(price)
+            except zmq.error.ZMQError:
+                F_logger.debug(f'接收{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口PRICE数据超时')
+                ...
+        F_logger.info(f'暂停订阅{self.symbol}-PRICE数据')
+
+    def __price_update(self):
+        F_logger.info(f'开始更新{self.symbol}-PRICE数据')
+        while self.__is_price_active:
+            try:
+                price = self._sub_price_queue.get(timeout=5)
+                self.price_sig.emit(price)
+            except queue.Empty :
+                F_logger.debug('接收PRICE队列数据超时')
+
+        F_logger.info(f'暂停更新{self.symbol}-PRICE数据')
+
+    def active_price(self):
+        if not self.__is_price_active:
+            self.__is_price_active = True
+            self.__init_price_sub()
+            self._price_sub_thread = Thread(target=self.__price_sub)
+            self._price_update_thread = Thread(target=self.__price_update)
+            self._price_sub_thread.start()
+            self._price_update_thread.start()
+
+    def inactive_price(self):
+        if self.__is_price_active:
+            self.__is_price_active = False
+            self._price_sub_thread.join()
+            self._price_sub_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}')
+            F_logger.info(f'断开{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}订阅端口连接')
+            self._price_update_thread.join()
+
+    @property
+    def price_list(self):
+        return  list(self.price_queue).reverse()
+
+
+# class Price(QtCore.QObject):
+#     price_sig = QtCore.pyqtSignal(SPApiPrice)
+#     def __init__(self, symbol, maxlen = 300):
+#         self.symbol = symbol
+#         self.__is_price_active = False
+#         self.maxlen = maxlen
+#         self._data_queue = Queue()
+#         self.price_queue = deque(maxlen=self.maxlen)
+#
+#     def __init_price_sub(self):
+#         self._sub_socket = zmq.Context().socket(zmq.SUB)
+#         self._sub_socket.connect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}')
+#         self._sub_socket.set_string(zmq.SUBSCRIBE, '')
+#         self._sub_socket.setsockopt(zmq.RCVTIMEO, 5000)
+#
+#     def __price_sub(self):
+#         F_logger.info(f'开始订阅{self.symbol}-PRICE数据')
+#         while self.__is_price_active:
+#             try:
+#                 price = self._sub_socket.recv_pyobj()
+#                 if price.ProdCode.decode() == self.symbol and price.DealSrc == 1:
+#                     self._data_queue.put(price)
+#                     self.price_queue.append(price)
+#             except zmq.error.ZMQError:
+#                 F_logger.debug('接收{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口PRICE数据超时')
+#                 ...
+#         F_logger.info(f'暂停订阅{self.symbol}-PRICE数据')
+#
+#     def __price_update(self):
+#         F_logger.info(f'开始更新{self.symbol}-PRICE数据')
+#         while self.__is_price_active:
+#             try:
+#                 price = self._data_queue.get(timeout=5)
+#                 self.price_sig.emit(price)
+#             except queue.Empty :
+#                 F_logger.debug('接收PRICE队列数据超时')
+#
+#         self._data_queue = Queue()
+#         F_logger.info(f'暂停更新{self.symbol}-PRICE数据')
+#
+#     def active_price(self):
+#         if not self.__is_price_active:
+#             self.__is_price_active = True
+#             self.__init_price_sub()
+#             self._price_sub_thread = Thread(target=self.__price_sub)
+#             self._price_update_thread = Thread(target=self.__price_update)
+#             self._price_sub_thread.start()
+#             self._price_update_thread.start()
+#
+#     def inactive_price(self):
+#         if self.__is_price_active:
+#             self.__is_price_active = False
+#             self._price_sub_thread.join()
+#             self._sub_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}')
+#             F_logger.info(f'断开{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}订阅端口连接')
+#             self._price_update_thread.join()
+#
+#     @property
+#     def price_list(self):
+#         return  list(self.price_queue).reverse()
+
 
 if __name__ == '__main__':
     df = OHLC('2018-01-18', '2018-01-19 11:00:00', 'HSIF8')
