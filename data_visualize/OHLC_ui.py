@@ -95,6 +95,7 @@ class OHlCWidget(KeyEventWidget):
         self.setLayout(self.vb)
         self.xaxis = DateAxis({}, orientation='bottom')
         self.interlines = []
+        self.update_func ={}
 
     def makePI(self, name):  # 生成PlotItem的工厂函数
         # vb = CustomViewBox()
@@ -132,9 +133,9 @@ class OHlCWidget(KeyEventWidget):
         self.tickitems.mark_line()
         self.ohlc_plt.addItem(self.tickitems)
         self.ohlc_plt.addItem(self.tickitems.hline)
-        self.draw_interline()
         self.main_layout.addItem(self.ohlc_plt)
         self.main_layout.nextRow()
+        self.update_func['ohlc'] = lambda ohlc: self.ohlcitems.setHisData(ohlc)
 
     def draw_interline(self):  # 画出时间分割线
         if self.interlines:
@@ -160,6 +161,11 @@ class OHlCWidget(KeyEventWidget):
         for w in self.i_ma._windows:
             self.ma_items_dict[w] = self.ohlc_plt.plot(self.ohlc.x, getattr(self.i_ma, w),
                                                        pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
+        def ma_update(ohlc):
+            for w in self.ma_items_dict:
+                self.ma_items_dict[w].setData(ohlc.x, getattr(self.i_ma, w).values)
+
+        self.update_func['ma'] = ma_update
 
 
     def init_macd(self):  # 初始化macd
@@ -181,7 +187,47 @@ class OHlCWidget(KeyEventWidget):
         self.macd_plt.hideAxis('bottom')
         self.macd_plt.getViewBox().setXLink(self.ohlc_plt.getViewBox())  # 建立指标图表与主图表的viewbox连接
         self.main_layout.addItem(self.macd_plt)
+        self.macd_hl_mark_items_dict = {}
+        self.macd_hl_mark_items_dict['high_pos'] = []
+        self.macd_hl_mark_items_dict['low_pos'] = []
         self.main_layout.nextRow()
+        def macd_update(ohlc):
+            self.macd_items_dict['diff'].setData(self.i_macd.x, self.i_macd.diff.values)
+            self.macd_items_dict['dea'].setData(self.i_macd.x, self.i_macd.dea.values)
+            macd_pens = pd.concat(
+                [self.i_macd.ohlc.close > self.i_macd.ohlc.open,
+                 self.i_macd.macd > 0], 1).apply(
+                lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
+            macd_brushes = [None if (self.i_macd.macd > self.i_macd.macd.shift(1))[i]
+                            else v for i, v in macd_pens.iteritems()]
+            self.macd_items_dict['Macd'].setOpts(x=self.i_macd.x, height=self.i_macd.macd, pens=macd_pens, brushes=macd_brushes)
+
+        self.update_func['macd'] = macd_update
+
+        def macd_hl_mark_update(ohlc):
+            h_macd_hl_mark = ohlc.indicators['macd_hl_mark']
+            for i in self.macd_hl_mark_items_dict['high_pos']:
+                self.ohlc_plt.removeItem(i)
+            for i in self.macd_hl_mark_items_dict['low_pos']:
+                self.ohlc_plt.removeItem(i)
+            self.macd_hl_mark_items_dict['high_pos'].clear()
+            self.macd_hl_mark_items_dict['low_pos'].clear()
+            for k, v in h_macd_hl_mark.high_pos.iteritems():
+                textitem = pg.TextItem(html=f'<span style="color:#FF00FF;font-size:9px">{v}<span/>', border=2, angle=15,
+                                       anchor=(0, 1))
+                textitem.setPos(ohlc.x[k], v)
+                self.ohlc_plt.addItem(textitem)
+                self.macd_hl_mark_items_dict['high_pos'].append(textitem)
+
+            for k, v in h_macd_hl_mark.low_pos.iteritems():
+                textitem = pg.TextItem(html=f'<span style="color:#7CFC00;font-size:9px">{v}<span/>', border=1,
+                                       angle=-15, anchor=(0, 0))
+                textitem.setPos(ohlc.x[k], v)
+                self.ohlc_plt.addItem(textitem)
+                self.macd_hl_mark_items_dict['low_pos'].append(textitem)
+
+        self.update_func['macd_hl_mark'] = macd_hl_mark_update
+        self.update_func['macd_hl_mark'](self.ohlc)
 
     def init_std(self):  # 初始化std图表
         self.std_items_dict = {}
@@ -203,6 +249,18 @@ class OHlCWidget(KeyEventWidget):
         self.main_layout.addItem(self.std_plt)
         self.main_layout.nextRow()
 
+        def std_update(ohlc):
+            std_inc_pens = pd.cut((self.i_std.inc / self.i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
+                                  labels=['g', 'y', 'l', 'b', 'r'])
+            inc_gt_std = (self.i_std.inc.abs() / self.i_std.std) > 1
+            std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)
+            self.std_items_dict['pos_std'].setData(self.i_std.x, self.i_std.pos_std)
+            self.std_items_dict['neg_std'].setData(self.i_std.x, self.i_std.neg_std)
+            self.std_items_dict['inc'].setOpts(x=self.i_std.x, height=self.i_std.inc,
+                                          pens=std_inc_pens, brushes=std_inc_brushes)
+
+        self.update_func['std'] = std_update
+
     def init_trade_data(self):
         V_logger.info(f'初始化交易数据标记TradeDataScatter及link_line')
         self.tradeitems_dict = {}
@@ -215,27 +273,30 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc_plt.addItem(self.tradeitems_dict['link_line'])
         self.ohlc_plt.addItem(self.tradeitems_dict['info_text'])
     # --------------------------------添加交易数据-----------------------------------------------------------------
-        try:
-            self.tradeitems_dict['open'].setData(x=self.ohlc.x.reindex(self.trade_datas.open.index.floor(self.ohlc.ktype)),
-                                                 y=self.trade_datas['OpenPrice'],
-                                                 symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
-                                                 brush=self.trade_datas['Status'].map(
-                                                     {2: pg.mkBrush(QBrush(QColor(0, 0, 255))),
-                                                      1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
-                                                      0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
-        except Exception as e:
-            V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
-        try:
-            self.tradeitems_dict['close'].setData(x=self.ohlc.x.reindex(self.trade_datas.close.index.floor(self.ohlc.ktype)),
-                                                  y=self.trade_datas['ClosePrice'],
-                                                  symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
-                                                  brush=self.trade_datas['Status'].map(
-                                                      {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
-                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
-                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
-        except Exception as e:
-            V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
+        def trade_data_update(ohlc):
+            try:
+                self.tradeitems_dict['open'].setData(x=ohlc.x.reindex(self.trade_datas.open.index.floor(ohlc.ktype)),
+                                                     y=self.trade_datas['OpenPrice'],
+                                                     symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
+                                                     brush=self.trade_datas['Status'].map(
+                                                         {2: pg.mkBrush(QBrush(QColor(0, 0, 255))),
+                                                          1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
+                                                          0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
+            except Exception as e:
+                V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
+            try:
+                self.tradeitems_dict['close'].setData(x=ohlc.x.reindex(self.trade_datas.close.index.floor(ohlc.ktype)),
+                                                      y=self.trade_datas['ClosePrice'],
+                                                      symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
+                                                      brush=self.trade_datas['Status'].map(
+                                                          {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
+                                                           1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
+                                                           0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
+            except Exception as e:
+                V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
         # -------------------------------------------------------------------------------------------------------------
+        self.update_func['trade_data'] = trade_data_update
+        self.update_func['trade_data'](self.ohlc)
 
         def link_line(a, b):
             if a is self.tradeitems_dict['open']:
@@ -285,6 +346,7 @@ class OHlCWidget(KeyEventWidget):
         self.date_region = pg.LinearRegionItem([1, 100])
         self.date_slicer.addItem(self.date_region)
         self.main_layout.addItem(self.date_slicer)
+        self.update_func['data_slice'] = lambda ohlc: self.close_curve.setData(ohlc.x, ohlc.close)
 
     def init_mouseaction(self):  # 初始化鼠标十字光标动作以及光标所在位置的信息
         V_logger.info(f'初始化mouseaction交互行为')
@@ -328,64 +390,10 @@ class OHlCWidget(KeyEventWidget):
     def chart_replot(self):  # 重新画图
         V_logger.info('更新全部图表')
         ohlc = self.ohlc
-        ohlcitems = self.ohlcitems
-        ma_items_dict = self.ma_items_dict
-        macd_items_dict = self.macd_items_dict
-        std_items_dict = self.std_items_dict
-        i_macd = self.i_macd
-        i_std = self.i_std
-        ohlcitems.setHisData(self.ohlc)
+        for name, func in self.update_func.items():
+            func(ohlc)
         self.draw_interline()
-        # -----------------------------均线更新----------------------------------------------+
-        for w in ma_items_dict:
-            ma_items_dict[w].setData(ohlc.x, getattr(self.i_ma, w).values)
-        # ----------------------------Macd更新----------------------------------------------+
-        macd_items_dict['diff'].setData(i_macd.x, i_macd.diff.values)
-        macd_items_dict['dea'].setData(i_macd.x, i_macd.dea.values)
-        macd_pens = pd.concat(
-            [self.i_macd.ohlc.close > self.i_macd.ohlc.open,
-             self.i_macd.macd > 0], 1).apply(
-            lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
-        macd_brushes = [None if (self.i_macd.macd > self.i_macd.macd.shift(1))[i]
-                        else v for i, v in macd_pens.iteritems()]
-        self.macd_items_dict['Macd'].setOpts(x=i_macd.x, height=i_macd.macd, pens=macd_pens, brushes=macd_brushes)
-        # ----------------------------std-------------------------------------------------+
-        std_inc_pens = pd.cut((self.i_std.inc / self.i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
-                              labels=['g', 'y', 'l', 'b', 'r'])
-        inc_gt_std = (self.i_std.inc.abs() / self.i_std.std) > 1
-        std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)
-        std_items_dict['pos_std'].setData(i_std.x, self.i_std.pos_std)
-        std_items_dict['neg_std'].setData(i_std.x, self.i_std.neg_std)
-        std_items_dict['inc'].setOpts(x=i_std.x, height=self.i_std.inc,
-                                      pens=std_inc_pens, brushes=std_inc_brushes)
-        self.close_curve.setData(ohlc.x, ohlc.close.values)
         self.xaxis.update_tickval(ohlc.timestamp)
-        # ------------------------------------------------更新交易数据标注--------------------------------------
-        try:
-            self.tradeitems_dict['open'].setData(x=self.ohlc.x.reindex(self.trade_datas.open.index.floor(self.ohlc.ktype)),
-                                                 y=self.trade_datas['OpenPrice'],
-                                                 symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
-                                                 brush=self.trade_datas['Status'].map(
-                                                     {2: pg.mkBrush(QBrush(QColor(0, 0, 255))),
-                                                      1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
-                                                      0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
-            self.tradeitems_dict['close'].setData(x=self.ohlc.x.reindex(self.trade_datas.close.index.floor(self.ohlc.ktype)),
-                                                  y=self.trade_datas['ClosePrice'],
-                                                  symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
-                                                  brush=self.trade_datas['Status'].map(
-                                                      {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
-                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
-                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
-            self.tradeitems_dict['link_line'].offset()
-            # points = self.tradeitems_dict['link_line'].listPoints()
-            # self.tradeitems_dict['link_line'].setData([[points[0].x() + 1,
-            #                                             points[0].y()],
-            #                                            [points[1].x() + 1,
-            #                                             points[1].y()],
-            #                                            ])
-        except Exception as e:
-            V_logger.debug(f'更新交易数据标注失败.')
-        # ---------------------------------------------------------------------------------------------------------
         self.ohlc_data_update_sync()
 
     def ohlc_Yrange_update(self):  # 更新主图和指标图的高度

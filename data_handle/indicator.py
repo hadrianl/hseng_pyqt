@@ -28,8 +28,8 @@ class Macd(indicator_base):
         return f'<{self.name}>----SHORT:{self._short} LONG:{self._long} SIGNAL:{self._m}'
 
     def calc(self):
-        close = self.ohlc.close
-        self._diff = close.ewm(self._short).mean() - close.ewm(self._long).mean()
+        self._close = self.ohlc.close
+        self._diff = self._close.ewm(self._short).mean() - self._close.ewm(self._long).mean()
         self._dea = self._diff.ewm(self._m).mean()
         self._macd = (self._diff - self._dea) * 2
 
