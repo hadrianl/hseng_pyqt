@@ -296,6 +296,7 @@ class OHlCWidget(KeyEventWidget):
         self.console = AnalysisConsole(namespace)
         self.console.update_daterange(self.ohlc.datetime.min(),
                                       self.ohlc.datetime.max())
+        F_logger.addHandler(self.console.logging_handler)
 
     def init_signal(self):  # 信号的连接与绑定
         V_logger.info(f'初始化交互信号绑定')

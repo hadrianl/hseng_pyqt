@@ -12,6 +12,7 @@ from console import *
 from PyQt5.Qt import QWidget, QTableWidgetItem, QColor
 from PyQt5.QtCore import Qt
 import datetime as dt
+from logging import Handler, Formatter
 
 
 class AnalysisConsole(QWidget, Ui_Console):
@@ -20,6 +21,7 @@ class AnalysisConsole(QWidget, Ui_Console):
         Ui_Console.__init__(self)
         help_text = f'''实盘分析Console测试（help_doc()调用帮助文档）'''
         self.setupUi(self)
+        self.logging_handler = self.console_logging_handler(self.consolewidget)
         self.consolewidget.localNamespace = namespace
         self.consolewidget.output.setPlainText(help_text)
 
@@ -39,7 +41,6 @@ class AnalysisConsole(QWidget, Ui_Console):
         self.tickers_tableWidget.setItem(0, 0, QTableWidgetItem(dt.datetime.fromtimestamp(ticker.TickerTime).strftime('%H:%M:%S')))
         self.tickers_tableWidget.setItem(0, 1, QTableWidgetItem(str(ticker.Price)))
         qty = QTableWidgetItem(str(ticker.Qty))
-        # qty.setBackground(QColor('r')) if ticker.Qty >= 10 else ...
         self.tickers_tableWidget.setItem(0, 2, qty)
         if self.tickers_tableWidget.rowCount() > 100:
             self.tickers_tableWidget.removeRow(100)
@@ -55,4 +56,18 @@ class AnalysisConsole(QWidget, Ui_Console):
             if max_depth == i + 1:
                 break
 
+    class console_logging_handler(Handler):
+        def __init__(self, consolewidget):
+            Handler.__init__(self)
+            self.consolewidget = consolewidget
+            formatter = Formatter('%(asctime)s - %(levelname)s - %(message)s')
+            self.setLevel('INFO')
+            self.setFormatter(formatter)
+
+        def emit(self, record):
+            msg = self.format(record)
+            try:
+                self.consolewidget.output.appendPlainText(msg)
+            except Exception as e:
+                print(e)
 

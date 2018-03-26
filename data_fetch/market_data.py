@@ -282,15 +282,16 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self._price_sub_socket.connect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}')
         self._price_sub_socket.set_string(zmq.SUBSCRIBE, '')
         self._price_sub_socket.setsockopt(zmq.RCVTIMEO, 5000)
+        F_logger.info(f'初始化{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}订阅端口')
 
     def __price_sub(self):
         F_logger.info(f'开始订阅{self.symbol}-PRICE数据')
         while self.__is_price_active:
             try:
                 price = self._price_sub_socket.recv_pyobj()
-                # if price.ProdCode.decode() == self.symbol:
-                self._sub_price_queue.put(price)
-                self.price_queue.append(price)
+                if price.ProdCode.decode() == self.symbol:
+                    self._sub_price_queue.put(price)
+                    self.price_queue.append(price)
             except zmq.error.ZMQError:
                 F_logger.debug(f'接收{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口PRICE数据超时')
                 ...
