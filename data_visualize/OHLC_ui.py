@@ -137,16 +137,18 @@ class OHlCWidget(KeyEventWidget):
         self.main_layout.nextRow()
         self.update_func['ohlc'] = lambda ohlc: self.ohlcitems.setHisData(ohlc)
 
-    def draw_interline(self):  # 画出时间分割线
+    def draw_interline(self, ohlc):  # 画出时间分割线
+        x = ohlc.x
+        dtime = ohlc.datetime
         if self.interlines:
             for item in self.interlines:
                 self.ohlc_plt.removeItem(item)
         self.interlines = []
-        timedelta = int(self.ohlc.ktype[:-1])
-        for i,v in (self.ohlc.datetime - self.ohlc.datetime.shift()).iteritems():
+        timedelta = int(ohlc.ktype[:-1])
+        for i,v in (dtime - dtime.shift()).iteritems():
             if v > dt.timedelta(minutes=timedelta):
                 interline = pg.InfiniteLine(angle=90, pen=pg.mkPen(color='w', width=0.5, dash=[1, 4, 5, 4]))
-                interline.setPos(self.ohlc.x[i]-0.5)
+                interline.setPos(x[i]-0.5)
                 self.interlines.append(interline)
 
         for line in self.interlines:
@@ -162,8 +164,9 @@ class OHlCWidget(KeyEventWidget):
             self.ma_items_dict[w] = pg.PlotDataItem(pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
             self.ohlc_plt.addItem(self.ma_items_dict[w])
         def ma_update(ohlc):
+            x=ohlc.x
             for w in self.ma_items_dict:
-                self.ma_items_dict[w].setData(ohlc.x, getattr(self.i_ma, w).values)
+                self.ma_items_dict[w].setData(x, getattr(self.i_ma, w).values)
 
         self.update_func['ma'] = ma_update
 
@@ -194,20 +197,24 @@ class OHlCWidget(KeyEventWidget):
         self.macd_hl_mark_items_dict['low_pos'] = []
         self.main_layout.nextRow()
         def macd_update(ohlc):
-            self.macd_items_dict['diff'].setData(self.i_macd.x, self.i_macd.diff.values)
-            self.macd_items_dict['dea'].setData(self.i_macd.x, self.i_macd.dea.values)
+            x = self.i_macd.x
+            diff = self.i_macd.diff
+            dea = self.i_macd.dea
+            macd = self.i_macd.macd
+            self.macd_items_dict['diff'].setData(x, diff.values)
+            self.macd_items_dict['dea'].setData(x, dea.values)
             macd_pens = pd.concat(
-                [self.i_macd.ohlc.close > self.i_macd.ohlc.open,
-                 self.i_macd.macd > 0], 1).apply(
+                [ohlc.close > ohlc.open, macd > 0], 1).apply(
                 lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
-            macd_brushes = [None if (self.i_macd.macd > self.i_macd.macd.shift(1))[i]
+            macd_brushes = [None if (macd > macd.shift(1))[i]
                             else v for i, v in macd_pens.iteritems()]
-            self.macd_items_dict['Macd'].setOpts(x=self.i_macd.x, height=self.i_macd.macd, pens=macd_pens, brushes=macd_brushes)
+            self.macd_items_dict['Macd'].setOpts(x=x, height=macd, pens=macd_pens, brushes=macd_brushes)
 
         self.update_func['macd'] = macd_update
 
         def macd_hl_mark_update(ohlc):
             h_macd_hl_mark = ohlc.indicators['macd_hl_mark']
+            x=ohlc.x
             for i in self.macd_hl_mark_items_dict['high_pos']:
                 self.ohlc_plt.removeItem(i)
             for i in self.macd_hl_mark_items_dict['low_pos']:
@@ -217,14 +224,14 @@ class OHlCWidget(KeyEventWidget):
             for k, v in h_macd_hl_mark.high_pos.iteritems():
                 textitem = pg.TextItem(html=f'<span style="color:#FF00FF;font-size:9px">{v}<span/>', border=2,
                                        angle=15, anchor=(0, 1))
-                textitem.setPos(ohlc.x[k], v)
+                textitem.setPos(x[k], v)
                 self.ohlc_plt.addItem(textitem)
                 self.macd_hl_mark_items_dict['high_pos'].append(textitem)
 
             for k, v in h_macd_hl_mark.low_pos.iteritems():
                 textitem = pg.TextItem(html=f'<span style="color:#7CFC00;font-size:9px">{v}<span/>', border=1,
                                        angle=-15, anchor=(0, 0))
-                textitem.setPos(ohlc.x[k], v)
+                textitem.setPos(x[k], v)
                 self.ohlc_plt.addItem(textitem)
                 self.macd_hl_mark_items_dict['low_pos'].append(textitem)
 
@@ -253,14 +260,18 @@ class OHlCWidget(KeyEventWidget):
         self.main_layout.nextRow()
 
         def std_update(ohlc):
-            std_inc_pens = pd.cut((self.i_std.inc / self.i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
+            x = ohlc.x
+            inc = self.i_std.inc
+            std = self.i_std.std
+            pos_std = self.i_std.pos_std
+            neg_std = self.i_std.neg_std
+            std_inc_pens = pd.cut((inc / std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
                                   labels=['g', 'y', 'l', 'b', 'r'])
-            inc_gt_std = (self.i_std.inc.abs() / self.i_std.std) > 1
+            inc_gt_std = (inc.abs() / std) > 1
             std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)
-            self.std_items_dict['pos_std'].setData(self.i_std.x, self.i_std.pos_std)
-            self.std_items_dict['neg_std'].setData(self.i_std.x, self.i_std.neg_std)
-            self.std_items_dict['inc'].setOpts(x=self.i_std.x, height=self.i_std.inc,
-                                          pens=std_inc_pens, brushes=std_inc_brushes)
+            self.std_items_dict['pos_std'].setData(x, pos_std)
+            self.std_items_dict['neg_std'].setData(x, neg_std)
+            self.std_items_dict['inc'].setOpts(x=x, height=inc, pens=std_inc_pens, brushes=std_inc_brushes)
 
         self.update_func['std'] = std_update
 
@@ -277,8 +288,9 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc_plt.addItem(self.tradeitems_dict['info_text'])
     # --------------------------------添加交易数据-----------------------------------------------------------------
         def trade_data_update(ohlc):
+            x = ohlc.x
             try:
-                self.tradeitems_dict['open'].setData(x=ohlc.x.reindex(self.trade_datas.open.index.floor(ohlc.ktype)),
+                self.tradeitems_dict['open'].setData(x=x.reindex(self.trade_datas.open.index.floor(ohlc.ktype)),
                                                      y=self.trade_datas['OpenPrice'],
                                                      symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
                                                      brush=self.trade_datas['Status'].map(
@@ -288,7 +300,7 @@ class OHlCWidget(KeyEventWidget):
             except Exception as e:
                 V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
             try:
-                self.tradeitems_dict['close'].setData(x=ohlc.x.reindex(self.trade_datas.close.index.floor(ohlc.ktype)),
+                self.tradeitems_dict['close'].setData(x=x.reindex(self.trade_datas.close.index.floor(ohlc.ktype)),
                                                       y=self.trade_datas['ClosePrice'],
                                                       symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
                                                       brush=self.trade_datas['Status'].map(
@@ -372,16 +384,16 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc.resample_sig.connect(self.chart_replot)  # 重采样重画
         self.ohlc.resample_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
         # ----------------------重采样信号--------------------------------------
-        self.console.min_1.clicked.connect(partial(self.ohlc.set_ktype, '1T'))
-        self.console.min_5.clicked.connect(partial(self.ohlc.set_ktype, '5T'))
-        self.console.min_10.clicked.connect(partial(self.ohlc.set_ktype, '10T'))
-        self.console.min_30.clicked.connect(partial(self.ohlc.set_ktype, '30T'))
+        self.console.RadioButton_min_1.clicked.connect(partial(self.ohlc.set_ktype, '1T'))
+        self.console.RadioButton_min_5.clicked.connect(partial(self.ohlc.set_ktype, '5T'))
+        self.console.RadioButton_min_10.clicked.connect(partial(self.ohlc.set_ktype, '10T'))
+        self.console.RadioButton_min_30.clicked.connect(partial(self.ohlc.set_ktype, '30T'))
         # -----------------------------------------------------------------------
         self.sig_M_Left_Double_Click.connect(self.console.focus) #主图双击信号绑定console弹出
         self.ohlc.ohlc_sig.connect(lambda : self.console.update_daterange(self.ohlc.datetime.min(),
                                                                           self.ohlc.datetime.max()))
-        self.console.Button_history.released.connect(lambda : self.goto_history(self.console.dateTime_start.dateTime(),
-                                                                                  self.console.dateTime_end.dateTime()))  # 绑定历史回顾函数
+        self.console.Button_history.released.connect(lambda : self.goto_history(self.console.DateTimeEdit_start.dateTime(),
+                                                                                  self.console.DateTimeEdit_end.dateTime()))  # 绑定历史回顾函数
         self.console.Button_current.released.connect(self.goto_current)  # 绑定回到当前行情
         self.ohlc.ticker_sig.connect(self.console.add_ticker_to_table)  # 绑定ticker数据到ticker列表
         self.ohlc.price_sig.connect(self.console.add_price_to_table)  # 绑定price数据到price列表
@@ -394,7 +406,7 @@ class OHlCWidget(KeyEventWidget):
         ohlc = self.ohlc
         for name, func in self.update_func.items():
             func(ohlc)
-        self.draw_interline()
+        self.draw_interline(ohlc)
         self.xaxis.update_tickval(ohlc.timestamp)
         self.ohlc_data_update_sync()
 
