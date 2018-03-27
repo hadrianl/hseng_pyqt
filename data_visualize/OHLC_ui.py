@@ -123,12 +123,12 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc_plt = self.makePI('ohlc')
         self.ohlc_plt.setMinimumHeight(300)
         self.ohlcitems = CandlestickItem()
-        self.ohlcitems.setHisData(self.ohlc)
+        # self.ohlcitems.setHisData(self.ohlc)
         self.ohlc_plt.addItem(self.ohlcitems)
         self.ohlc_plt.setWindowTitle('market data')
         self.ohlc_plt.showGrid(x=True, y=True)
         self.tickitems = CandlestickItem()
-        self.tickitems.setCurData(self.ohlc)
+        # self.tickitems.setCurData(self.ohlc)
         # self.ohlc.update()
         self.tickitems.mark_line()
         self.ohlc_plt.addItem(self.tickitems)
@@ -159,8 +159,8 @@ class OHlCWidget(KeyEventWidget):
         self.ma_items_dict = {}
         ma_x = range(len(self.ohlc.data))
         for w in self.i_ma._windows:
-            self.ma_items_dict[w] = self.ohlc_plt.plot(self.ohlc.x, getattr(self.i_ma, w),
-                                                       pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
+            self.ma_items_dict[w] = pg.PlotDataItem(pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
+            self.ohlc_plt.addItem(self.ma_items_dict[w])
         def ma_update(ohlc):
             for w in self.ma_items_dict:
                 self.ma_items_dict[w].setData(ohlc.x, getattr(self.i_ma, w).values)
@@ -181,8 +181,10 @@ class OHlCWidget(KeyEventWidget):
         self.macd_items_dict['Macd'] = pg.BarGraphItem(x=self.ohlc.x, height=self.i_macd.macd,
                                                        width=0.5, pens=macd_pens, brushes=macd_brushs)
         self.macd_plt.addItem(self.macd_items_dict['Macd'])
-        self.macd_items_dict['diff'] = self.macd_plt.plot(self.ohlc.x, self.i_macd.diff, pen='y')
-        self.macd_items_dict['dea'] = self.macd_plt.plot(self.ohlc.x, self.i_macd.dea, pen='w')
+        self.macd_items_dict['diff'] = pg.PlotDataItem(pen='y')
+        self.macd_plt.addItem(self.macd_items_dict['diff'])
+        self.macd_items_dict['dea'] = pg.PlotDataItem(pen='w')
+        self.macd_plt.addItem(self.macd_items_dict['dea'])
         self.macd_plt.showGrid(x=True, y=True)
         self.macd_plt.hideAxis('bottom')
         self.macd_plt.getViewBox().setXLink(self.ohlc_plt.getViewBox())  # 建立指标图表与主图表的viewbox连接
@@ -227,7 +229,6 @@ class OHlCWidget(KeyEventWidget):
                 self.macd_hl_mark_items_dict['low_pos'].append(textitem)
 
         self.update_func['macd_hl_mark'] = macd_hl_mark_update
-        self.update_func['macd_hl_mark'](self.ohlc)
 
     def init_std(self):  # 初始化std图表
         self.std_items_dict = {}
@@ -242,8 +243,10 @@ class OHlCWidget(KeyEventWidget):
         self.std_items_dict['inc'] = pg.BarGraphItem(x=self.i_std.x, height=self.i_std.inc,
                                                      width=0.5, pens=std_inc_pens, brushes=std_inc_brushes)
         self.std_plt.addItem(self.std_items_dict['inc'])
-        self.std_items_dict['pos_std'] = self.std_plt.plot(self.ohlc.x, self.i_std.pos_std, pen='r')
-        self.std_items_dict['neg_std'] = self.std_plt.plot(self.ohlc.x, self.i_std.neg_std, pen='g')
+        self.std_items_dict['pos_std'] = pg.PlotDataItem(pen='r')
+        self.std_plt.addItem(self.std_items_dict['pos_std'])
+        self.std_items_dict['neg_std'] = pg.PlotDataItem(pen='g')
+        self.std_plt.addItem(self.std_items_dict['neg_std'])
         self.std_plt.hideAxis('bottom')
         self.std_plt.getViewBox().setXLink(self.ohlc_plt.getViewBox())
         self.main_layout.addItem(self.std_plt)
@@ -296,7 +299,6 @@ class OHlCWidget(KeyEventWidget):
                 V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
         # -------------------------------------------------------------------------------------------------------------
         self.update_func['trade_data'] = trade_data_update
-        self.update_func['trade_data'](self.ohlc)
 
         def link_line(a, b):
             if a is self.tradeitems_dict['open']:
