@@ -213,8 +213,8 @@ class OHlCWidget(KeyEventWidget):
             self.macd_hl_mark_items_dict['high_pos'].clear()
             self.macd_hl_mark_items_dict['low_pos'].clear()
             for k, v in h_macd_hl_mark.high_pos.iteritems():
-                textitem = pg.TextItem(html=f'<span style="color:#FF00FF;font-size:9px">{v}<span/>', border=2, angle=15,
-                                       anchor=(0, 1))
+                textitem = pg.TextItem(html=f'<span style="color:#FF00FF;font-size:9px">{v}<span/>', border=2,
+                                       angle=15, anchor=(0, 1))
                 textitem.setPos(ohlc.x[k], v)
                 self.ohlc_plt.addItem(textitem)
                 self.macd_hl_mark_items_dict['high_pos'].append(textitem)
@@ -366,7 +366,7 @@ class OHlCWidget(KeyEventWidget):
         self.date_region.sigRegionChanged.connect(self.date_slicer_update)  # 时间切片变化信号绑定调整画图
         self.ohlc.ohlc_sig.connect(self.chart_replot) # K线更新信号绑定更新画图
         self.ohlc.ticker_sig.connect(self.update_data_plot) # ticker更新信号绑定最后的bar的画图
-        self.ohlc.price_sig.connect(self.console.add_price_to_table)
+
         self.ohlc.resample_sig.connect(self.chart_replot)  # 重采样重画
         self.ohlc.resample_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
         # ----------------------重采样信号--------------------------------------
@@ -379,10 +379,10 @@ class OHlCWidget(KeyEventWidget):
         self.ohlc.ohlc_sig.connect(lambda : self.console.update_daterange(self.ohlc.datetime.min(),
                                                                           self.ohlc.datetime.max()))
         self.console.Button_history.released.connect(lambda : self.goto_history(self.console.dateTime_start.dateTime(),
-                                                                                  self.console.dateTime_end.dateTime()))
-        self.console.Button_current.released.connect(self.goto_current)
-        self.ohlc.ticker_sig.connect(self.console.add_ticker_to_table)
-
+                                                                                  self.console.dateTime_end.dateTime()))  # 绑定历史回顾函数
+        self.console.Button_current.released.connect(self.goto_current)  # 绑定回到当前行情
+        self.ohlc.ticker_sig.connect(self.console.add_ticker_to_table)  # 绑定ticker数据到ticker列表
+        self.ohlc.price_sig.connect(self.console.add_price_to_table)  # 绑定price数据到price列表
     def init_buttons(self):
         self.consolebutton = QtWidgets.QPushButton(text='交互console', parent=self.pw)
         self.consolebutton.setGeometry(QtCore.QRect(10, 250, 75, 23))

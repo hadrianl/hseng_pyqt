@@ -41,7 +41,6 @@ ohlc + i_macd
 ohlc + h_macd_hl_mark
 ohlc + i_std
 ohlc + trade_datas
-
 ohlc._thread_lock.release()
 F_logger.info('初始化OHLC数据完成')
 # -----------------------------------------------------------------------+
@@ -49,7 +48,6 @@ F_logger.info('初始化OHLC数据完成')
 V_logger.info('初始化app')
 app = QtWidgets.QApplication(sys.argv)
 # -----------------------OHLC窗口初始化---------------------------------+
-V_logger.info(f'初始化ohlc图表')
 win = OHlCWidget()
 win.setWindowTitle(Symbol + '实盘分钟图')
 # 各个初始化之间存在依赖关系，需要按照以下顺序初始化
@@ -67,6 +65,9 @@ win.init_signal()  # 初始化指标信号
 win.date_region.setRegion([win.ohlc.x.max() - 120, win.ohlc.x.max() + 5])  # 初始化可视区域
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 V_logger.info(f'初始化ohlc图表完成')
+ohlc.active_ticker()
+ohlc.active_price()
+win.chart_replot()
 
 if __name__ == '__main__':
     win.resize(1200, 800)
