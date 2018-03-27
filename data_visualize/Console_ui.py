@@ -21,9 +21,9 @@ class AnalysisConsole(QWidget, Ui_Console):
         Ui_Console.__init__(self)
         help_text = f'''实盘分析Console测试（help_doc()调用帮助文档）'''
         self.setupUi(self)
-        self.logging_handler = self.console_logging_handler(self.consolewidget)
-        self.consolewidget.localNamespace = namespace
-        self.consolewidget.output.setPlainText(help_text)
+        self.logging_handler = self.console_logging_handler(self.ConsoleWidget_con)
+        self.ConsoleWidget_con.localNamespace = namespace
+        self.ConsoleWidget_con.output.setPlainText(help_text)
 
     def focus(self):
         if self.isHidden():
@@ -33,26 +33,26 @@ class AnalysisConsole(QWidget, Ui_Console):
             self.focusWidget()
 
     def update_daterange(self, start, end):
-        self.dateTime_start.setDateTime(start)
-        self.dateTime_end.setDateTime(end)
+        self.DateTimeEdit_start.setDateTime(start)
+        self.DateTimeEdit_end.setDateTime(end)
 
     def add_ticker_to_table(self, ticker):
-        self.tickers_tableWidget.insertRow(0)
-        self.tickers_tableWidget.setItem(0, 0, QTableWidgetItem(dt.datetime.fromtimestamp(ticker.TickerTime).strftime('%H:%M:%S')))
-        self.tickers_tableWidget.setItem(0, 1, QTableWidgetItem(str(ticker.Price)))
+        self.TableWidget_tickers.insertRow(0)
+        self.TableWidget_tickers.setItem(0, 0, QTableWidgetItem(dt.datetime.fromtimestamp(ticker.TickerTime).strftime('%H:%M:%S')))
+        self.TableWidget_tickers.setItem(0, 1, QTableWidgetItem(str(ticker.Price)))
         qty = QTableWidgetItem(str(ticker.Qty))
-        self.tickers_tableWidget.setItem(0, 2, qty)
-        if self.tickers_tableWidget.rowCount() > 100:
-            self.tickers_tableWidget.removeRow(100)
+        self.TableWidget_tickers.setItem(0, 2, qty)
+        if self.TableWidget_tickers.rowCount() > 100:
+            self.TableWidget_tickers.removeRow(100)
 
 
     def add_price_to_table(self, price):
         max_depth = 5
         for i, bid, bid_qty, ask, ask_qty in zip(range(20), price.Bid, price.BidQty, price.Ask, price.AskQty):
-            self.prices_tableWidget.setItem(5+i, 0, QTableWidgetItem(str(bid)))
-            self.prices_tableWidget.setItem(5+i, 1, QTableWidgetItem(str(bid_qty)))
-            self.prices_tableWidget.setItem(4-i, 0, QTableWidgetItem(str(ask)))
-            self.prices_tableWidget.setItem(4-i, 1, QTableWidgetItem(str(ask_qty)))
+            self.TableWidget_prices.setItem(5+i, 0, QTableWidgetItem(str(bid)))
+            self.TableWidget_prices.setItem(5+i, 1, QTableWidgetItem(str(bid_qty)))
+            self.TableWidget_prices.setItem(4-i, 0, QTableWidgetItem(str(ask)))
+            self.TableWidget_prices.setItem(4-i, 1, QTableWidgetItem(str(ask_qty)))
             if max_depth == i + 1:
                 break
 
