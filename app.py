@@ -25,7 +25,7 @@ pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 Start_Time, End_Time = date_range('present', bar_num=680)
 Symbol = symbol('HSI')
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
-ohlc = OHLC('HSIH8', minbar=580, ktype='1T')
+ohlc = OHLC('HSIJ8', minbar=580, ktype='1T')
 ohlc(daterange=[Start_Time, End_Time])
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
