@@ -28,7 +28,8 @@ ZMQ_SOCKET_HOST = server_conf.get('ZMQ_SOCKET', 'host')
 ZMQ_TICKER_PORT = server_conf.getint('ZMQ_SOCKET', 'ticker_port')
 ZMQ_PRICE_PORT = server_conf.getint('ZMQ_SOCKET', 'price_port')
 # 日志的配置
-logging.config.fileConfig(os.path.join('conf','log.conf'))
+
+logging.config.fileConfig(os.path.join('conf','log.conf'), disable_existing_loggers=False)
 A_logger = logging.getLogger('root')
 F_logger = logging.getLogger('root.data_fetch')
 H_logger = logging.getLogger('root.data_handle')
