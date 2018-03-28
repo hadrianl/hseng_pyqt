@@ -8,8 +8,6 @@
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
-from pandas import DataFrame
-from sp_struct import SPApiTicker
 import time
 
 

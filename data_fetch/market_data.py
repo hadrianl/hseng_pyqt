@@ -15,7 +15,7 @@ from queue import Queue
 import queue
 import zmq
 from datetime import datetime
-from sp_struct import SPApiTicker, SPApiPrice
+from spapi.sp_struct import SPApiTicker, SPApiPrice
 from collections import deque
 
 

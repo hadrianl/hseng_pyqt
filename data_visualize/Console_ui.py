@@ -13,7 +13,7 @@ from PyQt5.Qt import QWidget, QTableWidgetItem, QColor
 from PyQt5.QtCore import Qt
 import datetime as dt
 from logging import Handler, Formatter
-
+from sp_func.order import *
 
 class AnalysisConsole(QWidget, Ui_Console):
     def __init__(self, namespace):
@@ -56,6 +56,12 @@ class AnalysisConsole(QWidget, Ui_Console):
             if max_depth == i + 1:
                 break
 
+    def init_sp_func_signal(self):
+        self.Button_market_long.released.connect(lambda :add_market_order())
+        self.Button_market_short.released.connect()
+        self.Button_limit_long.released.connect()
+        self.Button_limit_shortreleased.connect()
+
     class console_logging_handler(Handler):
         def __init__(self, consolewidget):
             Handler.__init__(self)
@@ -70,4 +76,6 @@ class AnalysisConsole(QWidget, Ui_Console):
                 self.consolewidget.output.appendPlainText(msg)
             except Exception as e:
                 print(e)
+
+
 
