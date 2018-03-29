@@ -31,7 +31,7 @@ i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
 h_macd_hl_mark = MACD_HL_MARK()
-trade_datas = TradeData('HSENG$.MAR8')
+trade_datas = TradeData('HSENG$.APR8')
 ohlc.active_ticker()
 ohlc.active_price()
 # 将指标假如到主图数据里
