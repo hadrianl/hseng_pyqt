@@ -8,11 +8,16 @@
 from spapi.sub_client import Add_normal_order
 
 
+
 def add_limit_order(prodcode, bs, qty, price, OrderId=''):
+    price = float(price)
+    qty = int(qty)
     Add_normal_order(prodcode, bs, qty, price, ClOrderId=OrderId)
 
 def add_market_order(prodcode, bs, qty, OrderId=''):
-    Add_normal_order(prodcode, bs, qty, OrderType = 6, ClOrderId=OrderId)
+    qty = int(qty)
+    Add_normal_order(prodcode, bs, qty, ClOrderId=OrderId)
 
 def add_auction_order(prodcode, bs, qty, OrderId=''):
-    Add_normal_order(prodcode, bs, qty, OrderType=2, ClOrderId=OrderId)
+    qty = int(qty)
+    Add_normal_order(prodcode, bs, qty, AO=True, ClOrderId=OrderId)

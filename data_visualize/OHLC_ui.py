@@ -17,6 +17,7 @@ import numpy as np
 import datetime as dt
 from functools import partial
 from data_visualize.Console_ui import AnalysisConsole
+from sp_func.order import *
 
 
 
@@ -397,6 +398,13 @@ class OHlCWidget(KeyEventWidget):
         self.console.Button_current.released.connect(self.goto_current)  # 绑定回到当前行情
         self.ohlc.ticker_sig.connect(self.console.add_ticker_to_table)  # 绑定ticker数据到ticker列表
         self.ohlc.price_sig.connect(self.console.add_price_to_table)  # 绑定price数据到price列表
+
+        self.console.Button_market_long.released.connect(lambda: add_market_order(self.ohlc.symbol, 'B', self.console.Edit_qty.text()))
+        self.console.Button_market_short.released.connect(lambda: add_market_order(self.ohlc.symbol, 'S', self.console.Edit_qty.text()))
+        self.console.Button_limit_long.released.connect(lambda: add_limit_order(self.ohlc.symbol, 'B',self.console.Edit_qty.text(), self.console.Edit_limit_price.text()))
+        self.console.Button_limit_short.released.connect(lambda: add_limit_order(self.ohlc.symbol, 'S', self.console.Edit_qty.text(), self.console.Edit_limit_price.text()))
+
+
     def init_buttons(self):
         self.consolebutton = QtWidgets.QPushButton(text='交互console', parent=self.pw)
         self.consolebutton.setGeometry(QtCore.QRect(10, 250, 75, 23))
