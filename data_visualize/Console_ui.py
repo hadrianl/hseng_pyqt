@@ -57,10 +57,10 @@ class AnalysisConsole(QWidget, Ui_Console):
                 break
 
     def init_sp_func_signal(self):
-        self.Button_market_long.released.connect(lambda :add_market_order())
-        self.Button_market_short.released.connect()
-        self.Button_limit_long.released.connect()
-        self.Button_limit_shortreleased.connect()
+        self.Button_market_long.released.connect(lambda : add_market_order())
+        self.Button_market_short.released.connect(lambda : add_market_order())
+        self.Button_limit_long.released.connect(lambda : add_limit_order())
+        self.Button_limit_shortreleased.connect(lambda : add_limit_order())
 
     class console_logging_handler(Handler):
         def __init__(self, consolewidget):

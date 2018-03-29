@@ -242,7 +242,8 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
 
     @property
     def x(self):
-        return pd.Series(range(len(self.data)), index=self.data.index)
+        index = self.data.index
+        return pd.Series(range(len(index)), index=index)
 
     @property
     def last_ohlc(self):
