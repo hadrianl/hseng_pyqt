@@ -61,7 +61,7 @@ win.init_std()  # 初始化std指标
 win.init_trade_data()  # 初始化交易数据的对接
 win.init_date_slice()  # 初始化时间切片
 win.init_mouseaction()  # 初始化十字光标与鼠标交互
-namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'help_doc': help_doc}  # console的命名空间
+namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'help_doc': help_doc, 'info': info}  # console的命名空间
 win.init_console_widget(namespace)  # 初始化交互界面
 win.init_signal()  # 初始化指标信号
 win.date_region.setRegion([win.ohlc.x.max() - 120, win.ohlc.x.max() + 5])  # 初始化可视区域

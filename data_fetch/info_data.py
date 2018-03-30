@@ -9,6 +9,8 @@ from util import S_logger, F_logger, ZMQ_SOCKET_HOST, ZMQ_INFO_PORT
 import zmq
 from threading import Thread
 from spapi.sp_struct import *
+from queue import Queue
+import pickle
 
 class INFO():
     def __init__(self):
@@ -16,6 +18,7 @@ class INFO():
         self._server_info_socket = self._ctx.socket(zmq.SUB)
         self._server_info_socket.set_string(zmq.SUBSCRIBE, '')
         self._server_info_socket.setsockopt(zmq.RCVTIMEO, 5000)
+        self.info_queue = Queue()
         self.__receiver_alive = False
         S_logger.info(f'初始化SERVER信息对接')
         F_logger.info(f'初始化SERVER信息对接')
@@ -26,6 +29,9 @@ class INFO():
             try:
                 _type, _info, _obj = self._server_info_socket.recv_multipart()
                 S_logger.info(_type.decode() + _info.decode())
+                obj = pickle.loads(_obj)
+                if obj:
+                    self.info_queue.put(obj)
             except zmq.ZMQError as e:
                 ...
 
