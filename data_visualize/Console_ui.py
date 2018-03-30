@@ -25,39 +25,7 @@ class AnalysisConsole(QWidget, Ui_Console):
         self.setupUi(self)
         self.logging_handler = self.console_logging_handler(self.ConsoleWidget_con)
         self.ConsoleWidget_con.localNamespace = namespace
-        self.ConsoleWidget_con.output.setPlainText(help_text)
-        self.__receiver_alive = False
-        self.init_server_info_receiver()
-
-    def init_server_info_receiver(self):
-        self._server_info_socket = zmq.Context().socket(zmq.SUB)
-        self._server_info_socket.connect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_INFO_PORT}')
-        self._server_info_socket.set_string(zmq.SUBSCRIBE, '')
-        self._server_info_socket.setsockopt(zmq.RCVTIMEO, 5000)
-        self._receiver_start()
-
-    def __receiver_run(self):
-        print('testing1')
-        while self.__receiver_alive:
-            try:
-                _type, _info = self._server_info_socket.recv_multipart()
-                print(_type, _info)
-                F_logger.info(_type.decode() + _info.decode())
-            except zmq.ZMQError as e:
-                print(e)
-
-    def _receiver_start(self):
-        if not self.__receiver_alive:
-            self.__receiver_alive = True
-            self.__receiver_thread = Thread(target=self.__receiver_run)
-            self.__receiver_thread.start()
-
-
-    def _receiver_stop(self):
-        if self.__receiver_alive:
-            self.__receiver_thread.join()
-            self._server_info_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_INFO_PORT}')
-            self.__receiver_alive = False
+        self.ConsoleWidget_con.output.setPlainText(f'{help_text}\n')
 
     def focus(self):
         if self.isHidden():
@@ -107,7 +75,7 @@ class AnalysisConsole(QWidget, Ui_Console):
         def emit(self, record):
             msg = self.format(record)
             try:
-                self.consolewidget.output.appendPlainText(msg)
+                self.consolewidget.write(f'{msg}\n')
             except Exception as e:
                 print(e)
 
