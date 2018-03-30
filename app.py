@@ -6,6 +6,7 @@
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
 from data_fetch.market_data import OHLC  # 导入主图OHLC数据类
+from data_fetch.info_data import INFO
 from data_handle.indicator import Ma, Macd, Std  # 导入指标
 from data_handle.spec_handler import MACD_HL_MARK
 from data_visualize.OHLC_ui import OHlCWidget  # 导入OHLC可视化类
@@ -26,15 +27,16 @@ Start_Time, End_Time = date_range('present', bar_num=680)
 Symbol = symbol('HSI')
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
 ohlc = OHLC('HSIJ8', minbar=580, ktype='1T')
+info = INFO()
 ohlc(daterange=[Start_Time, End_Time])
 i_macd = Macd(short=10, long=22, m=9)
 i_ma = Ma(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = Std(window=60, min_periods=2)
 h_macd_hl_mark = MACD_HL_MARK()
 trade_datas = TradeData('HSENG$.APR8')
+# 将指标假如到主图数据里
 ohlc.active_ticker()
 ohlc.active_price()
-# 将指标假如到主图数据里
 ohlc._thread_lock.acquire()
 ohlc + i_ma
 ohlc + i_macd
@@ -65,8 +67,7 @@ win.init_signal()  # 初始化指标信号
 win.date_region.setRegion([win.ohlc.x.max() - 120, win.ohlc.x.max() + 5])  # 初始化可视区域
 win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 V_logger.info(f'初始化ohlc图表完成')
-ohlc.active_ticker()
-ohlc.active_price()
+info.receiver_start()
 win.chart_replot()
 
 if __name__ == '__main__':
