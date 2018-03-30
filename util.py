@@ -35,6 +35,7 @@ A_logger = logging.getLogger('root')
 F_logger = logging.getLogger('root.data_fetch')
 H_logger = logging.getLogger('root.data_handle')
 V_logger = logging.getLogger('root.data_visualize')
+S_logger = logging.getLogger('server_info')
 
 
 MA_COLORS = {'_ma10': (255, 255, 255),
