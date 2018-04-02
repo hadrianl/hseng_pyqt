@@ -90,11 +90,11 @@ class mouseaction(QtCore.QObject):
                         #     text_df = market_data.data.iloc[x_index]
                         text_df = market_data.data.iloc[x_index]
                         html = f"""
-                        <span style="color:white;font-size:16px">时间:<span/><span style="color:blue">{str(text_df.name)[8:16].replace(" ", "日")}<span/><br/>
-                        <span style="color:white;font-size:16px">开盘:<span/><span style="color:red">{text_df.open}<span/><br/>
-                        <span style="color:white;font-size:16px">最高:<span/><span style="color:red">{text_df.high}<span/><br/>
-                        <span style="color:white;font-size:16px">最低:<span/><span style="color:red">{text_df.low}<span/><br/>
-                        <span style="color:white;font-size:16px">收盘:<span/><span style="color:red">{text_df.close}<span/>
+                        <span style="color:white;font-size:12px"><span/><span style="color:blue">{str(text_df.name)[8:16].replace(" ", "日")}<span/><br/>
+                        <span style="color:white;font-size:12px">开:<span/><span style="color:red">{text_df.open}<span/><br/>
+                        <span style="color:white;font-size:12px">高:<span/><span style="color:red">{text_df.high}<span/><br/>
+                        <span style="color:white;font-size:12px">低:<span/><span style="color:red">{text_df.low}<span/><br/>
+                        <span style="color:white;font-size:12px">收:<span/><span style="color:red">{text_df.close}<span/>
                         """
                         self.info_text.setPos(ohlc_plt.getViewBox().viewRange()[0][0], ohlc_plt.getViewBox().viewRange()[1][1])
                         self.info_text.setHtml(html)
