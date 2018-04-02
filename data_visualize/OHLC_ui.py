@@ -20,7 +20,6 @@ from data_visualize.Console_ui import AnalysisConsole
 from sp_func.order import *
 
 
-
 class KeyEventWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
@@ -86,7 +85,7 @@ class OHlCWidget(KeyEventWidget):
         super(OHlCWidget, self).__init__(parent)
         self.pw = pg.PlotWidget()
         self.main_layout = pg.GraphicsLayout(border=(100, 100, 100))
-        self.main_layout.setGeometry(QtCore.QRectF(10, 10, 1200, 700))
+        # self.main_layout.setGeometry(QtCore.QRectF(10, 10, 1200, 700))
         self.main_layout.setContentsMargins(10, 10, 10, 10)
         self.main_layout.setSpacing(0)
         self.main_layout.setBorder(color=(255, 255, 255, 255), width=0.8)
@@ -538,3 +537,4 @@ class OHlCWidget(KeyEventWidget):
 
     def on_M_Left_Double_Click(self):
         self.sig_M_Left_Double_Click.emit()
+

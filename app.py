@@ -18,8 +18,7 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
 import sys
 from functools import partial
-
-
+from data_visualize import MainWindow
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
 # 确定需要展示的K线范围
@@ -50,32 +49,34 @@ F_logger.info('初始化OHLC数据完成')
 V_logger.info('初始化app')
 app = QtWidgets.QApplication(sys.argv)
 # -----------------------OHLC窗口初始化---------------------------------+
-win = OHlCWidget()
-win.setWindowTitle(Symbol + '实盘分钟图')
+win = MainWindow()
+widget_ohlc = win.QWidget_ohlc
+# win.setWindowTitle(Symbol + '实盘分钟图')
 # 各个初始化之间存在依赖关系，需要按照以下顺序初始化
-win.binddata(ohlc=ohlc, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_datas=trade_datas)  # 把数据与UI绑定
-win.init_ohlc()  # 初始化ohlc主图
-win.init_ma()  # 初始化ma均线图
-win.init_macd()  # 初始化指标
-win.init_std()  # 初始化std指标
-win.init_trade_data()  # 初始化交易数据的对接
-win.init_date_slice()  # 初始化时间切片
-win.init_mouseaction()  # 初始化十字光标与鼠标交互
-namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'help_doc': help_doc, 'info': info}  # console的命名空间
-win.init_console_widget(namespace)  # 初始化交互界面
-win.init_signal()  # 初始化指标信号
-win.date_region.setRegion([win.ohlc.x.max() - 120, win.ohlc.x.max() + 5])  # 初始化可视区域
-win.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
+widget_ohlc.binddata(ohlc=ohlc, i_ma=i_ma, i_macd=i_macd, i_std=i_std, trade_datas=trade_datas)  # 把数据与UI绑定
+widget_ohlc.init_ohlc()  # 初始化ohlc主图
+widget_ohlc.init_ma()  # 初始化ma均线图
+widget_ohlc.init_macd()  # 初始化指标
+widget_ohlc.init_std()  # 初始化std指标
+widget_ohlc.init_trade_data()  # 初始化交易数据的对接
+widget_ohlc.init_date_slice()  # 初始化时间切片
+widget_ohlc.init_mouseaction()  # 初始化十字光标与鼠标交互
+namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': widget_ohlc, 'help_doc': help_doc, 'info': info}  # console的命名空间
+widget_ohlc.init_console_widget(namespace)  # 初始化交互界面
+widget_ohlc.init_signal()  # 初始化指标信号
+widget_ohlc.date_region.setRegion([widget_ohlc.ohlc.x.max() - 120, widget_ohlc.ohlc.x.max() + 5])  # 初始化可视区域
+widget_ohlc.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 V_logger.info(f'初始化ohlc图表完成')
 info.receiver_start()
-win.chart_replot()
+widget_ohlc.chart_replot()
 
 if __name__ == '__main__':
-    win.resize(1200, 800)
+    # win.resize(1200, 800)
     login_win = LoginDialog()
     login_win.UserName.setFocus()
     login_win.show()
     login_win.accepted.connect(win.show)
     login_win.rejected.connect(app.closeAllWindows)
+    win.pushButton_console.released.connect(widget_ohlc.console.show)
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         sys.exit(app.exec())
