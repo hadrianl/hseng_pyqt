@@ -8,7 +8,6 @@
 from util import S_logger, F_logger, ZMQ_SOCKET_HOST, ZMQ_INFO_PORT
 import zmq
 from threading import Thread
-from spapi.sp_struct import *
 from queue import Queue
 import pickle
 

@@ -5,7 +5,7 @@
 # @File    : Login_ui.py
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
-from login import Ui_LoginWindow
+from ui.login import Ui_LoginWindow
 from PyQt5.Qt import QDialog, QMessageBox
 from Crypto.Hash import SHA256
 import pymysql as pm

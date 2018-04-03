@@ -9,16 +9,14 @@ from data_fetch.market_data import OHLC  # 导入主图OHLC数据类
 from data_fetch.info_data import INFO
 from data_handle.indicator import Ma, Macd, Std  # 导入指标
 from data_handle.spec_handler import MACD_HL_MARK
-from data_visualize.OHLC_ui import OHlCWidget  # 导入OHLC可视化类
-from data_visualize.Console_ui import AnalysisConsole # 导入分析交互界面类
 from data_visualize.Login_ui import LoginDialog  # 导入登录界面类
 from util import *  # 导入常用函数
 from data_fetch.trade_data import TradeData  # 导入交易数据类
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
 import sys
-from functools import partial
 from data_visualize import MainWindow
+
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # ------------------------------数据获取与整理---------------------------+
 # 确定需要展示的K线范围

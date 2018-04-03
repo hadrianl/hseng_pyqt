@@ -6,16 +6,12 @@
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
 
-import pyqtgraph.console
-from util import F_logger, ZMQ_SOCKET_HOST, ZMQ_INFO_PORT
-import zmq
-from console import *
-from PyQt5.Qt import QWidget, QTableWidgetItem, QColor
+from ui.console import Ui_Console
+from PyQt5.Qt import QWidget, QTableWidgetItem
 from PyQt5.QtCore import Qt
 import datetime as dt
-from threading import Thread
 from logging import Handler, Formatter
-from sp_func.order import *
+
 
 class AnalysisConsole(QWidget, Ui_Console):
     def __init__(self, namespace):
