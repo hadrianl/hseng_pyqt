@@ -222,14 +222,14 @@ class OHlCWidget(KeyEventWidget):
             self.macd_hl_mark_items_dict['high_pos'].clear()
             self.macd_hl_mark_items_dict['low_pos'].clear()
             for k, v in h_macd_hl_mark.high_pos.iteritems():
-                textitem = pg.TextItem(html=f'<span style="color:#FF00FF;font-size:9px">{v}<span/>', border=2,
+                textitem = pg.TextItem(html=f'<span style="color:#FF0000;font-size:11px">{v}<span/>', border=pg.mkPen({'color': "#FF0000", 'width': 1}),
                                        angle=15, anchor=(0, 1))
                 textitem.setPos(x[k], v)
                 self.ohlc_plt.addItem(textitem)
                 self.macd_hl_mark_items_dict['high_pos'].append(textitem)
 
             for k, v in h_macd_hl_mark.low_pos.iteritems():
-                textitem = pg.TextItem(html=f'<span style="color:#7CFC00;font-size:9px">{v}<span/>', border=1,
+                textitem = pg.TextItem(html=f'<span style="color:#7CFC00;font-size:11px">{v}<span/>', border=pg.mkPen({'color': "#7CFC00", 'width': 1}),
                                        angle=-15, anchor=(0, 0))
                 textitem.setPos(x[k], v)
                 self.ohlc_plt.addItem(textitem)

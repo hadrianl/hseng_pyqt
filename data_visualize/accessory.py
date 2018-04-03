@@ -109,7 +109,7 @@ class mouseaction(QtCore.QObject):
 
                 if 'i_ma' in indicator:
                     try:
-                        ma_text = [f'<span style="color:rgb{MA_COLORS[k]}">MA{k[-2:]}:{round(getattr(self._i_ma, k)[x_index],2)}<span/>'
+                        ma_text = [f'<span style="color:rgb{MA_COLORS[k]};font-size:12px">MA{k[-2:]}:{round(getattr(self._i_ma, k)[x_index],2)}<span/>'
                                    for k, v in self._i_ma._windows.items()]
                         self.ma_text.setHtml('  '.join(ma_text))
                         self.ma_text.setPos(ohlc_plt.vb.viewRange()[0][1],ohlc_plt.vb.viewRange()[1][1])
