@@ -20,9 +20,9 @@ class indicator_base(handle_base):
         self.name = name
         super(indicator_base, self).__init__('Indicator', **kwargs)
 
-class Macd(indicator_base):
+class MACD(indicator_base):
     def __init__(self, short=12, long=26, m=9):
-        super(Macd, self).__init__('MACD', short=short, long=long, m=m)
+        super(MACD, self).__init__('MACD', short=short, long=long, m=m)
 
     def __str__(self):
         return f'<{self.name}>----SHORT:{self._short} LONG:{self._long} SIGNAL:{self._m}'
@@ -43,19 +43,19 @@ class Macd(indicator_base):
 
     @property
     def macd(self):
-        return self._macd.rename('Macd')
+        return self._macd.rename('MACD')
 
     def to_df(self):
         return pd.concat([self.timestamp, self.diff, self.dea, self.macd], axis=1)
 
 
-class Ma(indicator_base):
+class MA(indicator_base):
     def __init__(self, **windows):
-        super(Ma, self).__init__('MA', **windows)
+        super(MA, self).__init__('MA', **windows)
         self._windows = {('_'+k): v for k, v in windows.items()}
 
     def __str__(self):
-        return f'<{self.name}>----'+','.join(['Ma' + str(w) for w in self._windows])
+        return f'<{self.name}>----'+','.join(['MA' + str(w) for w in self._windows])
 
     def calc(self):
         for k, v in self._windows.items():
@@ -65,9 +65,9 @@ class Ma(indicator_base):
         return pd.concat([getattr(self, w) for w in self._windows], axis=1)
 
 
-class Std(indicator_base):
+class STD(indicator_base):
     def __init__(self, window=60, min_periods=2):
-        super(Std, self).__init__('STD', window=window, min_periods=min_periods)
+        super(STD, self).__init__('STD', window=window, min_periods=min_periods)
 
     def __str__(self):
         return f'<{self.name}>----WINDOW{self._window}-MIN_PERIOUS:{self._min_periods}'
@@ -98,7 +98,7 @@ class Std(indicator_base):
 
 if __name__ == '__main__':
     _df = OHLC('2017-12-15', '2017-12-18', 'HSIc1')
-    _macd = Macd(_df)
-    _ma = Ma(_df, 10, 20, 30)
+    _macd = MACD(_df)
+    _ma = MA(_df, 10, 20, 30)
     print(_macd)
     print(_ma)
