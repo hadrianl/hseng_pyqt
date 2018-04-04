@@ -114,22 +114,21 @@ class OHlCWidget(KeyEventWidget):
         V_logger.info(f'初始化{name}图表')
         return plotItem
 
-    def binddata(self, **data):  # 实现数据与UI界面的绑定
-        for k, v in data.items():
-            setattr(self, k, v)
+    def binddata(self, ohlc):  # 实现数据与UI界面的绑定
+        self.data = {}
+        self.data['ohlc'] = ohlc
+        for k, v in ohlc.extra_data.items():
+            self.data[k] = v
             V_logger.info(f'绑定{k}数据到图表')
 
     def init_ohlc(self):  # 初始化主图OHLC k线
         self.ohlc_plt = self.makePI('ohlc')
         self.ohlc_plt.setMinimumHeight(300)
         self.ohlcitems = CandlestickItem()
-        # self.ohlcitems.setHisData(self.ohlc)
         self.ohlc_plt.addItem(self.ohlcitems)
         self.ohlc_plt.setWindowTitle('market data')
         self.ohlc_plt.showGrid(x=True, y=True)
         self.tickitems = CandlestickItem()
-        # self.tickitems.setCurData(self.ohlc)
-        # self.ohlc.update()
         self.tickitems.mark_line()
         self.ohlc_plt.addItem(self.tickitems)
         self.ohlc_plt.addItem(self.tickitems.hline)
@@ -159,31 +158,31 @@ class OHlCWidget(KeyEventWidget):
     def init_ma(self):  # 初始化主图均线ma
         V_logger.info(f'初始化ma图表')
         self.ma_items_dict = {}
-        ma_x = range(len(self.ohlc.data))
-        for w in self.i_ma._windows:
+        i_ma = self.data['MA']
+        for w in i_ma._windows:
             self.ma_items_dict[w] = pg.PlotDataItem(pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
             self.ohlc_plt.addItem(self.ma_items_dict[w])
         def ma_update(ohlc):
             x=ohlc.x
             for w in self.ma_items_dict:
-                self.ma_items_dict[w].setData(x, getattr(self.i_ma, w).values)
+                self.ma_items_dict[w].setData(x, getattr(i_ma, w).values)
 
-        self.update_func['ma'] = ma_update
+        self.update_func['MA'] = ma_update
 
 
     def init_macd(self):  # 初始化macd
         self.macd_items_dict = {}
         self.macd_plt = self.makePI('indicator')
-        # self.indicator_plt.setXLink('ohlc')
         self.macd_plt.setMaximumHeight(150)
-        macd_x = range(len(self.ohlc.data))
-        macd_pens = pd.concat([self.ohlc.close > self.ohlc.open, self.i_macd.macd > 0], 1).apply(
+        ohlc = self.data['ohlc']
+        i_macd = self.data['MACD']
+        macd_pens = pd.concat([ohlc.close > ohlc.open, i_macd.macd > 0], 1).apply(
             lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
-        macd_brushs = [None if (self.i_macd.macd > self.i_macd.macd.shift(1))[i]
+        macd_brushs = [None if (i_macd.macd > i_macd.macd.shift(1))[i]
                        else v for i, v in macd_pens.iteritems()]
-        self.macd_items_dict['Macd'] = pg.BarGraphItem(x=self.ohlc.x, height=self.i_macd.macd,
+        self.macd_items_dict['MACD'] = pg.BarGraphItem(x=ohlc.x, height=i_macd.macd,
                                                        width=0.5, pens=macd_pens, brushes=macd_brushs)
-        self.macd_plt.addItem(self.macd_items_dict['Macd'])
+        self.macd_plt.addItem(self.macd_items_dict['MACD'])
         self.macd_items_dict['diff'] = pg.PlotDataItem(pen='y')
         self.macd_plt.addItem(self.macd_items_dict['diff'])
         self.macd_items_dict['dea'] = pg.PlotDataItem(pen='w')
@@ -197,10 +196,11 @@ class OHlCWidget(KeyEventWidget):
         self.macd_hl_mark_items_dict['low_pos'] = []
         self.main_layout.nextRow()
         def macd_update(ohlc):
-            x = self.i_macd.x
-            diff = self.i_macd.diff
-            dea = self.i_macd.dea
-            macd = self.i_macd.macd
+            i_macd = self.data['MACD']
+            x = i_macd.x
+            diff = i_macd.diff
+            dea = i_macd.dea
+            macd = i_macd.macd
             self.macd_items_dict['diff'].setData(x, diff.values)
             self.macd_items_dict['dea'].setData(x, dea.values)
             macd_pens = pd.concat(
@@ -208,12 +208,12 @@ class OHlCWidget(KeyEventWidget):
                 lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
             macd_brushes = [None if (macd > macd.shift(1))[i]
                             else v for i, v in macd_pens.iteritems()]
-            self.macd_items_dict['Macd'].setOpts(x=x, height=macd, pens=macd_pens, brushes=macd_brushes)
+            self.macd_items_dict['MACD'].setOpts(x=x, height=macd, pens=macd_pens, brushes=macd_brushes)
 
-        self.update_func['macd'] = macd_update
+        self.update_func['MACD'] = macd_update
 
         def macd_hl_mark_update(ohlc):
-            h_macd_hl_mark = ohlc.indicators['macd_hl_mark']
+            h_macd_hl_mark = ohlc.extra_data['MACD_HL_MARK']
             x=ohlc.x
             for i in self.macd_hl_mark_items_dict['high_pos']:
                 self.ohlc_plt.removeItem(i)
@@ -235,19 +235,18 @@ class OHlCWidget(KeyEventWidget):
                 self.ohlc_plt.addItem(textitem)
                 self.macd_hl_mark_items_dict['low_pos'].append(textitem)
 
-        self.update_func['macd_hl_mark'] = macd_hl_mark_update
+        self.update_func['MACD_HL_MARK'] = macd_hl_mark_update
 
     def init_std(self):  # 初始化std图表
         self.std_items_dict = {}
         self.std_plt = self.makePI('std')
-        # self.std_plt.setXLink('ohlc')
+        i_std = self.data['STD']
         self.std_plt.setMaximumHeight(150)
-        std_x = range(len(self.ohlc.data))
-        std_inc_pens = pd.cut((self.i_std.inc /self.i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],  # 设置画笔颜色
-                                 labels=['g', 'y', 'l', 'b', 'r'])
-        inc_gt_std = (self.i_std.inc.abs() / self.i_std.std) > 1
+        std_inc_pens = pd.cut((i_std.inc /i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],  # 设置画笔颜色
+                                 labels=['g', 'y', 'l', 'b', 'r'])  # todo DEBUG
+        inc_gt_std = (i_std.inc.abs() / i_std.std) > 1
         std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)  # 设置画刷颜色
-        self.std_items_dict['inc'] = pg.BarGraphItem(x=self.i_std.x, height=self.i_std.inc,
+        self.std_items_dict['inc'] = pg.BarGraphItem(x=i_std.x, height=i_std.inc,
                                                      width=0.5, pens=std_inc_pens, brushes=std_inc_brushes)
         self.std_plt.addItem(self.std_items_dict['inc'])
         self.std_items_dict['pos_std'] = pg.PlotDataItem(pen='r')
@@ -261,10 +260,11 @@ class OHlCWidget(KeyEventWidget):
 
         def std_update(ohlc):
             x = ohlc.x
-            inc = self.i_std.inc
-            std = self.i_std.std
-            pos_std = self.i_std.pos_std
-            neg_std = self.i_std.neg_std
+            i_std = self.data['STD']
+            inc = i_std.inc
+            std = i_std.std
+            pos_std = i_std.pos_std
+            neg_std = i_std.neg_std
             std_inc_pens = pd.cut((inc / std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
                                   labels=['g', 'y', 'l', 'b', 'r'])
             inc_gt_std = (inc.abs() / std) > 1
@@ -273,7 +273,7 @@ class OHlCWidget(KeyEventWidget):
             self.std_items_dict['neg_std'].setData(x, neg_std)
             self.std_items_dict['inc'].setOpts(x=x, height=inc, pens=std_inc_pens, brushes=std_inc_brushes)
 
-        self.update_func['std'] = std_update
+        self.update_func['STD'] = std_update
 
     def init_trade_data(self):
         V_logger.info(f'初始化交易数据标记TradeDataScatter及link_line')
@@ -289,30 +289,33 @@ class OHlCWidget(KeyEventWidget):
     # --------------------------------添加交易数据-----------------------------------------------------------------
         def trade_data_update(ohlc):
             x = ohlc.x
+            trade_data = self.data['Trade_Data']
             try:
-                self.tradeitems_dict['open'].setData(x=x.reindex(self.trade_datas.open.index.floor(ohlc.ktype)),
-                                                     y=self.trade_datas['OpenPrice'],
-                                                     symbol=['t1' if t == 0 else 't' for t in self.trade_datas['Type']],
-                                                     brush=self.trade_datas['Status'].map(
+                self.tradeitems_dict['open'].setData(x=x.reindex(trade_data.open.index.floor(ohlc.ktype)),
+                                                     y=trade_data['OpenPrice'],
+                                                     symbol=['t1' if t == 0 else 't' for t in trade_data['Type']],
+                                                     brush=trade_data['Status'].map(
                                                          {2: pg.mkBrush(QBrush(QColor(0, 0, 255))),
                                                           1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                           0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
             except Exception as e:
                 V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
             try:
-                self.tradeitems_dict['close'].setData(x=x.reindex(self.trade_datas.close.index.floor(ohlc.ktype)),
-                                                      y=self.trade_datas['ClosePrice'],
-                                                      symbol=['t' if t == 0 else 't1' for t in self.trade_datas['Type']],
-                                                      brush=self.trade_datas['Status'].map(
+                self.tradeitems_dict['close'].setData(x=x.reindex(trade_data.close.index.floor(ohlc.ktype)),
+                                                      y=trade_data['ClosePrice'],
+                                                      symbol=['t' if t == 0 else 't1' for t in trade_data['Type']],
+                                                      brush=trade_data['Status'].map(
                                                           {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
                                                            1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
                                                            0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
             except Exception as e:
                 V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
         # -------------------------------------------------------------------------------------------------------------
-        self.update_func['trade_data'] = trade_data_update
+        self.update_func['Trade_Data'] = trade_data_update
 
-        def link_line(a, b):
+        def link_line(a, b): # TODO link_line的更新
+            ohlc = self.data['ohlc']
+            trade_data = self.data['Trade_Data']
             if a is self.tradeitems_dict['open']:
                 for i, d in enumerate(self.tradeitems_dict['open'].data):
                     if b[0].pos().x() == d[0] and b[0].pos().y() == d[1]:
@@ -332,19 +335,19 @@ class OHlCWidget(KeyEventWidget):
                 close_y = self.tradeitems_dict['close'].data[index][1]
             else:
                 close_x = self.tradeitems_dict['close'].data[index][0]
-                close_y = self.ohlc._last_tick.Price if self.ohlc._last_tick else self.ohlc.data.iloc[-1]['close']
+                close_y = ohlc._last_tick.Price if ohlc._last_tick else ohlc.data.iloc[-1]['close']
             profit = round(close_y - open_y, 2) if open_symbol == "t1" else round(open_y - close_y, 2)
             pen_color_type = ((open_symbol == 't1') << 1) + (open_y < close_y)
             pen_color_map_dict = {0: 'r', 1: 'g', 2: 'g', 3: 'r'}
             self.tradeitems_dict['link_line'].setData([[open_x, open_y],
                                                        [close_x, close_y]],
                                                       pen_color_map_dict[pen_color_type])
-            self.tradeitems_dict['info_text'].setHtml(f'<span style="color:white">Account:{self.trade_datas["Account_ID"].iloc[index]}<span/><br/>'
+            self.tradeitems_dict['info_text'].setHtml(f'<span style="color:white">Account:{trade_data["Account_ID"].iloc[index]}<span/><br/>'
                                                       f'<span style="color:blue">Open :{open_y}<span/><br/>'
                                                       f'<span style="color:yellow">Close:{close_y}<span/><br/>'
                                                       f'<span style="color:white">Type  :{"Long" if open_symbol == "t1" else "Short"}<span/><br/>'
                                                       f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/><br/>'
-                                                      f'<span style="color:"white">trader:{self.trade_datas["trader_name"].iloc[index]}<span/>')
+                                                      f'<span style="color:"white">trader:{trade_data["trader_name"].iloc[index]}<span/>')
             self.tradeitems_dict['info_text'].setPos(self.ohlc_plt.getViewBox().viewRange()[0][1],
                                                      self.ohlc_plt.getViewBox().viewRange()[1][0])
 
@@ -352,11 +355,12 @@ class OHlCWidget(KeyEventWidget):
         self.tradeitems_dict['close'].sigClicked.connect(link_line)
 
     def init_date_slice(self):  # 初始化时间切片图
+        ohlc = self.data['ohlc']
         self.date_slicer = self.makePI('date_slicer')
         self.date_slicer.hideAxis('right')
         self.date_slicer.setMaximumHeight(80)
         self.date_slicer.setMouseEnabled(False, False)
-        self.close_curve = self.date_slicer.plot(self.ohlc.x, self.ohlc.close)
+        self.close_curve = self.date_slicer.plot(ohlc.x, ohlc.close)
         self.date_region = pg.LinearRegionItem([1, 100])
         self.date_slicer.addItem(self.date_region)
         self.main_layout.addItem(self.date_slicer)
@@ -365,43 +369,45 @@ class OHlCWidget(KeyEventWidget):
     def init_mouseaction(self):  # 初始化鼠标十字光标动作以及光标所在位置的信息
         V_logger.info(f'初始化mouseaction交互行为')
         self.mouse = mouseaction()
-        self.proxy = self.mouse(self.ohlc_plt, self.macd_plt, self.std_plt, self.date_slicer, self.ohlc,
-                                i_ma=self.i_ma, i_macd=self.i_macd, i_std=self.i_std)
+        self.proxy = self.mouse(self.ohlc_plt, self.macd_plt, self.std_plt, self.date_slicer, self.data['ohlc'],
+                                i_ma=self.data['MA'], i_macd=self.data['MACD'], i_std=self.data['STD'])
 
     def init_console_widget(self, namespace):
+        ohlc = self.data['ohlc']
         self.console = AnalysisConsole(namespace)
-        self.console.update_daterange(self.ohlc.datetime.min(),
-                                      self.ohlc.datetime.max())
+        self.console.update_daterange(ohlc.datetime.min(),
+                                      ohlc.datetime.max())
         S_logger.addHandler(self.console.logging_handler)
 
     def init_signal(self):  # 信号的连接与绑定
         V_logger.info(f'初始化交互信号绑定')
+        ohlc = self.data['ohlc']
         self.ohlc_plt.sigXRangeChanged.connect(self.ohlc_Yrange_update)  # 主图X轴变化绑定Y轴更新高度
         self.date_region.sigRegionChanged.connect(self.date_slicer_update)  # 时间切片变化信号绑定调整画图
-        self.ohlc.ohlc_sig.connect(self.chart_replot) # K线更新信号绑定更新画图
-        self.ohlc.ticker_sig.connect(self.update_data_plot) # ticker更新信号绑定最后的bar的画图
+        ohlc.ohlc_sig.connect(self.chart_replot) # K线更新信号绑定更新画图
+        ohlc.ticker_sig.connect(self.update_data_plot) # ticker更新信号绑定最后的bar的画图
 
-        self.ohlc.resample_sig.connect(self.chart_replot)  # 重采样重画
-        self.ohlc.resample_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
+        ohlc.resample_sig.connect(self.chart_replot)  # 重采样重画
+        ohlc.resample_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
         # ----------------------重采样信号--------------------------------------
-        self.console.RadioButton_min_1.clicked.connect(partial(self.ohlc.set_ktype, '1T'))
-        self.console.RadioButton_min_5.clicked.connect(partial(self.ohlc.set_ktype, '5T'))
-        self.console.RadioButton_min_10.clicked.connect(partial(self.ohlc.set_ktype, '10T'))
-        self.console.RadioButton_min_30.clicked.connect(partial(self.ohlc.set_ktype, '30T'))
+        self.console.RadioButton_min_1.clicked.connect(partial(ohlc.set_ktype, '1T'))
+        self.console.RadioButton_min_5.clicked.connect(partial(ohlc.set_ktype, '5T'))
+        self.console.RadioButton_min_10.clicked.connect(partial(ohlc.set_ktype, '10T'))
+        self.console.RadioButton_min_30.clicked.connect(partial(ohlc.set_ktype, '30T'))
         # -----------------------------------------------------------------------
         self.sig_M_Left_Double_Click.connect(self.console.focus) #主图双击信号绑定console弹出
-        self.ohlc.ohlc_sig.connect(lambda : self.console.update_daterange(self.ohlc.datetime.min(),
-                                                                          self.ohlc.datetime.max()))
+        ohlc.ohlc_sig.connect(lambda : self.console.update_daterange(ohlc.datetime.min(),
+                                                                          ohlc.datetime.max()))
         self.console.Button_history.released.connect(lambda : self.goto_history(self.console.DateTimeEdit_start.dateTime(),
                                                                                   self.console.DateTimeEdit_end.dateTime()))  # 绑定历史回顾函数
         self.console.Button_current.released.connect(self.goto_current)  # 绑定回到当前行情
-        self.ohlc.ticker_sig.connect(self.console.add_ticker_to_table)  # 绑定ticker数据到ticker列表
-        self.ohlc.price_sig.connect(self.console.add_price_to_table)  # 绑定price数据到price列表
+        ohlc.ticker_sig.connect(self.console.add_ticker_to_table)  # 绑定ticker数据到ticker列表
+        ohlc.price_sig.connect(self.console.add_price_to_table)  # 绑定price数据到price列表
 
-        self.console.Button_market_long.released.connect(lambda: add_market_order(self.ohlc.symbol, 'B', self.console.Edit_qty.text()))
-        self.console.Button_market_short.released.connect(lambda: add_market_order(self.ohlc.symbol, 'S', self.console.Edit_qty.text()))
-        self.console.Button_limit_long.released.connect(lambda: add_limit_order(self.ohlc.symbol, 'B',self.console.Edit_qty.text(), self.console.Edit_limit_price.text()))
-        self.console.Button_limit_short.released.connect(lambda: add_limit_order(self.ohlc.symbol, 'S', self.console.Edit_qty.text(), self.console.Edit_limit_price.text()))
+        # self.console.Button_market_long.released.connect(lambda: add_market_order(self.ohlc.symbol, 'B', self.console.Edit_qty.text()))
+        # self.console.Button_market_short.released.connect(lambda: add_market_order(self.ohlc.symbol, 'S', self.console.Edit_qty.text()))
+        # self.console.Button_limit_long.released.connect(lambda: add_limit_order(self.ohlc.symbol, 'B',self.console.Edit_qty.text(), self.console.Edit_limit_price.text()))
+        # self.console.Button_limit_short.released.connect(lambda: add_limit_order(self.ohlc.symbol, 'S', self.console.Edit_qty.text(), self.console.Edit_limit_price.text()))
 
 
     def init_buttons(self):
@@ -410,7 +416,7 @@ class OHlCWidget(KeyEventWidget):
 
     def chart_replot(self):  # 重新画图
         V_logger.info('更新全部图表')
-        ohlc = self.ohlc
+        ohlc = self.data['ohlc']
         for name, func in self.update_func.items():
             func(ohlc)
         self.draw_interline(ohlc)
@@ -420,9 +426,9 @@ class OHlCWidget(KeyEventWidget):
     def ohlc_Yrange_update(self):  # 更新主图和指标图的高度
         ohlc_plt = self.ohlc_plt
         date_region = self.date_region
-        ohlc = self.ohlc
-        i_macd = self.i_macd
-        i_std = self.i_std
+        ohlc = self.data['ohlc']
+        i_macd = self.data['MACD']
+        i_std = self.data['STD']
         viewrange = ohlc_plt.getViewBox().viewRange()
         date_region.setRegion(viewrange[0])
         try:
@@ -452,7 +458,7 @@ class OHlCWidget(KeyEventWidget):
 
     def ohlc_data_update_sync(self):  # 主图横坐标变化的实现
         date_region = self.date_region
-        ohlc = self.ohlc
+        ohlc = self.data['ohlc']
         date_region_Max = int(date_region.getRegion()[1])
         date_region_len = int(date_region.getRegion()[1] - date_region.getRegion()[0])
         # print(f'可视区域最大值：{date_region_Max}')
@@ -479,14 +485,16 @@ class OHlCWidget(KeyEventWidget):
         :param right_offset:
         :return:
         """
-        self.ohlc_plt.setXRange(self.ohlc.x.max() - left_offset, self.ohlc.x.max() + right_offset)
+        x = self.data['ohlc'].x
+        self.ohlc_plt.setXRange(x.max() - left_offset, x.max() + right_offset)
 
     def update_data_plot(self, new_ticker):  # 当前K线根据ticker数据的更新
         tickitems = self.tickitems
         # ---------------------------更新数据到图表----------------------------------------------------+
         tickitems.update()
-        last_ohlc = self.ohlc.data.iloc[-1]
-        tickitems.setCurData(self.ohlc)
+        ohlc = self.data['ohlc']
+        last_ohlc = ohlc.data.iloc[-1]
+        tickitems.setCurData(ohlc)
         tickitems.update()
         # ---------------------------调整画图界面高度----------------------------------------------------+
         viewrange = self.ohlc_plt.getViewBox().viewRange()
@@ -496,40 +504,44 @@ class OHlCWidget(KeyEventWidget):
         # app.processEvents()
 
     def goto_history(self, start, end):
+        ohlc = self.data['ohlc']
         from PyQt5.QtCore import QDateTime
         if isinstance(start, QDateTime):
             start = start.toPyDateTime()
         if isinstance(end, QDateTime):
             end = end.toPyDateTime()
-        self.ohlc.inactive_ticker()
-        self.ohlc([start, end])
-        self.ohlc.update()
+        ohlc.inactive_ticker()
+        ohlc([start, end])
+        ohlc.update()
         self.chart_replot()
 
     def goto_current(self):
-        if not self.ohlc._OHLC__is_ticker_active:
+        ohlc = self.data['ohlc']
+        if not ohlc._OHLC__is_ticker_active:
             start, end = date_range('present', bar_num=680)
-            self.ohlc([start, end])
-            self.ohlc.active_ticker()
-            self.ohlc.update()
+            ohlc([start, end])
+            ohlc.active_ticker()
+            ohlc.update()
             self.chart_replot()
 
     def on_K_Up(self):  # 键盘up键触发，放大
         ohlc_xrange = self.ohlc_plt.getViewBox().viewRange()[0]
         length = ohlc_xrange[1] - ohlc_xrange[0]
         new_length = length - length//7
+        x = self.data['ohlc'].x
         new_xrange = [self.mouse.mousePoint.x() - new_length/2, self.mouse.mousePoint.x() + new_length/2]
-        if new_xrange[1] >= self.ohlc.x.max():
-            new_xrange = [self.ohlc.x.max() + 4 - new_length, self.ohlc.x.max() + 4]
+        if new_xrange[1] >= x.max():
+            new_xrange = [x.max() + 4 - new_length, x.max() + 4]
         self.ohlc_plt.setXRange(*new_xrange)
 
     def on_K_Down(self):  # 键盘down键触发，缩小
         ohlc_xrange = self.ohlc_plt.getViewBox().viewRange()[0]
         length = ohlc_xrange[1] - ohlc_xrange[0]
         new_length = length + length//7
+        x = self.data['ohlc'].x
         new_xrange = [self.mouse.mousePoint.x() - new_length / 2, self.mouse.mousePoint.x() + new_length / 2]
-        if new_xrange[1] >= self.ohlc.x.max():
-            new_xrange = [self.ohlc.x.max() + 4 - new_length, self.ohlc.x.max() + 4]
+        if new_xrange[1] >= x.max():
+            new_xrange = [x.max() + 4 - new_length, x.max() + 4]
         self.ohlc_plt.setXRange(*new_xrange)
 
     def on_M_Right_Double_Click(self):  # 鼠标右键双击触发，跳转到当前视图

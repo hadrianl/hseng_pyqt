@@ -85,7 +85,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self.__is_price_active = False
         self._last_tick = None
         self._thread_lock = Lock()
-        self.indicators = {}
+        self.extra_data = {}
         self.bar_size = 200
         F_logger.info(f'初始化请求{self.symbol}数据')
 
@@ -100,6 +100,9 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
 
     def __sub__(self, data):  # 重载-运算符，能够通过“OHLC - 指标”的语句取出指标指标
         self._data_unregister(data)
+
+    def __getattr__(self, item):
+        return self.extra_data[item]
 
     def __call__(self, daterange):
         start, end = daterange
@@ -263,15 +266,15 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     # -----------------------------------------------------------------------------------------------------
 
     def _data_register(self, data):  # 添加注册指标进入图表的函数
-        self.indicators[data.name] = data(self)
+        self.extra_data[data.name] = data(self)
         F_logger.info(f'加入{data.type}-{data.name}')
     def _data_unregister(self, data):
-        if self.indicators.pop(data.name, None):
+        if self.extra_data.pop(data.name, None):
             F_logger.info(f'删除{data.type}-{data.name}')
 
     def update(self):
         self._thread_lock.acquire()
-        for i, v in self.indicators.items():
+        for i, v in self.extra_data.items():
             v.update(self)
         self._thread_lock.release()
     # -------------------------------------price---------------------------------------------------------------
