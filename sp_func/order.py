@@ -22,13 +22,5 @@ from spapi.sub_client import SpFunc
 #     qty = int(qty)
 #     Add_normal_order(prodcode, bs, qty, AO=True, ClOrderId=OrderId)
 
-def add_order(prodcode, bs, qty, orderId, orderoptions, condtype, **kwargs):
+def add_order(**kwargs):
     print(kwargs)
-    kv = {'ProdCode': prodcode,
-          'BuySell': bs,
-          'Qty': qty,
-          'ClOrderId': orderId,
-          'OrderOption': 1 if orderoptions else 0,
-          'CondType': {0: 0, 1: 1, 2: 4,3: 0, 4: 3}[condtype]}
-    kv.update(kwargs)
-    print(kv)

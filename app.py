@@ -16,6 +16,7 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
 import sys
 from data_visualize import MainWindow
+from sp_func.data import init_data_sub, load_product_info, get_product_info
 
 V_logger.info('初始化app')
 pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
@@ -23,8 +24,10 @@ pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # 确定需要展示的K线范围
 Start_Time, End_Time = date_range('present', bar_num=680)
 Symbol = symbol('HSI')
+symbol_list = ['HSIJ8']
+# init_data_sub(symbol_list)
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
-ohlc = OHLC('HSIJ8', ktype='1T')
+ohlc = OHLC('HSIJ8',minbar=600, ktype='1T')
 info = INFO()
 ohlc(daterange=[Start_Time, End_Time])
 i_macd = MACD(short=10, long=22, m=9)
@@ -69,6 +72,9 @@ widget_ohlc.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调�
 V_logger.info(f'初始化ohlc图表完成')
 info.receiver_start()
 widget_ohlc.chart_replot()
+# load_product_info(symbol_list)
+# prod_info = get_product_info(symbol_list)
+
 
 if __name__ == '__main__':
     login_win = LoginDialog()  # 登录界面
