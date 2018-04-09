@@ -17,6 +17,7 @@ import numpy as np
 import datetime as dt
 from functools import partial
 from data_visualize.Console_ui import AnalysisConsole
+from order import OrderDialog
 from sp_func.order import *
 
 
@@ -330,7 +331,7 @@ class OHlCWidget(KeyEventWidget):
             open_x = self.tradeitems_dict['open'].data[index][0]
             open_y = self.tradeitems_dict['open'].data[index][1]
             open_symbol = self.tradeitems_dict['open'].data[index][3]  # open_symbol来区别开仓平仓
-            if self.trade_datas["Status"].iloc[index] == 2:
+            if trade_data["Status"].iloc[index] == 2:
                 close_x = self.tradeitems_dict['close'].data[index][0]
                 close_y = self.tradeitems_dict['close'].data[index][1]
             else:

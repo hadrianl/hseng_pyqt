@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'MainWindow.ui'
+# Form implementation generated from reading ui file 'mainwindow.ui'
 #
 # Created by: PyQt5 UI code generator 5.10
 #
@@ -24,11 +24,14 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.widget.sizePolicy().hasHeightForWidth())
         self.widget.setSizePolicy(sizePolicy)
-        self.widget.setMinimumSize(QtCore.QSize(1200, 20))
+        self.widget.setMinimumSize(QtCore.QSize(1200, 30))
         self.widget.setObjectName("widget")
         self.pushButton_console = QtWidgets.QPushButton(self.widget)
         self.pushButton_console.setGeometry(QtCore.QRect(1140, 0, 75, 23))
         self.pushButton_console.setObjectName("pushButton_console")
+        self.pushButton_order = QtWidgets.QPushButton(self.widget)
+        self.pushButton_order.setGeometry(QtCore.QRect(1060, 0, 75, 23))
+        self.pushButton_order.setObjectName("pushButton_order")
         self.verticalLayout.addWidget(self.widget)
         self.QVBoxLayout_ohlc = QtWidgets.QVBoxLayout()
         self.QVBoxLayout_ohlc.setObjectName("QVBoxLayout_ohlc")
@@ -58,5 +61,6 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.pushButton_console.setText(_translate("MainWindow", "console"))
+        self.pushButton_order.setText(_translate("MainWindow", "order"))
 
 from data_visualize.OHLC_ui import OHlCWidget
