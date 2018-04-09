@@ -17,6 +17,7 @@ import numpy as np
 import datetime as dt
 from functools import partial
 from data_visualize.Console_ui import AnalysisConsole
+from order import OrderDialog
 from sp_func.order import *
 
 

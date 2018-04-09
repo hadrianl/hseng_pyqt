@@ -16,6 +16,7 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
 import sys
 from data_visualize import MainWindow
+from order import OrderDialog
 from sp_func.data import init_data_sub, load_product_info, get_product_info
 
 V_logger.info('初始化app')
@@ -82,6 +83,8 @@ if __name__ == '__main__':
     login_win.show()
     login_win.accepted.connect(win.show)
     login_win.rejected.connect(app.closeAllWindows)
+    order_dialog = OrderDialog()
     win.pushButton_console.released.connect(widget_ohlc.console.show)
+    win.pushButton_order.released.connect(order_dialog.show)
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         sys.exit(app.exec())
