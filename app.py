@@ -12,11 +12,11 @@ from data_handle.spec_handler import MACD_HL_MARK, BuySell
 from data_visualize.Login_ui import LoginDialog  # 导入登录界面类
 from util import *  # 导入常用函数
 from data_fetch.trade_data import TradeData  # 导入交易数据类
-import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
 import sys
 from data_visualize import MainWindow
 from order import OrderDialog
+from data_visualize.graph import *
 from sp_func.data import init_data_sub, load_product_info, get_product_info
 
 V_logger.info('初始化app')
@@ -55,26 +55,32 @@ F_logger.info('初始化OHLC数据完成')
 app = QtWidgets.QApplication(sys.argv)
 # -----------------------OHLC窗口初始化---------------------------------+
 win = MainWindow()
-widget_ohlc = win.QWidget_ohlc
+w_ohlc = win.QWidget_ohlc
 win.setWindowTitle(Symbol + '实盘分钟图')
 # 各个初始化之间存在上下文依赖关系，需要按照以下顺序初始化
-widget_ohlc.binddata(ohlc)  # 把数据与UI绑定
-widget_ohlc.init_ohlc()  # 初始化ohlc主图
-widget_ohlc.init_ma()  # 初始化ma均线图
-widget_ohlc.init_macd()  # 初始化指标
-widget_ohlc.init_std()  # 初始化std指标
-widget_ohlc.init_trade_data()  # 初始化交易数据的对接
-widget_ohlc.init_date_slice()  # 初始化时间切片
-widget_ohlc.init_mouseaction()  # 初始化十字光标与鼠标交互
-namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': widget_ohlc, 'help_doc': help_doc, 'info': info}  # console的命名空间
-widget_ohlc.init_console_widget(namespace)  # 初始化交互界面
-widget_ohlc.init_signal()  # 初始化指标信号
-widget_ohlc.date_region.setRegion([widget_ohlc.data['ohlc'].x.max() - 120,
-                                   widget_ohlc.data['ohlc'].x.max() + 5])  # 初始化可视区域
-widget_ohlc.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
-V_logger.info(f'初始化ohlc图表完成')
+w_ohlc.binddata(ohlc)  # 把数据与UI绑定
+w_ohlc.init_main_plt()  # 初始化main画布
+w_ohlc.init_indicator1_plt()  # 初始化indicator画布
+w_ohlc.init_indicator2_plt()  # 初始化indicator2画布
+w_ohlc.init_slicer_plt()  # 初始化slicer画布
+# 创建图形实例
+w_ohlc.init_graph(Graph_OHLC(w_ohlc.main_plt))
+w_ohlc.init_graph(Graph_MA(w_ohlc.main_plt))
+w_ohlc.init_graph(Graph_MACD(w_ohlc.indicator_plt))
+w_ohlc.init_graph(Graph_MACD_HL_MARK(w_ohlc.main_plt))
+w_ohlc.init_graph(Graph_STD(w_ohlc.indicator2_plt))
+w_ohlc.init_graph(Graph_Trade_Data_Mark(w_ohlc.main_plt))
+w_ohlc.init_graph(Graph_Slicer(w_ohlc.date_slicer_plt))
+
+w_ohlc.init_mouseaction()  # 初始化十字光标与鼠标交互
+namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': w_ohlc, 'help_doc': help_doc, 'info': info}  # console的命名空间
+w_ohlc.init_console_widget(namespace)  # 初始化交互界面
+w_ohlc.init_signal()  # 初始化指标信号
+w_ohlc.init_date_region()  # 初始化可视化范围
+w_ohlc.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
+V_logger.info(f'初始化图表完成')
 info.receiver_start()
-widget_ohlc.chart_replot()
+w_ohlc.chart_replot()
 # load_product_info(symbol_list)
 # prod_info = get_product_info(symbol_list)
 
@@ -86,7 +92,7 @@ if __name__ == '__main__':
     login_win.accepted.connect(win.show)
     login_win.rejected.connect(app.closeAllWindows)
     order_dialog = OrderDialog()
-    win.pushButton_console.released.connect(widget_ohlc.console.show)
+    win.pushButton_console.released.connect(w_ohlc.console.show)
     win.pushButton_order.released.connect(order_dialog.show)
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         sys.exit(app.exec())
