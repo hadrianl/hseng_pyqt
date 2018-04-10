@@ -8,7 +8,7 @@
 from data_fetch.market_data import OHLC  # 导入主图OHLC数据类
 from data_fetch.info_data import INFO
 from data_handle.indicator import MA, MACD, STD  # 导入指标
-from data_handle.spec_handler import MACD_HL_MARK
+from data_handle.spec_handler import MACD_HL_MARK, BuySell
 from data_visualize.Login_ui import LoginDialog  # 导入登录界面类
 from util import *  # 导入常用函数
 from data_fetch.trade_data import TradeData  # 导入交易数据类
@@ -35,6 +35,7 @@ i_macd = MACD(short=10, long=22, m=9)
 i_ma = MA(ma10=10, ma20=20, ma30=30, ma60=60)
 i_std = STD(window=60, min_periods=2)
 h_macd_hl_mark = MACD_HL_MARK()
+h_buysell = BuySell()
 trade_datas = TradeData('HSENG$.APR8')
 # 将指标假如到主图数据里
 ohlc.active_ticker()
@@ -44,6 +45,7 @@ ohlc + i_ma
 ohlc + i_macd
 ohlc + h_macd_hl_mark
 ohlc + i_std
+ohlc + h_buysell
 ohlc + trade_datas
 ohlc._thread_lock.release()
 F_logger.info('初始化OHLC数据完成')

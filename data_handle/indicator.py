@@ -45,8 +45,9 @@ class MACD(indicator_base):
     def macd(self):
         return self._macd.rename('MACD')
 
-    def to_df(self):
-        return pd.concat([self.timestamp, self.diff, self.dea, self.macd], axis=1)
+    @property
+    def _data(self):
+        return pd.concat([self.diff, self.dea, self.macd], axis=1)
 
 
 class MA(indicator_base):
@@ -61,7 +62,8 @@ class MA(indicator_base):
         for k, v in self._windows.items():
             self.__dict__[k] = self.ohlc.close.rolling(v).mean().rename(k)
 
-    def to_df(self):
+    @property
+    def _data(self):
         return pd.concat([getattr(self, w) for w in self._windows], axis=1)
 
 
@@ -78,6 +80,10 @@ class STD(indicator_base):
         self._std = self._inc.rolling(window=self._window, min_periods=self._min_periods).std()
         self._pos_std = self._std*2
         self._neg_std = -self._std*2
+
+    @property
+    def _data(self):
+        return pd.concat([self.inc, self.pos_std, self.neg_std, self.std], 1)
 
     @property
     def inc(self):

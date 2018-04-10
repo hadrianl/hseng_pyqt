@@ -21,9 +21,16 @@ class handle_base():
         self.update(ohlc)
         return self
 
+    def __repr__(self):
+        return self._data.__repr__()
+
     def update(self, new_data):
         self.ohlc = new_data
         self.x = self.ohlc.x
         self.calc()
         H_logger.info(f'更新{self.type}-{self.name if hasattr(self, "name") else ""}数据')
+
+    @property
+    def _data(self):
+        ...
 
