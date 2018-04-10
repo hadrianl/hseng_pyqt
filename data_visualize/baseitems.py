@@ -161,3 +161,17 @@ class TradeDataLinkLine(pg.LineSegmentROI):
         self.setData([[self.handles[0]['item'].pos().x() - i,  self.handles[0]['item'].pos().y()],
                       [self.handles[1]['item'].pos().x() - i,  self.handles[1]['item'].pos().y()]],
                      self.pen)
+
+class graph_base:
+    def __init__(self, plt, name):
+        self.plt = plt
+        self.name = name
+
+    def init(self):
+        ...
+
+    def deinit(self):
+        ...
+
+    def update(self):
+        ...
