@@ -14,7 +14,7 @@ class handle_base(ABC):
         self.type = type
         for k, v in kwargs.items():
             setattr(self, '_' + k, v)
-        H_logger.info(f'初始化{self.type}-{self.name if hasattr(self, "name") else ""}数据-{[k + "=" + str(v) for k, v in kwargs.items()]}')
+        H_logger.info(f'D+初始化{self.type}-{self.name if hasattr(self, "name") else ""}数据-{[k + "=" + str(v) for k, v in kwargs.items()]}')
 
     @abstractmethod
     def calc(self): ...
@@ -30,7 +30,7 @@ class handle_base(ABC):
         self.ohlc = new_data
         self.x = self.ohlc.x
         self.calc()
-        H_logger.info(f'更新{self.type}-{self.name if hasattr(self, "name") else ""}数据')
+        H_logger.info(f'D↑更新{self.type}-{self.name if hasattr(self, "name") else ""}数据')
 
     @property
     @abstractmethod

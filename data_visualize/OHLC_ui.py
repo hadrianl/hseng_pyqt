@@ -233,36 +233,39 @@ class OHlCWidget(KeyEventWidget):
         self.consolebutton.setGeometry(QtCore.QRect(10, 250, 75, 23))
 
     def chart_replot(self):  # 重新画图
-        V_logger.info('更新全部图表')
+        V_logger.info('G↑更新图表......')
         ohlc = self.data['ohlc']
         for name, graph in self.graphs.items():
             graph.update(ohlc)
         self.draw_interline(ohlc)
         self.xaxis.update_tickval(ohlc.timestamp)
         self.ohlc_data_update_sync()
+        V_logger.info('G↑更新图表完成......')
 
     def ohlc_Yrange_update(self):  # 更新主图和指标图的高度
-        plt = self.main_plt
         date_region = self.graphs['Slicer'].items_dict['date_region']
         ohlc = self.data['ohlc']
-        i_macd = ohlc.MACD
-        i_std = ohlc.STD
-        viewrange = plt.getViewBox().viewRange()
+        i_macd = getattr(ohlc, 'MACD', None)
+        i_std = getattr(ohlc, 'STD', None)
+        viewrange = self.main_plt.getViewBox().viewRange()
         date_region.setRegion(viewrange[0])
         try:
-            plt.setYRange(ohlc.low[ohlc.x.between(*viewrange[0])].min(),
-                               ohlc.high[ohlc.x.between(*viewrange[0])].max())
-            self.indicator_plt.setYRange(min(i_macd.macd[i_macd.x.between(*viewrange[0])].min(),
-                                             i_macd.diff[i_macd.x.between(*viewrange[0])].min(),
-                                             i_macd.dea[i_macd.x.between(*viewrange[0])].min()),
-                                         max(i_macd.macd[i_macd.x.between(*viewrange[0])].max(),
-                                             i_macd.diff[i_macd.x.between(*viewrange[0])].max(),
-                                             i_macd.dea[i_macd.x.between(*viewrange[0])].max())
-                                         )
-            self.indicator2_plt.setYRange(min(i_std.inc[i_std.x.between(*viewrange[0])].min(),
-                                              i_std.neg_std[i_std.x.between(*viewrange[0])].min()),
-                                          max(i_std.inc[i_std.x.between(*viewrange[0])].max(),
-                                       i_std.pos_std[i_std.x.between(*viewrange[0])].max()))
+            x_range = ohlc.x.between(*viewrange[0])
+            self.main_plt.setYRange(ohlc.low[x_range].min(),ohlc.high[x_range].max())
+            if i_macd:
+                self.indicator_plt.setYRange(min(i_macd.macd[x_range].min(),
+                                                 i_macd.diff[x_range].min(),
+                                                 i_macd.dea[x_range].min()),
+                                             max(i_macd.macd[x_range].max(),
+                                                 i_macd.diff[x_range].max(),
+                                                 i_macd.dea[x_range].max())
+                                             )
+            if i_std:
+                self.indicator2_plt.setYRange(min(i_std.inc[x_range].min(),
+                                                  i_std.neg_std[x_range].min()),
+                                              max(i_std.inc[x_range].max(),
+                                                  i_std.pos_std[x_range].max())
+                                              )
             self.date_slicer_plt.setYRange(ohlc.close.min(), ohlc.close.max())
         except Exception as e:
             V_logger.debug(f'图表高度更新错误.')

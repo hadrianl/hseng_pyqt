@@ -15,7 +15,7 @@ class TradeData():
         self.type = 'Mark'
         self.name = 'Trade_Data'
         self.symbol = symbol
-        F_logger.info(f'初始化{self.symbol}交易数据')
+        F_logger.info(f'D+初始化{self.symbol}交易数据')
 
     def __call__(self, ohlc):
         self.update(ohlc)
@@ -46,11 +46,11 @@ class TradeData():
             self._conn.commit()
             self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
             self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
-            F_logger.info(f'更新{self.symbol}交易数据,<{self.start}>-<{self.end}>')
+            F_logger.info(f'D↑更新{self.symbol}交易数据,<{self.start}>-<{self.end}>')
         except Exception as e:
             self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
                                                      'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
-            F_logger.debug(f'更新{self.symbol}交易数据,<{self.start}>-<{self.end}>失败.ERROR:', e)
+            F_logger.error(f'D↑更新{self.symbol}交易数据,<{self.start}>-<{self.end}>失败.ERROR:', e)
 
     @property
     def account(self):

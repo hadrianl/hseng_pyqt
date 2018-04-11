@@ -179,3 +179,49 @@ class graph_base(ABC):
 
     @abstractmethod
     def update(self, ohlc): ...
+
+
+from PyQt5.QtWidgets import QComboBox, QLineEdit, QListWidget, QCheckBox, QListWidgetItem
+
+
+class ComboCheckBox(QComboBox):
+    def __init__(self, parent=None, items = None):  # items==[str,str...]
+        super(ComboCheckBox, self).__init__(parent)
+        self.items = items if items else []
+        self.qCheckBox = []
+        self.qLineEdit = QLineEdit()
+        self.qLineEdit.setReadOnly(True)
+        self.qListWidget = QListWidget()
+
+        self.row_num = len(self.items)
+        for i in range(self.row_num):
+            self.addQCheckBox(i)
+            self.qCheckBox[i].stateChanged.connect(self.show)
+
+        self.setLineEdit(self.qLineEdit)
+        self.setModel(self.qListWidget.model())
+        self.setView(self.qListWidget)
+
+    def addQCheckBox(self, i, text):
+        self.items.insert(i, text)
+        self.qCheckBox.append(QCheckBox())
+        qItem = QListWidgetItem(self.qListWidget)
+        self.qCheckBox[i].setText(self.items[i])
+        self.qListWidget.setItemWidget(qItem, self.qCheckBox[i])
+        self.qCheckBox[i].stateChanged.connect(self.show)
+
+    def Selectlist(self):
+        Outputlist = []
+        for i in range(self.row_num):
+            if self.qCheckBox[i].isChecked() == True:
+                Outputlist.append(self.qCheckBox[i].text())
+        return Outputlist
+
+    def show(self):
+        show = ''
+        self.qLineEdit.setReadOnly(False)
+        self.qLineEdit.clear()
+        for i in self.Selectlist():
+            show += i + ';'
+        self.qLineEdit.setText(show)
+        self.qLineEdit.setReadOnly(True)

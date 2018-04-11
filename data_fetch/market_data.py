@@ -87,7 +87,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self._thread_lock = Lock()
         self.extra_data = {}
         self.bar_size = 200
-        F_logger.info(f'初始化请求{self.symbol}数据')
+        F_logger.info(f'D+初始化请求{self.symbol}数据')
 
     def __str__(self):
         return f"<{self.__ktype}-{self.symbol}> *{self.data['datetime'].min()}-->{self.data['datetime'].max()}*"
@@ -102,7 +102,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self._data_unregister(data)
 
     def __getattr__(self, item):
-        return self.extra_data[item]
+        return self.extra_data.get(item)
 
     def __call__(self, daterange):
         start, end = daterange
@@ -111,21 +111,21 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
                         f"(select * from carry_investment.futures_min " \
                         f"where datetime<\"{end} \" and prodcode=\"{self.symbol}\" " \
                         f"order by id desc limit 0,{self._minbar}) as fm order by fm.id asc"
-            F_logger.info(f'更新{self.symbol}数据,请求结束时间：<{end}>前至{self._minbar}条1min bar')
+            F_logger.info(f'D+初始化{self.symbol}数据,请求结束时间：<{end}>前至{self._minbar}条1min bar')
         else:
             self._sql = f"select datetime, open, high, low, close from carry_investment.futures_min \
                                         where datetime>=\"{start}\" \
                                         and datetime<\"{end} \"\
                                         and prodcode=\"{self.symbol}\""
-            F_logger.info(f'更新{self.symbol}数据,请求时间<{start}>-<{end}>')
+            F_logger.info(f'D+初始化{self.symbol}数据,请求时间<{start}>-<{end}>')
         try:
             self._data = pd.read_sql(self._sql, self._conn, index_col='datetime')  # _data是一分钟的OHLC
             self._conn.commit()
             self.last_bar_timerange = [self.data.index.floor(self.__ktype)[-1],
                                        self.data.index.ceil(self.__ktype).shift(int(self.__ktype[:-1]), self.__ktype[-1])[-1]]
-            F_logger.info(f'更新{self.symbol}数据完成.{self.start}-->{self.end}')
+            F_logger.info(f'D+初始化{self.symbol}数据完成.{self.start}-->{self.end}')
         except:
-            F_logger.info(f'更新{self.symbol}数据失败.ERROR,')
+            F_logger.error(f'D+初始化{self.symbol}数据失败.ERROR,')
         return self
 
     def __init_ticker_sub(self):
@@ -143,17 +143,17 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             self._conn.commit()
             ticker_resampled = self._tickers.resample('1T').apply({'price': 'ohlc'})
             self._data = self._data.append(ticker_resampled.iloc[0]['price'])
-            F_logger.info(f'初始化请求{self.symbol}当前min-TICKER数据')
+            F_logger.info(f'D+初始化请求{self.symbol}当前min-TICKER数据')
         except Exception as e:
             self._tickers = pd.DataFrame(columns=['price', 'qty'], index=pd.Index([], name='tickertime'))
-            F_logger.info(f'初始化请求{self.symbol}当前min-TICKER数据失败')
+            F_logger.error(f'D+初始化请求{self.symbol}当前min-TICKER数据失败')
 
         self._sub_tickers_queue = Queue()
         self._tickers_sub_socket = zmq.Context().socket(zmq.SUB)
         self._tickers_sub_socket.connect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}')
         self._tickers_sub_socket.set_string(zmq.SUBSCRIBE, '')
         self._tickers_sub_socket.setsockopt(zmq.RCVTIMEO, 5000)
-        F_logger.info(f'初始化{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口')
+        F_logger.info(f'P+初始化{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口')
 
     def __ticker_sub(self):
         F_logger.info(f'开始订阅{self.symbol}-TICKER数据')
@@ -169,7 +169,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
 
     def __ticker_update(self):
         """订阅的基础tick数据构造成1min的ohlc，同时只保留当前分钟的ticker数据"""
-        F_logger.info(f'开始更新{self.symbol}-TICKER数据')
+        F_logger.info(f'D↑开始更新{self.symbol}-TICKER数据')
         while self.__is_ticker_active:
             try:
                 ticker = self._sub_tickers_queue.get(timeout=5)
@@ -203,7 +203,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             except queue.Empty :
                 F_logger.debug('接收TICKER队列数据超时')
                 ...
-        F_logger.info(f'暂停更新{self.symbol}-TICKER数据')
+        F_logger.info(f'D-暂停更新{self.symbol}-TICKER数据')
 
 
     def active_ticker(self):
@@ -220,7 +220,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             self.__is_ticker_active = False
             self._ticker_sub_thread.join()
             self._tickers_sub_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}')
-            F_logger.info(f'断开{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口连接')
+            F_logger.info(f'P-断开{ZMQ_SOCKET_HOST}:{ZMQ_TICKER_PORT}订阅端口连接')
             self._ticker_update_thread.join()
 
     @property
@@ -260,17 +260,17 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         KTYPES = ['1T', '5T', '10T', '30T', '60T']
         if value in KTYPES and value != self.__ktype:
             self.__ktype = value
-            F_logger.info(f'更新OHLC数据,重采样->{self.ktype}')
+            F_logger.info(f'D↑更新OHLC数据,重采样->{self.ktype}')
             self.update()
             self.resample_sig.emit()
     # -----------------------------------------------------------------------------------------------------
 
     def _data_register(self, data):  # 添加注册指标进入图表的函数
         self.extra_data[data.name] = data(self)
-        F_logger.info(f'加入{data.type}-{data.name}')
+        F_logger.info(f'D+加入{data.type}-{data.name}')
     def _data_unregister(self, data):
         if self.extra_data.pop(data.name, None):
-            F_logger.info(f'删除{data.type}-{data.name}')
+            F_logger.info(f'D-删除{data.type}-{data.name}')
 
     def update(self):
         self._thread_lock.acquire()
@@ -286,7 +286,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self._price_sub_socket.connect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}')
         self._price_sub_socket.set_string(zmq.SUBSCRIBE, '')
         self._price_sub_socket.setsockopt(zmq.RCVTIMEO, 5000)
-        F_logger.info(f'初始化{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}订阅端口')
+        F_logger.info(f'P+初始化{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}订阅端口')
 
     def __price_sub(self):
         F_logger.info(f'开始订阅{self.symbol}-PRICE数据')
@@ -302,7 +302,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         F_logger.info(f'暂停订阅{self.symbol}-PRICE数据')
 
     def __price_update(self):
-        F_logger.info(f'开始更新{self.symbol}-PRICE数据')
+        F_logger.info(f'D↑开始更新{self.symbol}-PRICE数据')
         while self.__is_price_active:
             try:
                 price = self._sub_price_queue.get(timeout=5)
@@ -310,7 +310,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             except queue.Empty :
                 F_logger.debug('接收PRICE队列数据超时')
 
-        F_logger.info(f'暂停更新{self.symbol}-PRICE数据')
+        F_logger.info(f'D-暂停更新{self.symbol}-PRICE数据')
 
     def active_price(self):
         if not self.__is_price_active:
@@ -326,7 +326,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             self.__is_price_active = False
             self._price_sub_thread.join()
             self._price_sub_socket.disconnect(f'tcp://{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}')
-            F_logger.info(f'断开{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}订阅端口连接')
+            F_logger.info(f'P-断开{ZMQ_SOCKET_HOST}:{ZMQ_PRICE_PORT}订阅端口连接')
             self._price_update_thread.join()
 
     @property

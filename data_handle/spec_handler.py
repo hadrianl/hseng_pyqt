@@ -20,13 +20,15 @@ class MACD_HL_MARK(spec_handler_base):
         super(MACD_HL_MARK, self).__init__('MACD_HL_MARK')
 
     def calc(self):
-        self.macd = self.ohlc.extra_data['MACD']
-        self.macd_gt_zero = self.macd.macd > 0
-        self.macd_area_num = self.create_area(self.macd_gt_zero).rename('macd_area')
-        self.area_close_frame = pd.concat([self.macd_area_num, self.macd.ohlc.high, self.macd.ohlc.low], 1).reset_index()
-        data_pos=self.area_close_frame.groupby('macd_area').apply(lambda x: [x.loc[x.high.idxmax(), ['high', 'datetime']], x.loc[x.low.idxmin(), ['low', 'datetime']]])
-        self._high_pos = pd.Series(data_pos.str[0].str[0].values, index=data_pos.str[0].str[1])._set_name('high')
-        self._low_pos = pd.Series( data_pos.str[1].str[0].values, index=data_pos.str[1].str[1])._set_name('low')
+        try:
+            self.macd = self.ohlc.extra_data['MACD']
+            self.macd_gt_zero = self.macd.macd > 0
+            self.macd_area_num = self.create_area(self.macd_gt_zero).rename('macd_area')
+            self.area_close_frame = pd.concat([self.macd_area_num, self.macd.ohlc.high, self.macd.ohlc.low], 1).reset_index()
+            data_pos=self.area_close_frame.groupby('macd_area').apply(lambda x: [x.loc[x.high.idxmax(), ['high', 'datetime']], x.loc[x.low.idxmin(), ['low', 'datetime']]])
+            self._high_pos = pd.Series(data_pos.str[0].str[0].values, index=data_pos.str[0].str[1])._set_name('high')
+            self._low_pos = pd.Series( data_pos.str[1].str[0].values, index=data_pos.str[1].str[1])._set_name('low')
+        except:...
 
     def create_area(self, v):
         k = v.copy()
