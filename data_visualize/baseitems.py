@@ -105,15 +105,15 @@ class DateAxis(pg.AxisItem):
         #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
         if rng < 3600*24:
             string = '%H:%M:%S'
-            label1 = '%b %d-'
+            label1 = '%b %d ->'
             label2 = ' %b %d, %Y'
         elif rng >= 3600*24 and rng < 3600*24*30:
             string = '%d D'
-            label1 = '%b - '
+            label1 = '%b -> '
             label2 = '%b , %Y'
         elif rng >= 3600*24*30 and rng < 3600*24*30*24:
             string = '%b'
-            label1 = '%Y -'
+            label1 = '%Y ->'
             label2 = ' %Y'
         elif rng >= 3600*24*30*24:
             string = '%Y'
@@ -132,7 +132,6 @@ class DateAxis(pg.AxisItem):
         try:
             label = time.strftime(label1, time.localtime(min(timestamp)))+time.strftime(label2, time.localtime(max(timestamp)))
         except Exception as e:
-            # print(e)
             label = ''
         self.setLabel(text=label)
         return strns
@@ -167,9 +166,11 @@ class graph_base(ABC):
     '''
     图表的基础抽象类，需要实现init，update和deinit方法
     '''
-    def __init__(self, plt, name):
+    def __init__(self, plt, name, **kwargs):
         self.plt = plt
         self.name = name
+        for i in kwargs:
+            setattr(self, i, kwargs[i])
 
     @abstractmethod
     def init(self, ohlc): ...

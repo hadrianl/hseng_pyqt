@@ -22,6 +22,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.comboBox.qCheckBox[i].setChecked(True)
             self.comboBox.qCheckBox[i].toggled.connect(partial(lambda n,x: ohlc + extra_data[n] if x else ohlc - extra_data[n], i))
             self.comboBox.qCheckBox[i].toggled.connect(partial(lambda name, x: getattr(self, f'checkBox_{name}').setChecked(x),n))
+
     def init_main_signal(self):
         w_ohlc = self.QWidget_ohlc
         self.pushButton_console.released.connect(w_ohlc.console.show)

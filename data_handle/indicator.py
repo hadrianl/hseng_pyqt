@@ -80,6 +80,7 @@ class STD(indicator_base):
         self._std = self._inc.rolling(window=self._window, min_periods=self._min_periods).std()
         self._pos_std = self._std*2
         self._neg_std = -self._std*2
+        self._ratio = self._inc.abs() / self._std
 
     @property
     def _data(self):
@@ -100,6 +101,10 @@ class STD(indicator_base):
     @property
     def std(self):
         return self._std.rename('std')
+
+    @property
+    def ratio(self):
+        return self._ratio.rename('ratio')
 
 
 if __name__ == '__main__':

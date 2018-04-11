@@ -52,7 +52,7 @@ class market_data_base(QtCore.QObject):
 
     @property
     def data(self):
-        return self._data
+        raise NotImplementedError
 
     @data.setter
     def data(self, value):

@@ -64,7 +64,7 @@ class BuySell(spec_handler_base):
         overlap_rate = self._overlap_rate
         w = self._windows
         self.ohlc_std = pd.concat([ohlc_data, i_std.std,
-                                   (i_std.inc.abs() > i_std.std * 1.5).rename('b_gt_std'),
+                                   (i_std.ratio > 1.5).rename('b_gt_std'),
                                    ((ohlc_data.close - ohlc_data.open).abs() >= (ohlc_data.high - ohlc_data.low).abs()*real_bar_rate).rename('b_real_bar')], 1)
         self.data_merged = pd.concat([self.ohlc_std.shift(n) for n in range(0, -w, -1)], 1, keys=[n for n in range(1, w + 1)], names=['shift_','data_type'])
 

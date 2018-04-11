@@ -130,7 +130,8 @@ class mouseaction(QtCore.QObject):
                     try:
                         std_text = f'<span style="color:yellow">INC:{round(indicator["i_std"].inc[x_index], 2)}<span/> ' \
                                    f'<span style="color:red">POS_STD:{round(indicator["i_std"].pos_std[x_index], 2)}<span/> ' \
-                                   f'<span style="color:green">NEG_STD:{round(indicator["i_std"].neg_std[x_index], 2)}<span/>  '
+                                   f'<span style="color:green">NEG_STD:{round(indicator["i_std"].neg_std[x_index], 2)}<span/> ' \
+                                   f'<span style="color:white">RATIO:{round(indicator["i_std"].ratio[x_index], 2)}<span/> '
                         self.std_text.setHtml(std_text)
                         self.std_text.setPos(std_plt.vb.viewRange()[0][0], std_plt.vb.viewRange()[1][1])
                     except Exception:

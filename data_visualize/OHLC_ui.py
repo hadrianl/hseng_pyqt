@@ -124,7 +124,6 @@ class OHlCWidget(KeyEventWidget):
         self.main_plt = self.makePI('main')
         self.main_plt.setMinimumHeight(300)
         self.main_plt.setWindowTitle('market data')
-        self.main_plt.showGrid(x=True, y=True)
         self.main_layout.addItem(self.main_plt)
         self.main_layout.nextRow()
 
@@ -132,7 +131,6 @@ class OHlCWidget(KeyEventWidget):
         self.indicator_plt = self.makePI('indicator')
         self.indicator_plt.setMaximumHeight(150)
         self.main_layout.addItem(self.indicator_plt)
-        self.indicator_plt.showGrid(x=True, y=True)
         self.indicator_plt.hideAxis('bottom')
         self.indicator_plt.getViewBox().setXLink(self.main_plt.getViewBox())  # 建立指标图表与主图表的viewbox连接
         self.main_layout.nextRow()
@@ -151,6 +149,7 @@ class OHlCWidget(KeyEventWidget):
         self.date_slicer_plt.setMouseEnabled(False, False)
         self.main_layout.addItem(self.date_slicer_plt)
 
+    # ---------------------------图表graph初始化，更新，反初始化三连发-------------------------------------
     def init_graph(self,graph):
         self.graphs[graph.name] = graph
         self.graphs[graph.name].init(self.data['ohlc'])
@@ -163,6 +162,7 @@ class OHlCWidget(KeyEventWidget):
         graph = self.graphs.pop(name, None)
         if graph:
             graph.deinit()
+    # ----------------------------------------------------------------------------------------------------
 
     def draw_interline(self, ohlc):  # 画出时间分割线
         x = ohlc.x
@@ -200,7 +200,7 @@ class OHlCWidget(KeyEventWidget):
         self.console = AnalysisConsole(namespace)
         self.console.update_daterange(ohlc.datetime.min(),
                                       ohlc.datetime.max())
-        S_logger.addHandler(self.console.logging_handler)
+        S_logger.addHandler(self.console.logging_handler)  # 加入日志输出到console
 
     def init_signal(self):  # 信号的连接与绑定
         V_logger.info(f'初始化交互信号绑定')
@@ -209,10 +209,9 @@ class OHlCWidget(KeyEventWidget):
         self.graphs['Slicer'].items_dict['date_region'].sigRegionChanged.connect(self.date_slicer_update)  # 时间切片变化信号绑定调整画图
         ohlc.ohlc_sig.connect(self.chart_replot) # K线更新信号绑定更新画图
         ohlc.ticker_sig.connect(self.update_data_plot) # ticker更新信号绑定最后的bar的画图
-
+        # ----------------------重采样信号--------------------------------------
         ohlc.resample_sig.connect(self.chart_replot)  # 重采样重画
         ohlc.resample_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
-        # ----------------------重采样信号--------------------------------------
         self.console.RadioButton_min_1.clicked.connect(partial(ohlc.set_ktype, '1T'))
         self.console.RadioButton_min_5.clicked.connect(partial(ohlc.set_ktype, '5T'))
         self.console.RadioButton_min_10.clicked.connect(partial(ohlc.set_ktype, '10T'))
@@ -220,9 +219,9 @@ class OHlCWidget(KeyEventWidget):
         # -----------------------------------------------------------------------
         self.sig_M_Left_Double_Click.connect(self.console.focus) #主图双击信号绑定console弹出
         ohlc.ohlc_sig.connect(lambda : self.console.update_daterange(ohlc.datetime.min(),
-                                                                          ohlc.datetime.max()))
+                                                                     ohlc.datetime.max()))
         self.console.Button_history.released.connect(lambda : self.goto_history(self.console.DateTimeEdit_start.dateTime(),
-                                                                                  self.console.DateTimeEdit_end.dateTime()))  # 绑定历史回顾函数
+                                                                                self.console.DateTimeEdit_end.dateTime()))  # 绑定历史回顾函数
         self.console.Button_current.released.connect(self.goto_current)  # 绑定回到当前行情
         ohlc.ticker_sig.connect(self.console.add_ticker_to_table)  # 绑定ticker数据到ticker列表
         ohlc.price_sig.connect(self.console.add_price_to_table)  # 绑定price数据到price列表

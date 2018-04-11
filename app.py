@@ -69,6 +69,8 @@ w_ohlc.init_graph(Graph_MACD_HL_MARK(w_ohlc.main_plt))
 w_ohlc.init_graph(Graph_STD(w_ohlc.indicator2_plt))
 w_ohlc.init_graph(Graph_Trade_Data_Mark(w_ohlc.main_plt))
 w_ohlc.init_graph(Graph_Slicer(w_ohlc.date_slicer_plt))
+w_ohlc.init_graph(Graph_BuySell(w_ohlc.date_slicer_plt))
+# w_ohlc.init_graph(Graph_BuySell(w_ohlc.main_plt, buy_brush='b', sell_brush='y'))
 
 w_ohlc.init_mouseaction()  # 初始化十字光标与鼠标交互
 namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'w_ohlc':w_ohlc, 'help_doc': help_doc, 'info': info}  # console的命名空间
