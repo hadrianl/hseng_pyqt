@@ -8,6 +8,7 @@
 from data_handle import handle_base
 import pandas as pd
 import datetime as dt
+
 class spec_handler_base(handle_base):
     def __init__(self, name, **kwargs):
         self.name = name
@@ -36,6 +37,7 @@ class MACD_HL_MARK(spec_handler_base):
             else:
                 k.iloc[i] = k.iloc[i - 1]
         return k
+
     @property
     def _data(self):
         return {'high_pos': self.high_pos, 'low_pos': self.low_pos}

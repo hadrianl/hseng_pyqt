@@ -7,14 +7,16 @@
 
 
 from util import H_logger
+from abc import ABC, abstractmethod
 
-class handle_base():
+class handle_base(ABC):
     def __init__(self, type, **kwargs):
         self.type = type
         for k, v in kwargs.items():
             setattr(self, '_' + k, v)
         H_logger.info(f'初始化{self.type}-{self.name if hasattr(self, "name") else ""}数据-{[k + "=" + str(v) for k, v in kwargs.items()]}')
 
+    @abstractmethod
     def calc(self): ...
 
     def __call__(self, ohlc):
@@ -31,6 +33,6 @@ class handle_base():
         H_logger.info(f'更新{self.type}-{self.name if hasattr(self, "name") else ""}数据')
 
     @property
-    def _data(self):
-        ...
+    @abstractmethod
+    def _data(self): ...
 

@@ -9,6 +9,7 @@
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
 import time
+from abc import ABC, abstractmethod
 
 
 class CandlestickItem(pg.GraphicsObject):
@@ -162,16 +163,19 @@ class TradeDataLinkLine(pg.LineSegmentROI):
                       [self.handles[1]['item'].pos().x() - i,  self.handles[1]['item'].pos().y()]],
                      self.pen)
 
-class graph_base:
+class graph_base(ABC):
+    '''
+    图表的基础抽象类，需要实现init，update和deinit方法
+    '''
     def __init__(self, plt, name):
         self.plt = plt
         self.name = name
 
-    def init(self):
-        ...
+    @abstractmethod
+    def init(self, ohlc): ...
 
-    def deinit(self):
-        ...
+    @abstractmethod
+    def deinit(self): ...
 
-    def update(self):
-        ...
+    @abstractmethod
+    def update(self, ohlc): ...
