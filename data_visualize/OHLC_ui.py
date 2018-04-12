@@ -85,7 +85,6 @@ class OHlCWidget(KeyEventWidget):
         super(OHlCWidget, self).__init__(parent)
         self.pw = pg.PlotWidget()
         self.main_layout = pg.GraphicsLayout(border=(100, 100, 100))
-        # self.main_layout.setGeometry(QtCore.QRectF(10, 10, 1200, 700))
         self.main_layout.setContentsMargins(10, 10, 10, 10)
         self.main_layout.setSpacing(0)
         self.main_layout.setBorder(color=(255, 255, 255, 255), width=0.8)
@@ -114,6 +113,19 @@ class OHlCWidget(KeyEventWidget):
         plotItem.hideButtons()
         V_logger.info(f'初始化{name}画布')
         return plotItem
+
+    def __add__(self, graph):
+        self.graphs[graph.name] = graph
+        V_logger.info(f'加入{graph.name}图表')
+
+    def __sub__(self, graph):
+        if isinstance(graph, graph_base):
+            if self.graphs.pop(graph.name, None):
+                V_logger.info(f'删除{graph.name}图表')
+        elif isinstance(graph, str):
+            if self.graphs.pop(graph, None):
+                V_logger.info(f'删除{graph}图表')
+
 
     def binddata(self, ohlc):  # 实现数据与UI界面的绑定
         self.data = {}
@@ -150,18 +162,17 @@ class OHlCWidget(KeyEventWidget):
         self.main_layout.addItem(self.date_slicer_plt)
 
     # ---------------------------图表graph初始化，更新，反初始化三连发-------------------------------------
-    def init_graph(self,graph):
-        self.graphs[graph.name] = graph
-        self.graphs[graph.name].init(self.data['ohlc'])
+    def init_graph(self,graph_name):
+        if graph_name in self.graphs:
+            self.graphs[graph_name].init(self.data['ohlc'])
 
-    def update_graph(self, name):
-        if name in self.graphs:
-            self.graphs[name].update(self.data['ohlc'])
+    def update_graph(self, graph_name):
+        if graph_name in self.graphs:
+            self.graphs[graph_name].update(self.data['ohlc'])
 
-    def deinit_graph(self, name):
-        graph = self.graphs.pop(name, None)
-        if graph:
-            graph.deinit()
+    def deinit_graph(self, graph_name):
+        if graph_name in self.graphs:
+            self.graphs[graph_name].deinit()
     # ----------------------------------------------------------------------------------------------------
 
     def draw_interline(self, ohlc):  # 画出时间分割线
@@ -192,8 +203,7 @@ class OHlCWidget(KeyEventWidget):
         V_logger.info(f'初始化mouseaction交互行为')
         self.mouse = mouseaction()
         ohlc = self.data['ohlc']
-        self.proxy = self.mouse(self.main_plt, self.indicator_plt, self.indicator2_plt, self.date_slicer_plt, ohlc,
-                                i_ma=ohlc.MA, i_macd=ohlc.MACD, i_std=ohlc.STD)
+        self.proxy = self.mouse(self.main_plt, self.indicator_plt, self.indicator2_plt, self.date_slicer_plt, ohlc, self.graphs)
 
     def init_console_widget(self, namespace):
         ohlc = self.data['ohlc']
@@ -326,6 +336,7 @@ class OHlCWidget(KeyEventWidget):
         # app.processEvents()
 
     def goto_history(self, start, end):
+        V_logger.info(f'回顾历史行情')
         ohlc = self.data['ohlc']
         from PyQt5.QtCore import QDateTime
         if isinstance(start, QDateTime):
@@ -338,6 +349,7 @@ class OHlCWidget(KeyEventWidget):
         self.chart_replot()
 
     def goto_current(self):
+        V_logger.info(f'回到当前行情')
         ohlc = self.data['ohlc']
         if not ohlc._OHLC__is_ticker_active:
             start, end = date_range('present', bar_num=680)

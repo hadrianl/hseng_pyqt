@@ -10,6 +10,7 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
 import time
 from abc import ABC, abstractmethod
+from util import V_logger
 
 
 class CandlestickItem(pg.GraphicsObject):
@@ -169,18 +170,47 @@ class graph_base(ABC):
     def __init__(self, plt, name, **kwargs):
         self.plt = plt
         self.name = name
+        self._active = False
         for i in kwargs:
             setattr(self, i, kwargs[i])
 
     @abstractmethod
-    def init(self, ohlc): ...
+    def _init(self, ohlc): ...
 
     @abstractmethod
-    def deinit(self): ...
+    def _deinit(self): ...
 
     @abstractmethod
-    def update(self, ohlc): ...
+    def _update(self, ohlc): ...
 
+    def init(self, ohlc):
+        if not self._active:
+            data = getattr(ohlc, self.name, None)
+            if data:
+                self.items_dict = {}
+                self._init(ohlc, data)
+                V_logger.info(f'G+初始化{self.name}图表')
+                self._active = True
+            else:
+                V_logger.error(f'G+初始化{self.name}图表失败，缺失{self.name}数据')
+
+    def update(self, ohlc):
+        if self._active:
+            data = getattr(ohlc, self.name, None)
+            if data:
+                self._update(ohlc, data)
+                V_logger.info(f'G↑更新{self.name}图表')
+            else:
+                V_logger.info(f'数据类缺失{self.name}数据')
+
+    def deinit(self):
+        if self._active:
+            self._deinit()
+            V_logger.info(f'G-反初始化{self.name}图表')
+            self._active = False
+
+    def add_info_text(self):...
+    def set_info_text(self, x_index):...
 
 from PyQt5.QtWidgets import QComboBox, QLineEdit, QListWidget, QCheckBox, QListWidgetItem
 

@@ -74,19 +74,21 @@ class BuySell(spec_handler_base):
             Close = unstack.close
             o1 = Open.iloc[0]
             c1 = Close.iloc[0]
+            gt_std = unstack.b_gt_std.iloc[0]
+            real_bar = unstack.b_real_bar.iloc[0]
             b_s = c1 > o1
             if b_s:
                 cond1 = (Open > o1).rename('cond1')
                 cond2 = (Close > c1).rename('cond2')
                 cond3 = (c1 > Open).rename('cond3')
                 cond4 = (((c1 - Open) > (Close - o1) * overlap_rate)).rename('cond4')
-                cond = cond1 & cond2 & cond3 & cond4 & unstack.b_gt_std & unstack.b_real_bar
+                cond = cond1 & cond2 & cond3 & cond4 & unstack.b_gt_std & unstack.b_real_bar & gt_std & real_bar
             else:
                 cond1 = (Open < o1).rename('cond1')
                 cond2 = (Close < c1).rename('cond2')
                 cond3 = (c1 < Open).rename('cond3')
                 cond4 = ((( Open - c1) > (o1 - Close ) * overlap_rate)).rename('cond4')
-                cond = cond1 & cond2 & cond3 & cond4 & unstack.b_gt_std & unstack.b_real_bar
+                cond = cond1 & cond2 & cond3 & cond4 & unstack.b_gt_std & unstack.b_real_bar & gt_std & real_bar
             unstack = unstack[cond].assign(bs=['S', 'B'][b_s])
             return  unstack['bs']
 

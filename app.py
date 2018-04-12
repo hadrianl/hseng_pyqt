@@ -44,7 +44,6 @@ ohlc.active_price()
 ohlc._thread_lock.acquire()
 for d in extra_data:
     ohlc + d
-
 ohlc._thread_lock.release()
 F_logger.info('初始化OHLC数据完成')
 # -----------------------------------------------------------------------+
@@ -62,14 +61,16 @@ w_ohlc.init_indicator1_plt()  # 初始化indicator画布
 w_ohlc.init_indicator2_plt()  # 初始化indicator2画布
 w_ohlc.init_slicer_plt()  # 初始化slicer画布
 # 创建图形实例
-w_ohlc.init_graph(Graph_OHLC(w_ohlc.main_plt))
-w_ohlc.init_graph(Graph_MA(w_ohlc.main_plt))
-w_ohlc.init_graph(Graph_MACD(w_ohlc.indicator_plt))
-w_ohlc.init_graph(Graph_MACD_HL_MARK(w_ohlc.main_plt))
-w_ohlc.init_graph(Graph_STD(w_ohlc.indicator2_plt))
-w_ohlc.init_graph(Graph_Trade_Data_Mark(w_ohlc.main_plt))
-w_ohlc.init_graph(Graph_Slicer(w_ohlc.date_slicer_plt))
-w_ohlc.init_graph(Graph_BuySell(w_ohlc.date_slicer_plt))
+w_ohlc + Graph_OHLC(w_ohlc.main_plt)
+w_ohlc + Graph_MA(w_ohlc.main_plt)
+w_ohlc + Graph_MACD(w_ohlc.indicator_plt)
+w_ohlc + Graph_MACD_HL_MARK(w_ohlc.main_plt)
+w_ohlc + Graph_STD(w_ohlc.indicator2_plt)
+w_ohlc + Graph_Trade_Data_Mark(w_ohlc.main_plt)
+w_ohlc + Graph_Slicer(w_ohlc.date_slicer_plt)
+w_ohlc + Graph_BuySell(w_ohlc.date_slicer_plt)
+for g_name in w_ohlc.graphs:
+    w_ohlc.init_graph(g_name)
 # w_ohlc.init_graph(Graph_BuySell(w_ohlc.main_plt, buy_brush='b', sell_brush='y'))
 
 w_ohlc.init_mouseaction()  # 初始化十字光标与鼠标交互
@@ -83,8 +84,8 @@ info.receiver_start()
 w_ohlc.chart_replot()
 # load_product_info(symbol_list)
 # prod_info = get_product_info(symbol_list)
-win.init_main_signal()
-win.init_data_signal(extra_data)
+# win.init_main_signal()
+win.init_data_signal()
 if __name__ == '__main__':
 
     login_win = LoginDialog()  # 登录界面
