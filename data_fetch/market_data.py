@@ -17,6 +17,8 @@ import zmq
 from datetime import datetime
 from spapi.sp_struct import SPApiTicker, SPApiPrice
 from collections import deque
+from threading import Thread
+from multiprocessing import Process
 
 
 class market_data_base(QtCore.QObject):
@@ -273,10 +275,8 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             F_logger.info(f'D-删除{data.type}-{data.name}')
 
     def update(self):
-        self._thread_lock.acquire()
         for i, v in self.extra_data.items():
             v.update(self)
-        self._thread_lock.release()
     # -------------------------------------price---------------------------------------------------------------
     def __init_price_sub(self):
         self.maxlen = 300

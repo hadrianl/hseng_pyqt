@@ -71,23 +71,24 @@ w_ohlc + Graph_Slicer(w_ohlc.date_slicer_plt)
 w_ohlc + Graph_BuySell(w_ohlc.date_slicer_plt)
 for g_name in w_ohlc.graphs:
     w_ohlc.init_graph(g_name)
-# w_ohlc.init_graph(Graph_BuySell(w_ohlc.main_plt, buy_brush='b', sell_brush='y'))
 
 w_ohlc.init_mouseaction()  # 初始化十字光标与鼠标交互
 namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'w_ohlc':w_ohlc, 'help_doc': help_doc, 'info': info}  # console的命名空间
 w_ohlc.init_console_widget(namespace)  # 初始化交互界面
 w_ohlc.init_signal()  # 初始化指标信号
+win.init_data_signal()
+info.receiver_start()
+
+# 完成初始化的视图调整
 w_ohlc.init_date_region()  # 初始化可视化范围
 w_ohlc.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 V_logger.info(f'初始化图表完成')
-info.receiver_start()
 w_ohlc.chart_replot()
 # load_product_info(symbol_list)
 # prod_info = get_product_info(symbol_list)
 # win.init_main_signal()
-win.init_data_signal()
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     login_win = LoginDialog()  # 登录界面
     login_win.UserName.setFocus()
     login_win.show()

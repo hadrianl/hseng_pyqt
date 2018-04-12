@@ -306,8 +306,11 @@ class OHlCWidget(KeyEventWidget):
                 date_region.setRegion([date_region_Max - date_region_len, date_region_Max])
         self.ohlc_Yrange_update()
         if 'Trade_Data' in self.graphs:
-            self.graphs['Trade_Data'].items_dict['info_text'].setPos(self.main_plt.getViewBox().viewRange()[0][1],
-                                                                     self.main_plt.getViewBox().viewRange()[1][0])
+            trade_data_textitem = getattr(self.graphs['Trade_Data'], 'text_item', None)
+            if trade_data_textitem:
+                vb = self.main_plt.getViewBox().viewRange()
+                trade_data_textitem.setPos(vb[0][1],
+                                           vb[1][0])
         self.main_plt.update()
 
     def readjust_Xrange(self, left_offset=120, right_offset=3):

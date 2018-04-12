@@ -56,23 +56,26 @@ class Graph_OHLC(graph_base):
         self.plt.addItem(self.text_item)
 
     def set_info_text(self, x_index):
-        try:
-            text_df = self.ohlc.data.iloc[x_index]
-            vb = self.plt.getViewBox().viewRange()
-            html = f"""
-                           <span style="color:white;font-size:12px"><span/><span style="color:blue">{str(text_df.name)[8:16].replace(" ", "日")}<span/><br/>
-                           <span style="color:white;font-size:12px">开:<span/><span style="color:red">{text_df.open}<span/><br/>
-                           <span style="color:white;font-size:12px">高:<span/><span style="color:red">{text_df.high}<span/><br/>
-                           <span style="color:white;font-size:12px">低:<span/><span style="color:red">{text_df.low}<span/><br/>
-                           <span style="color:white;font-size:12px">收:<span/><span style="color:red">{text_df.close}<span/>
-                           """
-            self.text_item.setPos(vb[0][0], vb[1][1])
-            self.text_item.setHtml(html)
-        except IndexError:
-            pass
+        if hasattr(self, 'text_item'):
+            try:
+                text_df = self.ohlc.data.iloc[x_index]
+                vb = self.plt.getViewBox().viewRange()
+                html = f"""
+                               <span style="color:white;font-size:12px"><span/><span style="color:blue">{str(text_df.name)[8:16].replace(" ", "日")}<span/><br/>
+                               <span style="color:white;font-size:12px">开:<span/><span style="color:red">{text_df.open}<span/><br/>
+                               <span style="color:white;font-size:12px">高:<span/><span style="color:red">{text_df.high}<span/><br/>
+                               <span style="color:white;font-size:12px">低:<span/><span style="color:red">{text_df.low}<span/><br/>
+                               <span style="color:white;font-size:12px">收:<span/><span style="color:red">{text_df.close}<span/>
+                               """
+                self.text_item.setPos(vb[0][0], vb[1][1])
+                self.text_item.setHtml(html)
+            except IndexError:
+                pass
 
-
-
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
 
 
 class Graph_MA(graph_base):
@@ -94,22 +97,29 @@ class Graph_MA(graph_base):
     def _deinit(self):
         for k, v in self.items_dict.items():
             self.plt.removeItem(v)
+        self.del_info_text()
 
     def add_info_text(self):
         self.text_item = pg.TextItem(anchor=(1, 0))
         self.plt.addItem(self.text_item)
 
     def set_info_text(self, x_index):
-        try:
-            TextItem = self.text_item
-            vb = self.plt.vb.viewRange()
-            ma_text = [
-                f'<span style="color:rgb{MA_COLORS[k]};font-size:12px">MA{k[-2:]}:{round(v.yData[x_index],2)}<span/>'
-                for k, v in self.items_dict.items() if k != 'Text']
-            TextItem.setHtml('  '.join(ma_text))
-            TextItem.setPos(vb[0][1], vb[1][1])
-        except Exception:
-            pass
+        if hasattr(self, 'text_item'):
+            try:
+                TextItem = self.text_item
+                vb = self.plt.vb.viewRange()
+                ma_text = [
+                    f'<span style="color:rgb{MA_COLORS[k]};font-size:12px">MA{k[-2:]}:{round(v.yData[x_index],2)}<span/>'
+                    for k, v in self.items_dict.items() if k != 'Text']
+                TextItem.setHtml('  '.join(ma_text))
+                TextItem.setPos(vb[0][1], vb[1][1])
+            except Exception:
+                pass
+
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
 
 class Graph_MACD(graph_base):
     def __init__(self, plt, macd_colors=('g', 'y', 'b', 'r'), diff_colors='y', dea_colors='w'):
@@ -147,8 +157,9 @@ class Graph_MACD(graph_base):
         self.items_dict['MACD'].setOpts(x=x, height=macd, pens=macd_pens, brushes=macd_brushes)
 
     def _deinit(self):
-            for k, v in self.items_dict.items():
-                self.plt.removeItem(v)
+        for k, v in self.items_dict.items():
+            self.plt.removeItem(v)
+        self.del_info_text()
 
     def add_info_text(self):
         self.text_item = pg.TextItem(anchor=(0, 0))
@@ -163,6 +174,11 @@ class Graph_MACD(graph_base):
             self.text_item.setPos(self.plt.vb.viewRange()[0][0], self.plt.vb.viewRange()[1][1])
         except Exception:
             pass
+
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
 
 class Graph_MACD_HL_MARK(graph_base):
     def __init__(self, plt, high_color='#FF0000', low_color='#7CFC00'):
@@ -200,9 +216,10 @@ class Graph_MACD_HL_MARK(graph_base):
             self.items_dict['low_pos'].append(textitem)
 
     def _deinit(self):
-            for k, v in self.items_dict.items():
-                for i in v:
-                    self.plt.removeItem(i)
+        for k, v in self.items_dict.items():
+            for i in v:
+                self.plt.removeItem(i)
+
 
 class Graph_STD(graph_base):
     def __init__(self, plt, inc_colors=('g', 'y', 'l', 'b', 'r'), pos_std_color='r', neg_std_color='g'):
@@ -246,6 +263,7 @@ class Graph_STD(graph_base):
     def _deinit(self):
         for k, v in self.items_dict.items():
             self.plt.removeItem(v)
+        self.del_info_text()
 
     def add_info_text(self):
         self.text_item = pg.TextItem(anchor=(0, 0))
@@ -262,6 +280,11 @@ class Graph_STD(graph_base):
         except Exception:
             pass
 
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
+
 class Graph_Trade_Data_Mark(graph_base):
     def __init__(self, plt, long_symbol='t1', short_symbol='t'):
         super(Graph_Trade_Data_Mark, self).__init__(plt, 'Trade_Data')
@@ -273,11 +296,10 @@ class Graph_Trade_Data_Mark(graph_base):
         self.items_dict['open'] = TradeDataScatter()
         self.items_dict['close'] = TradeDataScatter()
         self.items_dict['link_line'] = TradeDataLinkLine(pen=pg.mkPen('w', width=1))
-        self.items_dict['info_text'] = pg.TextItem(anchor=(1, 1))
         self.plt.addItem(self.items_dict['open'])
         self.plt.addItem(self.items_dict['close'])
         self.plt.addItem(self.items_dict['link_line'])
-        self.plt.addItem(self.items_dict['info_text'])
+        self.add_info_text()
 
 
     # --------------------------------添加交易数据-----------------------------------------------------------------
@@ -339,15 +361,7 @@ class Graph_Trade_Data_Mark(graph_base):
             self.items_dict['link_line'].setData([[open_x, open_y],
                                                   [close_x, close_y]],
                                                  pen_color_map_dict[pen_color_type])
-            self.items_dict['info_text'].setHtml(
-                f'<span style="color:white">Account:{trade_data["Account_ID"].iloc[index]}<span/><br/>'
-                f'<span style="color:blue">Open :{open_y}<span/><br/>'
-                f'<span style="color:yellow">Close:{close_y}<span/><br/>'
-                f'<span style="color:white">Type  :{"Long" if open_symbol == "t1" else "Short"}<span/><br/>'
-                f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/><br/>'
-                f'<span style="color:"white">trader:{trade_data["trader_name"].iloc[index]}<span/>')
-            self.items_dict['info_text'].setPos(self.plt.getViewBox().viewRange()[0][1],
-                                                self.plt.getViewBox().viewRange()[1][0])
+            self.set_info_text(trade_data,open_y, close_y, open_symbol, profit, index)
 
         self.items_dict['open'].sigClicked.connect(link_line)
         self.items_dict['close'].sigClicked.connect(link_line)
@@ -355,6 +369,33 @@ class Graph_Trade_Data_Mark(graph_base):
     def _deinit(self):
         for k, v in self.items_dict.items():
             self.plt.removeItem(v)
+        self.del_info_text()
+
+    def add_info_text(self):
+        self.text_item = pg.TextItem(anchor=(1, 1))
+        self.plt.addItem(self.text_item)
+
+    def set_info_text(self, trade_data, *args):
+        if hasattr(self, 'text_item'):
+            try:
+                vb = self.plt.vb.viewRange()
+                open_y, close_y, open_symbol, profit, index = args
+                trade_info = f'<span style="color:white">Account:{trade_data["Account_ID"].iloc[index]}' \
+                             f'<span/><br/><span style="color:blue">Open :{open_y}<span/><br/>' \
+                             f'<span style="color:yellow">Close:{close_y}<span/><br/>' \
+                             f'<span style="color:white">Type  :{"Long" if open_symbol == "t1" else "Short"}<span/><br/>' \
+                             f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/><br/>' \
+                             f'<span style="color:"white">trader:{trade_data["trader_name"].iloc[index]}<span/>'
+
+                self.text_item.setHtml(trade_info)
+                self.text_item.setPos(vb[0][1], vb[1][0])
+            except Exception:
+                pass
+
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
 
 class Graph_Slicer(graph_base):
     def __init__(self, plt):
