@@ -9,7 +9,9 @@
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
 import time
-
+from abc import ABC, abstractmethod
+from util import V_logger
+import re
 
 class CandlestickItem(pg.GraphicsObject):
     """
@@ -104,15 +106,15 @@ class DateAxis(pg.AxisItem):
         #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
         if rng < 3600*24:
             string = '%H:%M:%S'
-            label1 = '%b %d-'
+            label1 = '%b %d ->'
             label2 = ' %b %d, %Y'
         elif rng >= 3600*24 and rng < 3600*24*30:
             string = '%d D'
-            label1 = '%b - '
+            label1 = '%b -> '
             label2 = '%b , %Y'
         elif rng >= 3600*24*30 and rng < 3600*24*30*24:
             string = '%b'
-            label1 = '%Y -'
+            label1 = '%Y ->'
             label2 = ' %Y'
         elif rng >= 3600*24*30*24:
             string = '%Y'
@@ -131,7 +133,6 @@ class DateAxis(pg.AxisItem):
         try:
             label = time.strftime(label1, time.localtime(min(timestamp)))+time.strftime(label2, time.localtime(max(timestamp)))
         except Exception as e:
-            # print(e)
             label = ''
         self.setLabel(text=label)
         return strns
@@ -162,16 +163,97 @@ class TradeDataLinkLine(pg.LineSegmentROI):
                       [self.handles[1]['item'].pos().x() - i,  self.handles[1]['item'].pos().y()]],
                      self.pen)
 
-class graph_base:
-    def __init__(self, plt, name):
+class graph_base(ABC):
+    '''
+    图表的基础抽象类，需要实现init，update和deinit方法
+    '''
+    def __init__(self, plt, name, **kwargs):
         self.plt = plt
         self.name = name
+        self._active = False
+        for i in kwargs:
+            setattr(self, i, kwargs[i])
 
-    def init(self):
-        ...
+    @abstractmethod
+    def _init(self, ohlc): ...
+
+    @abstractmethod
+    def _deinit(self): ...
+
+    @abstractmethod
+    def _update(self, ohlc): ...
+
+    def init(self, ohlc):
+        if not self._active:
+            data = getattr(ohlc, re.sub(r'([\d]+)','',self.name), None)
+            if data:
+                self.items_dict = {}
+                self._init(ohlc, data)
+                V_logger.info(f'G+初始化{self.name}图表')
+                self._active = True
+            else:
+                V_logger.error(f'G+初始化{self.name}图表失败，缺失{self.name}数据')
+
+    def update(self, ohlc):
+        if self._active:
+            data = getattr(ohlc, re.sub(r'([\d]+)','',self.name), None)
+            if data:
+                self._update(ohlc, data)
+                V_logger.info(f'G↑更新{self.name}图表')
+            else:
+                V_logger.info(f'数据类缺失{self.name}数据')
 
     def deinit(self):
-        ...
+        if self._active:
+            self._deinit()
+            V_logger.info(f'G-反初始化{self.name}图表')
+            self._active = False
 
-    def update(self):
-        ...
+    def add_info_text(self):...
+    def set_info_text(self, x_index):...
+    def del_info_text(self):...
+
+from PyQt5.QtWidgets import QComboBox, QLineEdit, QListWidget, QCheckBox, QListWidgetItem
+
+
+class ComboCheckBox(QComboBox):
+    def __init__(self, parent=None, items = None):  # items==[str,str...]
+        super(ComboCheckBox, self).__init__(parent)
+        self.items = items if items else []
+        self.qCheckBox = []
+        self.qLineEdit = QLineEdit()
+        self.qLineEdit.setReadOnly(True)
+        self.qListWidget = QListWidget()
+
+        self.row_num = len(self.items)
+        for i in range(self.row_num):
+            self.addQCheckBox(i)
+            self.qCheckBox[i].stateChanged.connect(self.show)
+
+        self.setLineEdit(self.qLineEdit)
+        self.setModel(self.qListWidget.model())
+        self.setView(self.qListWidget)
+
+    def addQCheckBox(self, i, text):
+        self.items.insert(i, text)
+        self.qCheckBox.append(QCheckBox())
+        qItem = QListWidgetItem(self.qListWidget)
+        self.qCheckBox[i].setText(self.items[i])
+        self.qListWidget.setItemWidget(qItem, self.qCheckBox[i])
+        self.qCheckBox[i].stateChanged.connect(self.show)
+
+    def Selectlist(self):
+        Outputlist = []
+        for i in range(self.row_num):
+            if self.qCheckBox[i].isChecked() == True:
+                Outputlist.append(self.qCheckBox[i].text())
+        return Outputlist
+
+    def show(self):
+        show = ''
+        self.qLineEdit.setReadOnly(False)
+        self.qLineEdit.clear()
+        for i in self.Selectlist():
+            show += i + ';'
+        self.qLineEdit.setText(show)
+        self.qLineEdit.setReadOnly(True)

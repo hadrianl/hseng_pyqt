@@ -16,9 +16,8 @@ class Graph_OHLC(graph_base):
     def __init__(self, plt):
         super(Graph_OHLC, self).__init__(plt, 'OHLC')
 
-    def init(self, ohlc):
-        V_logger.info(f'初始化{self.name}图表')
-        self.items_dict = {}
+    def _init(self, ohlc):
+        self.ohlc = ohlc
         self.items_dict['ohlc'] = CandlestickItem()
         self.items_dict['tick'] = CandlestickItem()
         self.items_dict['hline'] = self.items_dict['tick'].hline
@@ -26,66 +25,124 @@ class Graph_OHLC(graph_base):
         self.plt.addItem(self.items_dict['ohlc'])
         self.plt.addItem(self.items_dict['tick'])
         self.plt.addItem(self.items_dict['hline'])
+        self.add_info_text()
 
-    def update(self, ohlc):
+    def _update(self, ohlc):
+        self.ohlc = ohlc
         self.items_dict['ohlc'].setHisData(ohlc)
 
-    def deinit(self):
-        V_logger.info(f'反初始化{self.name}图表')
-        if hasattr(self, 'items_dict'):
-            for k, v in self.items_dict.items():
-                self.plt.removeItem(v)
-            delattr(self, 'items_dict')
-
-class Graph_MA(graph_base):
-    def __init__(self, plt):
-        super(Graph_MA, self).__init__(plt, 'MA')
+    def _deinit(self):
+        for k, v in self.items_dict.items():
+            self.plt.removeItem(v)
 
     def init(self, ohlc):
-        V_logger.info(f'初始化{self.name}图表')
-        self.items_dict = {}
-        i_ma = getattr(ohlc, self.name)
-        for w in i_ma._windows:
-            self.items_dict[w] = pg.PlotDataItem(pen=pg.mkPen(color=MA_COLORS.get(w, 'w'), width=1))
-            self.plt.addItem(self.items_dict[w])
+        if not self._active:
+            self.items_dict = {}
+            self._init(ohlc)
+            V_logger.info(f'G+初始化{self.name}图表')
+            self._active = True
+        else:
+            V_logger.error(f'G+{self.name}图表已存在')
 
     def update(self, ohlc):
+        if self._active:
+            self._update(ohlc)
+            V_logger.info(f'G↑更新{self.name}图表')
+        else:
+            V_logger.info(f'G↑{self.name}图表未初始化')
+
+    def add_info_text(self):
+        self.text_item = pg.TextItem(anchor=(0, 0))
+        self.plt.addItem(self.text_item)
+
+    def set_info_text(self, x_index):
+        if hasattr(self, 'text_item'):
+            try:
+                text_df = self.ohlc.data.iloc[x_index]
+                vb = self.plt.getViewBox().viewRange()
+                html = f"""
+                               <span style="color:white;font-size:12px"><span/><span style="color:blue">{str(text_df.name)[8:16].replace(" ", "日")}<span/><br/>
+                               <span style="color:white;font-size:12px">开:<span/><span style="color:red">{text_df.open}<span/><br/>
+                               <span style="color:white;font-size:12px">高:<span/><span style="color:red">{text_df.high}<span/><br/>
+                               <span style="color:white;font-size:12px">低:<span/><span style="color:red">{text_df.low}<span/><br/>
+                               <span style="color:white;font-size:12px">收:<span/><span style="color:red">{text_df.close}<span/>
+                               """
+                self.text_item.setPos(vb[0][0], vb[1][1])
+                self.text_item.setHtml(html)
+            except IndexError:
+                pass
+
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
+
+
+class Graph_MA(graph_base):
+    def __init__(self, plt, colors=None):
+        super(Graph_MA, self).__init__(plt, 'MA')
+        self.colors = colors if colors else MA_COLORS
+
+    def _init(self, ohlc, i_ma):
+        for w in i_ma._windows:
+            self.items_dict[w] = pg.PlotDataItem(pen=pg.mkPen(color=self.colors.get(w, 'w'), width=1))
+            self.plt.addItem(self.items_dict[w])
+        self.add_info_text()
+
+    def _update(self, ohlc, i_ma):
         x = ohlc.x
-        i_ma = getattr(ohlc, self.name)
         for w in self.items_dict:
             self.items_dict[w].setData(x, getattr(i_ma, w).values)
 
+    def _deinit(self):
+        for k, v in self.items_dict.items():
+            self.plt.removeItem(v)
+        self.del_info_text()
 
-    def deinit(self):
-        V_logger.info(f'反初始化{self.name}图表')
-        if hasattr(self, 'items_dict'):
-            for k, v in self.items_dict.items():
-                self.plt.removeItem(v)
-            delattr(self, 'items_dict')
+    def add_info_text(self):
+        self.text_item = pg.TextItem(anchor=(1, 0))
+        self.plt.addItem(self.text_item)
+
+    def set_info_text(self, x_index):
+        if hasattr(self, 'text_item'):
+            try:
+                TextItem = self.text_item
+                vb = self.plt.vb.viewRange()
+                ma_text = [
+                    f'<span style="color:rgb{MA_COLORS[k]};font-size:12px">MA{k[-2:]}:{round(v.yData[x_index],2)}<span/>'
+                    for k, v in self.items_dict.items() if k != 'Text']
+                TextItem.setHtml('  '.join(ma_text))
+                TextItem.setPos(vb[0][1], vb[1][1])
+            except Exception:
+                pass
+
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
 
 class Graph_MACD(graph_base):
-    def __init__(self, plt):
+    def __init__(self, plt, macd_colors=('g', 'y', 'b', 'r'), diff_colors='y', dea_colors='w'):
         super(Graph_MACD, self).__init__(plt, 'MACD')
+        self.macd_colors_map = {i:v for i,v in enumerate(macd_colors)}
+        self.diff_colors = diff_colors
+        self.dea_colors = dea_colors
 
-
-    def init(self, ohlc):
-        V_logger.info(f'初始化{self.name}图表')
-        self.items_dict = {}
-        i_macd = getattr(ohlc, self.name)
+    def _init(self, ohlc, i_macd):
         macd_pens = pd.concat([ohlc.close > ohlc.open, i_macd.macd > 0], 1).apply(
-            lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
+            lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map(self.macd_colors_map)
         macd_brushs = [None if (i_macd.macd > i_macd.macd.shift(1))[i]
                        else v for i, v in macd_pens.iteritems()]
         self.items_dict['MACD'] = pg.BarGraphItem(x=ohlc.x, height=i_macd.macd,
                                                        width=0.5, pens=macd_pens, brushes=macd_brushs)
-        self.items_dict['diff'] = pg.PlotDataItem(pen='y')
-        self.items_dict['dea'] = pg.PlotDataItem(pen='w')
+        self.items_dict['diff'] = pg.PlotDataItem(pen=self.diff_colors)
+        self.items_dict['dea'] = pg.PlotDataItem(pen=self.dea_colors)
         self.plt.addItem(self.items_dict['MACD'])
         self.plt.addItem(self.items_dict['diff'])
         self.plt.addItem(self.items_dict['dea'])
+        self.add_info_text()
 
-    def update(self, ohlc):
-        i_macd = getattr(ohlc, self.name)
+    def _update(self, ohlc, i_macd):
         x = i_macd.x
         diff = i_macd.diff
         dea = i_macd.dea
@@ -94,31 +151,47 @@ class Graph_MACD(graph_base):
         self.items_dict['dea'].setData(x, dea.values)
         macd_pens = pd.concat(
             [ohlc.close > ohlc.open, macd > 0], 1).apply(
-            lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map({3: 'r', 2: 'b', 1: 'y', 0: 'g'})
+            lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map(self.macd_colors_map)
         macd_brushes = [None if (macd > macd.shift(1))[i]
                         else v for i, v in macd_pens.iteritems()]
         self.items_dict['MACD'].setOpts(x=x, height=macd, pens=macd_pens, brushes=macd_brushes)
 
-    def deinit(self):
-        V_logger.info(f'反初始化{self.name}图表')
-        if hasattr(self, 'items_dict'):
-            for k, v in self.items_dict.items():
-                self.plt.removeItem(v)
-            delattr(self, 'items_dict')
+    def _deinit(self):
+        for k, v in self.items_dict.items():
+            self.plt.removeItem(v)
+        self.del_info_text()
 
+    def add_info_text(self):
+        self.text_item = pg.TextItem(anchor=(0, 0))
+        self.plt.addItem(self.text_item)
+
+    def set_info_text(self, x_index):
+        try:
+            macd_text = f'<span style="color:red">MACD:{round(self.items_dict["MACD"].opts["height"][x_index], 2)}<span/>  ' \
+                        f'<span style="color:yellow">DIFF:{round(self.items_dict["diff"].yData[x_index], 2)}<span/>  ' \
+                        f'<span style="color:white">DEA:{round(self.items_dict["dea"].yData[x_index], 2)}<span/>  '
+            self.text_item.setHtml(macd_text)
+            self.text_item.setPos(self.plt.vb.viewRange()[0][0], self.plt.vb.viewRange()[1][1])
+        except Exception:
+            pass
+
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
 
 class Graph_MACD_HL_MARK(graph_base):
-    def __init__(self, plt):
+    def __init__(self, plt, high_color='#FF0000', low_color='#7CFC00'):
         super(Graph_MACD_HL_MARK, self).__init__(plt, 'MACD_HL_MARK')
+        self.high_color = high_color
+        self.low_color = low_color
 
-    def init(self, ohlc):
-        V_logger.info(f'初始化{self.name}图表')
+    def _init(self, ohlc, h_macd_hl_mark):
         self.items_dict = {}
         self.items_dict['high_pos'] = []
         self.items_dict['low_pos'] = []
 
-    def update(self,ohlc):
-        h_macd_hl_mark = getattr(ohlc, self.name)
+    def _update(self,ohlc, h_macd_hl_mark):
         x = ohlc.x
         for i in self.items_dict['high_pos']:
             self.plt.removeItem(i)
@@ -127,112 +200,137 @@ class Graph_MACD_HL_MARK(graph_base):
         self.items_dict['high_pos'].clear()
         self.items_dict['low_pos'].clear()
         for k, v in h_macd_hl_mark.high_pos.iteritems():
-            textitem = pg.TextItem(html=f'<span style="color:#FF0000;font-size:11px">{v}<span/>',
-                                   border=pg.mkPen({'color': "#FF0000", 'width': 1}),
+            textitem = pg.TextItem(html=f'<span style="color:{self.high_color};font-size:11px">{v}<span/>',
+                                   border=pg.mkPen({'color': self.high_color, 'width': 1}),
                                    angle=15, anchor=(0, 1))
             textitem.setPos(x[k], v)
             self.plt.addItem(textitem)
             self.items_dict['high_pos'].append(textitem)
 
         for k, v in h_macd_hl_mark.low_pos.iteritems():
-            textitem = pg.TextItem(html=f'<span style="color:#7CFC00;font-size:11px">{v}<span/>',
-                                   border=pg.mkPen({'color': "#7CFC00", 'width': 1}),
+            textitem = pg.TextItem(html=f'<span style="color:{self.low_color};font-size:11px">{v}<span/>',
+                                   border=pg.mkPen({'color': self.low_color, 'width': 1}),
                                    angle=-15, anchor=(0, 0))
             textitem.setPos(x[k], v)
             self.plt.addItem(textitem)
             self.items_dict['low_pos'].append(textitem)
 
-    def deinit(self):
-        V_logger.info(f'反初始化{self.name}图表')
-        if hasattr(self, 'items_dict'):
-            for k, v in self.items_dict.items():
-                for i in v:
-                    self.plt.removeItem(i)
-            delattr(self, 'items_dict')
+    def _deinit(self):
+        for k, v in self.items_dict.items():
+            for i in v:
+                self.plt.removeItem(i)
+
 
 class Graph_STD(graph_base):
-    def __init__(self, plt):
+    def __init__(self, plt, inc_colors=('g', 'y', 'l', 'b', 'r'), pos_std_color='r', neg_std_color='g'):
         super(Graph_STD, self).__init__(plt, 'STD')
+        self.inc_colors = inc_colors
+        self.pos_std_color = pos_std_color
+        self.neg_std_color = neg_std_color
 
-    def init(self, ohlc):
-        V_logger.info(f'初始化{self.name}图表')
-        self.items_dict = {}
-        i_std = getattr(ohlc, self.name)
+    def _init(self, ohlc, i_std):
         self.plt.setMaximumHeight(150)
         std_inc_pens = pd.cut((i_std.inc / i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],  # 设置画笔颜色
-                              labels=['g', 'y', 'l', 'b', 'r'])
+                              labels=self.inc_colors)
         inc_gt_std = (i_std.inc.abs() / i_std.std) > 1
         std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)  # 设置画刷颜色
         self.items_dict['inc'] = pg.BarGraphItem(x=i_std.x, height=i_std.inc,
                                                  width=0.5, pens=std_inc_pens, brushes=std_inc_brushes)
-        self.items_dict['pos_std'] = pg.PlotDataItem(pen='r')
-        self.items_dict['neg_std'] = pg.PlotDataItem(pen='g')
+        self.items_dict['pos_std'] = pg.PlotDataItem(pen=self.pos_std_color)
+        self.items_dict['neg_std'] = pg.PlotDataItem(pen=self.neg_std_color)
+        self.items_dict['ratio'] = pg.PlotDataItem()
         self.plt.addItem(self.items_dict['inc'])
         self.plt.addItem(self.items_dict['pos_std'])
         self.plt.addItem(self.items_dict['neg_std'])
+        self.add_info_text()
 
-    def update(self, ohlc):
+    def _update(self, ohlc, i_std):
         x = ohlc.x
-        i_std = getattr(ohlc, self.name)
         inc = i_std.inc
         std = i_std.std
         pos_std = i_std.pos_std
         neg_std = i_std.neg_std
+        ratio = i_std.ratio
         std_inc_pens = pd.cut((inc / std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
-                              labels=['g', 'y', 'l', 'b', 'r'])
+                              labels=self.inc_colors)
         inc_gt_std = (inc.abs() / std) > 1
         std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)
         self.items_dict['pos_std'].setData(x, pos_std)
         self.items_dict['neg_std'].setData(x, neg_std)
+        self.items_dict['ratio'].setData(x, ratio)
         self.items_dict['inc'].setOpts(x=x, height=inc, pens=std_inc_pens, brushes=std_inc_brushes)
 
-    def deinit(self):
-        V_logger.info(f'反初始化{self.name}图表')
-        if hasattr(self, 'items_dict'):
-            for k, v in self.items_dict.items():
-                self.plt.removeItem(v)
-            delattr(self, 'items_dict')
+    def _deinit(self):
+        for k, v in self.items_dict.items():
+            self.plt.removeItem(v)
+        self.del_info_text()
+
+    def add_info_text(self):
+        self.text_item = pg.TextItem(anchor=(0, 0))
+        self.plt.addItem(self.text_item)
+
+    def set_info_text(self, x_index):
+        try:
+            std_text = f'<span style="color:yellow">INC:{round(self.items_dict["inc"].opts["height"][x_index], 2)}<span/> ' \
+                       f'<span style="color:red">POS_STD:{round(self.items_dict["pos_std"].yData[x_index], 2)}<span/> ' \
+                       f'<span style="color:green">NEG_STD:{round(self.items_dict["neg_std"].yData[x_index], 2)}<span/> ' \
+                       f'<span style="color:white">RATIO:{round(self.items_dict["ratio"].yData[x_index], 2)}<span/> '
+            self.text_item.setHtml(std_text)
+            self.text_item.setPos(self.plt.vb.viewRange()[0][0], self.plt.vb.viewRange()[1][1])
+        except Exception:
+            pass
+
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
 
 class Graph_Trade_Data_Mark(graph_base):
-    def __init__(self, plt):
+    def __init__(self, plt, long_symbol='t1', short_symbol='t'):
         super(Graph_Trade_Data_Mark, self).__init__(plt, 'Trade_Data')
+        self.long_symbol = long_symbol
+        self.short_symbol = short_symbol
 
-    def init(self, ohlc):
-        V_logger.info(f'初始化交易数据标记{self.name}')
+    def _init(self, ohlc, trade_data):
         self.items_dict = {}
         self.items_dict['open'] = TradeDataScatter()
         self.items_dict['close'] = TradeDataScatter()
         self.items_dict['link_line'] = TradeDataLinkLine(pen=pg.mkPen('w', width=1))
-        self.items_dict['info_text'] = pg.TextItem(anchor=(1, 1))
         self.plt.addItem(self.items_dict['open'])
         self.plt.addItem(self.items_dict['close'])
         self.plt.addItem(self.items_dict['link_line'])
-        self.plt.addItem(self.items_dict['info_text'])
+        self.add_info_text()
+
 
     # --------------------------------添加交易数据-----------------------------------------------------------------
-    def update(self, ohlc):
+    def _update(self, ohlc, trade_data):
         x = ohlc.x
-        trade_data = getattr(ohlc, self.name)
+        U = self.long_symbol
+        D = self.short_symbol
         try:
             self.items_dict['open'].setData(x=x.reindex(trade_data.open.index.floor(ohlc.ktype)),
                                             y=trade_data['OpenPrice'],
-                                            symbol=['t1' if t == 0 else 't' for t in trade_data['Type']],
+                                            symbol=[U if t == 0 else D for t in trade_data['Type']],
                                             brush=trade_data['Status'].map(
                                                      {2: pg.mkBrush(QBrush(QColor(0, 0, 255))),
                                                       1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
-                                                      0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
+                                                      0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist(),
+                                            size=5
+                                            )
         except Exception as e:
-            V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
+            V_logger.error(f'初始化交易数据标记TradeDataScatter-open失败')
         try:
             self.items_dict['close'].setData(x=x.reindex(trade_data.close.index.floor(ohlc.ktype)),
                                              y=trade_data['ClosePrice'],
-                                             symbol=['t' if t == 0 else 't1' for t in trade_data['Type']],
+                                             symbol=[D if t == 0 else U for t in trade_data['Type']],
                                              brush=trade_data['Status'].map(
                                                       {2: pg.mkBrush(QBrush(QColor(255, 255, 0))),
                                                        1: pg.mkBrush(QBrush(QColor(255, 0, 255))),
-                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist())
+                                                       0: pg.mkBrush(QBrush(QColor(255, 255, 255)))}).tolist(),
+                                             size=5
+                                             )
         except Exception as e:
-            V_logger.info(f'初始化交易数据标记TradeDataScatter-open失败')
+            V_logger.error(f'初始化交易数据标记TradeDataScatter-open失败')
 
         # -------------------------------------------------------------------------------------------------------------
         def link_line(a, b):
@@ -263,45 +361,104 @@ class Graph_Trade_Data_Mark(graph_base):
             self.items_dict['link_line'].setData([[open_x, open_y],
                                                   [close_x, close_y]],
                                                  pen_color_map_dict[pen_color_type])
-            self.items_dict['info_text'].setHtml(
-                f'<span style="color:white">Account:{trade_data["Account_ID"].iloc[index]}<span/><br/>'
-                f'<span style="color:blue">Open :{open_y}<span/><br/>'
-                f'<span style="color:yellow">Close:{close_y}<span/><br/>'
-                f'<span style="color:white">Type  :{"Long" if open_symbol == "t1" else "Short"}<span/><br/>'
-                f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/><br/>'
-                f'<span style="color:"white">trader:{trade_data["trader_name"].iloc[index]}<span/>')
-            self.items_dict['info_text'].setPos(self.plt.getViewBox().viewRange()[0][1],
-                                                self.plt.getViewBox().viewRange()[1][0])
+            self.set_info_text(trade_data,open_y, close_y, open_symbol, profit, index)
 
         self.items_dict['open'].sigClicked.connect(link_line)
         self.items_dict['close'].sigClicked.connect(link_line)
 
-    def deinit(self):
-        V_logger.info(f'反初始化交易数据标记{self.name}')
-        if hasattr(self, 'items_dict'):
-            for k, v in self.items_dict.items():
-                self.plt.removeItem(v)
-            delattr(self, 'items_dict')
+    def _deinit(self):
+        for k, v in self.items_dict.items():
+            self.plt.removeItem(v)
+        self.del_info_text()
+
+    def add_info_text(self):
+        self.text_item = pg.TextItem(anchor=(1, 1))
+        self.plt.addItem(self.text_item)
+
+    def set_info_text(self, trade_data, *args):
+        if hasattr(self, 'text_item'):
+            try:
+                vb = self.plt.vb.viewRange()
+                open_y, close_y, open_symbol, profit, index = args
+                trade_info = f'<span style="color:white">Account:{trade_data["Account_ID"].iloc[index]}' \
+                             f'<span/><br/><span style="color:blue">Open :{open_y}<span/><br/>' \
+                             f'<span style="color:yellow">Close:{close_y}<span/><br/>' \
+                             f'<span style="color:white">Type  :{"Long" if open_symbol == "t1" else "Short"}<span/><br/>' \
+                             f'<span style="color:{"red" if profit >=0 else "green"}">Profit:{profit}<span/><br/>' \
+                             f'<span style="color:"white">trader:{trade_data["trader_name"].iloc[index]}<span/>'
+
+                self.text_item.setHtml(trade_info)
+                self.text_item.setPos(vb[0][1], vb[1][0])
+            except Exception:
+                pass
+
+    def del_info_text(self):
+        if hasattr(self, 'text_item'):
+            self.plt.removeItem(self.text_item)
+            delattr(self, 'text_item')
 
 class Graph_Slicer(graph_base):
     def __init__(self, plt):
         super(Graph_Slicer, self).__init__(plt, 'Slicer')
 
-    def init(self, ohlc):
-        V_logger.info(f'初始化{self.name}图表')
-        self.items_dict = {}
+    def _init(self, ohlc):
         self.items_dict['close_curve'] = pg.PlotDataItem()
         self.items_dict['date_region'] = pg.LinearRegionItem([1, 100])
         self.plt.addItem(self.items_dict['close_curve'])
         self.plt.addItem(self.items_dict['date_region'])
 
-    def update(self, ohlc):
+    def _update(self, ohlc):
         self.items_dict['close_curve'].setData(ohlc.x, ohlc.close)
 
-    def deinit(self):
-        V_logger.info(f'反初始化交易数据标记{self.name}')
-        if hasattr(self, 'items_dict'):
-            for k, v in self.items_dict.items():
-                self.plt.removeItem(v)
-            delattr(self, 'items_dict')
+    def _deinit(self):
+        for k, v in self.items_dict.items():
+            self.plt.removeItem(v)
 
+    def init(self, ohlc):
+        if not self._active:
+            self.items_dict = {}
+            self._init(ohlc)
+            V_logger.info(f'G+初始化{self.name}图表')
+            self._active = True
+        else:
+            V_logger.error(f'G+{self.name}图表已存在')
+
+    def update(self, ohlc):
+        if self._active:
+            self._update(ohlc)
+            V_logger.info(f'G↑更新{self.name}图表')
+        else:
+            V_logger.info(f'G↑{self.name}图表未初始化')
+
+class Graph_BuySell(graph_base):
+    def __init__(self, plt, buy_symbol='t1', sell_symbol='t', buy_brush='r', sell_brush='g', size=8):
+        super(Graph_BuySell, self).__init__(plt, 'BuySell')
+        self.buy_symbol = buy_symbol
+        self.sell_symbol = sell_symbol
+        self.buy_brush = buy_brush
+        self.sell_brush = sell_brush
+        self.size = size
+
+    def _init(self, ohlc, h_buysell):
+        self.items_dict = {}
+        self.items_dict['buy'] = pg.ScatterPlotItem()
+        self.items_dict['sell'] = pg.ScatterPlotItem()
+        self.plt.addItem(self.items_dict['buy'])
+        self.plt.addItem(self.items_dict['sell'])
+
+
+    def _update(self, ohlc, h_buysell):
+        x = ohlc.x
+        open = ohlc.open
+        buy_index = h_buysell.buy_points.index
+        sell_index = h_buysell.sell_points.index
+        self.items_dict['buy'].setData(x=x[buy_index], y=open[buy_index],
+                                       symbol=self.buy_symbol, brush=self.buy_brush,
+                                       size=self.size)
+        self.items_dict['sell'].setData(x=x[sell_index], y=open[sell_index],
+                                        symbol=self.sell_symbol, brush=self.sell_brush,
+                                        size=self.size)
+
+    def _deinit(self):
+        for k, v in self.items_dict.items():
+            self.plt.removeItem(v)

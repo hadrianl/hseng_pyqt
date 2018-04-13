@@ -85,7 +85,6 @@ class OHlCWidget(KeyEventWidget):
         super(OHlCWidget, self).__init__(parent)
         self.pw = pg.PlotWidget()
         self.main_layout = pg.GraphicsLayout(border=(100, 100, 100))
-        # self.main_layout.setGeometry(QtCore.QRectF(10, 10, 1200, 700))
         self.main_layout.setContentsMargins(10, 10, 10, 10)
         self.main_layout.setSpacing(0)
         self.main_layout.setBorder(color=(255, 255, 255, 255), width=0.8)
@@ -115,6 +114,19 @@ class OHlCWidget(KeyEventWidget):
         V_logger.info(f'初始化{name}画布')
         return plotItem
 
+    def __add__(self, graph):
+        self.graphs[graph.name] = graph
+        V_logger.info(f'加入{graph.name}图表')
+
+    def __sub__(self, graph):
+        if isinstance(graph, graph_base):
+            if self.graphs.pop(graph.name, None):
+                V_logger.info(f'删除{graph.name}图表')
+        elif isinstance(graph, str):
+            if self.graphs.pop(graph, None):
+                V_logger.info(f'删除{graph}图表')
+
+
     def binddata(self, ohlc):  # 实现数据与UI界面的绑定
         self.data = {}
         self.data['ohlc'] = ohlc
@@ -124,7 +136,6 @@ class OHlCWidget(KeyEventWidget):
         self.main_plt = self.makePI('main')
         self.main_plt.setMinimumHeight(300)
         self.main_plt.setWindowTitle('market data')
-        self.main_plt.showGrid(x=True, y=True)
         self.main_layout.addItem(self.main_plt)
         self.main_layout.nextRow()
 
@@ -132,7 +143,6 @@ class OHlCWidget(KeyEventWidget):
         self.indicator_plt = self.makePI('indicator')
         self.indicator_plt.setMaximumHeight(150)
         self.main_layout.addItem(self.indicator_plt)
-        self.indicator_plt.showGrid(x=True, y=True)
         self.indicator_plt.hideAxis('bottom')
         self.indicator_plt.getViewBox().setXLink(self.main_plt.getViewBox())  # 建立指标图表与主图表的viewbox连接
         self.main_layout.nextRow()
@@ -151,18 +161,19 @@ class OHlCWidget(KeyEventWidget):
         self.date_slicer_plt.setMouseEnabled(False, False)
         self.main_layout.addItem(self.date_slicer_plt)
 
-    def init_graph(self,graph):
-        self.graphs[graph.name] = graph
-        self.graphs[graph.name].init(self.data['ohlc'])
+    # ---------------------------图表graph初始化，更新，反初始化三连发-------------------------------------
+    def init_graph(self,graph_name):
+        if graph_name in self.graphs:
+            self.graphs[graph_name].init(self.data['ohlc'])
 
-    def update_graph(self, name):
-        if name in self.graphs:
-            self.graphs[name].update(self.data['ohlc'])
+    def update_graph(self, graph_name):
+        if graph_name in self.graphs:
+            self.graphs[graph_name].update(self.data['ohlc'])
 
-    def deinit_graph(self, name):
-        graph = self.graphs.pop(name, None)
-        if graph:
-            graph.deinit()
+    def deinit_graph(self, graph_name):
+        if graph_name in self.graphs:
+            self.graphs[graph_name].deinit()
+    # ----------------------------------------------------------------------------------------------------
 
     def draw_interline(self, ohlc):  # 画出时间分割线
         x = ohlc.x
@@ -192,15 +203,14 @@ class OHlCWidget(KeyEventWidget):
         V_logger.info(f'初始化mouseaction交互行为')
         self.mouse = mouseaction()
         ohlc = self.data['ohlc']
-        self.proxy = self.mouse(self.main_plt, self.indicator_plt, self.indicator2_plt, self.date_slicer_plt, ohlc,
-                                i_ma=ohlc.MA, i_macd=ohlc.MACD, i_std=ohlc.STD)
+        self.proxy = self.mouse(self.main_plt, self.indicator_plt, self.indicator2_plt, self.date_slicer_plt, ohlc, self.graphs)
 
     def init_console_widget(self, namespace):
         ohlc = self.data['ohlc']
         self.console = AnalysisConsole(namespace)
         self.console.update_daterange(ohlc.datetime.min(),
                                       ohlc.datetime.max())
-        S_logger.addHandler(self.console.logging_handler)
+        S_logger.addHandler(self.console.logging_handler)  # 加入日志输出到console
 
     def init_signal(self):  # 信号的连接与绑定
         V_logger.info(f'初始化交互信号绑定')
@@ -209,10 +219,9 @@ class OHlCWidget(KeyEventWidget):
         self.graphs['Slicer'].items_dict['date_region'].sigRegionChanged.connect(self.date_slicer_update)  # 时间切片变化信号绑定调整画图
         ohlc.ohlc_sig.connect(self.chart_replot) # K线更新信号绑定更新画图
         ohlc.ticker_sig.connect(self.update_data_plot) # ticker更新信号绑定最后的bar的画图
-
+        # ----------------------重采样信号--------------------------------------
         ohlc.resample_sig.connect(self.chart_replot)  # 重采样重画
         ohlc.resample_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
-        # ----------------------重采样信号--------------------------------------
         self.console.RadioButton_min_1.clicked.connect(partial(ohlc.set_ktype, '1T'))
         self.console.RadioButton_min_5.clicked.connect(partial(ohlc.set_ktype, '5T'))
         self.console.RadioButton_min_10.clicked.connect(partial(ohlc.set_ktype, '10T'))
@@ -220,9 +229,9 @@ class OHlCWidget(KeyEventWidget):
         # -----------------------------------------------------------------------
         self.sig_M_Left_Double_Click.connect(self.console.focus) #主图双击信号绑定console弹出
         ohlc.ohlc_sig.connect(lambda : self.console.update_daterange(ohlc.datetime.min(),
-                                                                          ohlc.datetime.max()))
+                                                                     ohlc.datetime.max()))
         self.console.Button_history.released.connect(lambda : self.goto_history(self.console.DateTimeEdit_start.dateTime(),
-                                                                                  self.console.DateTimeEdit_end.dateTime()))  # 绑定历史回顾函数
+                                                                                self.console.DateTimeEdit_end.dateTime()))  # 绑定历史回顾函数
         self.console.Button_current.released.connect(self.goto_current)  # 绑定回到当前行情
         ohlc.ticker_sig.connect(self.console.add_ticker_to_table)  # 绑定ticker数据到ticker列表
         ohlc.price_sig.connect(self.console.add_price_to_table)  # 绑定price数据到price列表
@@ -233,36 +242,39 @@ class OHlCWidget(KeyEventWidget):
         self.consolebutton.setGeometry(QtCore.QRect(10, 250, 75, 23))
 
     def chart_replot(self):  # 重新画图
-        V_logger.info('更新全部图表')
+        V_logger.info('G↑更新图表......')
         ohlc = self.data['ohlc']
         for name, graph in self.graphs.items():
             graph.update(ohlc)
         self.draw_interline(ohlc)
         self.xaxis.update_tickval(ohlc.timestamp)
         self.ohlc_data_update_sync()
+        V_logger.info('G↑更新图表完成......')
 
     def ohlc_Yrange_update(self):  # 更新主图和指标图的高度
-        plt = self.main_plt
         date_region = self.graphs['Slicer'].items_dict['date_region']
         ohlc = self.data['ohlc']
-        i_macd = ohlc.MACD
-        i_std = ohlc.STD
-        viewrange = plt.getViewBox().viewRange()
+        i_macd = getattr(ohlc, 'MACD', None)
+        i_std = getattr(ohlc, 'STD', None)
+        viewrange = self.main_plt.getViewBox().viewRange()
         date_region.setRegion(viewrange[0])
         try:
-            plt.setYRange(ohlc.low[ohlc.x.between(*viewrange[0])].min(),
-                               ohlc.high[ohlc.x.between(*viewrange[0])].max())
-            self.indicator_plt.setYRange(min(i_macd.macd[i_macd.x.between(*viewrange[0])].min(),
-                                             i_macd.diff[i_macd.x.between(*viewrange[0])].min(),
-                                             i_macd.dea[i_macd.x.between(*viewrange[0])].min()),
-                                         max(i_macd.macd[i_macd.x.between(*viewrange[0])].max(),
-                                             i_macd.diff[i_macd.x.between(*viewrange[0])].max(),
-                                             i_macd.dea[i_macd.x.between(*viewrange[0])].max())
-                                         )
-            self.indicator2_plt.setYRange(min(i_std.inc[i_std.x.between(*viewrange[0])].min(),
-                                              i_std.neg_std[i_std.x.between(*viewrange[0])].min()),
-                                          max(i_std.inc[i_std.x.between(*viewrange[0])].max(),
-                                       i_std.pos_std[i_std.x.between(*viewrange[0])].max()))
+            x_range = ohlc.x.between(*viewrange[0])
+            self.main_plt.setYRange(ohlc.low[x_range].min(),ohlc.high[x_range].max())
+            if i_macd:
+                self.indicator_plt.setYRange(min(i_macd.macd[x_range].min(),
+                                                 i_macd.diff[x_range].min(),
+                                                 i_macd.dea[x_range].min()),
+                                             max(i_macd.macd[x_range].max(),
+                                                 i_macd.diff[x_range].max(),
+                                                 i_macd.dea[x_range].max())
+                                             )
+            if i_std:
+                self.indicator2_plt.setYRange(min(i_std.inc[x_range].min(),
+                                                  i_std.neg_std[x_range].min()),
+                                              max(i_std.inc[x_range].max(),
+                                                  i_std.pos_std[x_range].max())
+                                              )
             self.date_slicer_plt.setYRange(ohlc.close.min(), ohlc.close.max())
         except Exception as e:
             V_logger.debug(f'图表高度更新错误.')
@@ -294,8 +306,11 @@ class OHlCWidget(KeyEventWidget):
                 date_region.setRegion([date_region_Max - date_region_len, date_region_Max])
         self.ohlc_Yrange_update()
         if 'Trade_Data' in self.graphs:
-            self.graphs['Trade_Data'].items_dict['info_text'].setPos(self.main_plt.getViewBox().viewRange()[0][1],
-                                                                     self.main_plt.getViewBox().viewRange()[1][0])
+            trade_data_textitem = getattr(self.graphs['Trade_Data'], 'text_item', None)
+            if trade_data_textitem:
+                vb = self.main_plt.getViewBox().viewRange()
+                trade_data_textitem.setPos(vb[0][1],
+                                           vb[1][0])
         self.main_plt.update()
 
     def readjust_Xrange(self, left_offset=120, right_offset=3):
@@ -324,6 +339,7 @@ class OHlCWidget(KeyEventWidget):
         # app.processEvents()
 
     def goto_history(self, start, end):
+        V_logger.info(f'回顾历史行情')
         ohlc = self.data['ohlc']
         from PyQt5.QtCore import QDateTime
         if isinstance(start, QDateTime):
@@ -331,11 +347,12 @@ class OHlCWidget(KeyEventWidget):
         if isinstance(end, QDateTime):
             end = end.toPyDateTime()
         ohlc.inactive_ticker()
-        ohlc([start, end])
+        ohlc([start, end], False)
         ohlc.update()
         self.chart_replot()
 
     def goto_current(self):
+        V_logger.info(f'回到当前行情')
         ohlc = self.data['ohlc']
         if not ohlc._OHLC__is_ticker_active:
             start, end = date_range('present', bar_num=680)

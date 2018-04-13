@@ -31,22 +31,19 @@ symbol_list = ['HSIJ8']
 ohlc = OHLC('HSIJ8',minbar=600, ktype='1T')
 info = INFO()
 ohlc(daterange=[Start_Time, End_Time])
-i_macd = MACD(short=10, long=22, m=9)
 i_ma = MA(ma10=10, ma20=20, ma30=30, ma60=60)
+i_macd = MACD(short=10, long=22, m=9)
 i_std = STD(window=60, min_periods=2)
 h_macd_hl_mark = MACD_HL_MARK()
 h_buysell = BuySell()
 trade_datas = TradeData('HSENG$.APR8')
+extra_data = [i_ma, i_macd, i_std, h_macd_hl_mark, h_buysell, trade_datas]
 # 将指标假如到主图数据里
 ohlc.active_ticker()
 ohlc.active_price()
 ohlc._thread_lock.acquire()
-ohlc + i_ma
-ohlc + i_macd
-ohlc + h_macd_hl_mark
-ohlc + i_std
-ohlc + h_buysell
-ohlc + trade_datas
+for d in extra_data:
+    ohlc + d
 ohlc._thread_lock.release()
 F_logger.info('初始化OHLC数据完成')
 # -----------------------------------------------------------------------+
@@ -64,26 +61,32 @@ w_ohlc.init_indicator1_plt()  # 初始化indicator画布
 w_ohlc.init_indicator2_plt()  # 初始化indicator2画布
 w_ohlc.init_slicer_plt()  # 初始化slicer画布
 # 创建图形实例
-w_ohlc.init_graph(Graph_OHLC(w_ohlc.main_plt))
-w_ohlc.init_graph(Graph_MA(w_ohlc.main_plt))
-w_ohlc.init_graph(Graph_MACD(w_ohlc.indicator_plt))
-w_ohlc.init_graph(Graph_MACD_HL_MARK(w_ohlc.main_plt))
-w_ohlc.init_graph(Graph_STD(w_ohlc.indicator2_plt))
-w_ohlc.init_graph(Graph_Trade_Data_Mark(w_ohlc.main_plt))
-w_ohlc.init_graph(Graph_Slicer(w_ohlc.date_slicer_plt))
+w_ohlc + Graph_OHLC(w_ohlc.main_plt)
+w_ohlc + Graph_MA(w_ohlc.main_plt)
+w_ohlc + Graph_MACD(w_ohlc.indicator_plt)
+w_ohlc + Graph_MACD_HL_MARK(w_ohlc.main_plt)
+w_ohlc + Graph_STD(w_ohlc.indicator2_plt)
+w_ohlc + Graph_Trade_Data_Mark(w_ohlc.main_plt)
+w_ohlc + Graph_Slicer(w_ohlc.date_slicer_plt)
+w_ohlc + Graph_BuySell(w_ohlc.date_slicer_plt)
+for g_name in w_ohlc.graphs:
+    w_ohlc.init_graph(g_name)
 
 w_ohlc.init_mouseaction()  # 初始化十字光标与鼠标交互
-namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': w_ohlc, 'help_doc': help_doc, 'info': info}  # console的命名空间
+namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'w_ohlc':w_ohlc, 'help_doc': help_doc, 'info': info}  # console的命名空间
 w_ohlc.init_console_widget(namespace)  # 初始化交互界面
 w_ohlc.init_signal()  # 初始化指标信号
+win.init_data_signal()
+info.receiver_start()
+
+# 完成初始化的视图调整
 w_ohlc.init_date_region()  # 初始化可视化范围
 w_ohlc.ohlc_data_update_sync()  # 主图的横坐标的初始化刷新调整
 V_logger.info(f'初始化图表完成')
-info.receiver_start()
 w_ohlc.chart_replot()
 # load_product_info(symbol_list)
 # prod_info = get_product_info(symbol_list)
-
+# win.init_main_signal()
 
 if __name__ == '__main__':
     login_win = LoginDialog()  # 登录界面
@@ -92,7 +95,6 @@ if __name__ == '__main__':
     login_win.accepted.connect(win.show)
     login_win.rejected.connect(app.closeAllWindows)
     order_dialog = OrderDialog()
-    win.pushButton_console.released.connect(w_ohlc.console.show)
     win.pushButton_order.released.connect(order_dialog.show)
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         sys.exit(app.exec())
