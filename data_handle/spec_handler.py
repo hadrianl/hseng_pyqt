@@ -66,7 +66,7 @@ class BuySell(spec_handler_base):
         self.ohlc_std = pd.concat([ohlc_data, i_std.std,
                                    (i_std.ratio > 1.5).rename('b_gt_std'),
                                    ((ohlc_data.close - ohlc_data.open).abs() >= (ohlc_data.high - ohlc_data.low).abs()*real_bar_rate).rename('b_real_bar')], 1)
-        self.data_merged = pd.concat([self.ohlc_std.shift(n) for n in range(0, -w, -1)], 1, keys=[n for n in range(1, w + 1)], names=['shift_','data_type'])
+        self.data_merged = pd.concat([self.ohlc_std.shift(n) for n in range(0, -w, -1)], 1, keys=[n for n in range(1, w + 1)], names=['shift_','data_type'])  # 这里包含了一个隐藏条件，在十五根k线对比
 
         def buysell(row):
             unstack = row.unstack()
@@ -78,11 +78,11 @@ class BuySell(spec_handler_base):
             real_bar = unstack.b_real_bar.iloc[0]
             b_s = c1 > o1
             if b_s:
-                cond1 = (Open > o1).rename('cond1')
-                cond2 = (Close > c1).rename('cond2')
-                cond3 = (c1 > Open).rename('cond3')
-                cond4 = (((c1 - Open) > (Close - o1) * overlap_rate)).rename('cond4')
-                cond = cond1 & cond2 & cond3 & cond4 & unstack.b_gt_std & unstack.b_real_bar & gt_std & real_bar
+                cond1 = (Open > o1).rename('cond1')  # 条件一:开盘价更高
+                cond2 = (Close > c1).rename('cond2')  # 条件二:收盘价要高
+                cond3 = (c1 > Open).rename('cond3')  # 条件三:有重叠
+                cond4 = (((c1 - Open) > (Close - o1) * overlap_rate)).rename('cond4') # 条件四:重叠部分大于overlap
+                cond = cond1 & cond2 & cond3 & cond4 & unstack.b_gt_std & unstack.b_real_bar & gt_std & real_bar  #条件五六七八:标准差都大于1.5倍，实体部分大于real_bar_rate
             else:
                 cond1 = (Open < o1).rename('cond1')
                 cond2 = (Close < c1).rename('cond2')
@@ -100,7 +100,10 @@ class BuySell(spec_handler_base):
 
     @property
     def bs_points(self):
-        bs = self._bs.reset_index().apply(lambda x: (x.datetime + dt.timedelta(minutes=int(x.shift_)),
+        ktype = self.ohlc.ktype
+        if ktype[-1] == 'T':
+            ktype = int(ktype[:-1])
+        bs = self._bs.reset_index().apply(lambda x: (x.datetime + dt.timedelta(minutes=int(x.shift_)*ktype),
                                                      0,
                                                      x.bs
                                                      ), 1).drop('shift_', 1).set_index('datetime').loc[:,'bs']
@@ -109,9 +112,15 @@ class BuySell(spec_handler_base):
     @property
     def buy_points(self):
         bs = self.bs_points
-        return bs[bs=='B']
+        if not bs.empty:
+            return bs[bs=='B']
+        else:
+            return bs
 
     @property
     def sell_points(self):
         bs = self.bs_points
-        return bs[bs=='S']
+        if not bs.empty:
+            return bs[bs=='S']
+        else:
+            return bs

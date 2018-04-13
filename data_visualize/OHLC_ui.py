@@ -347,7 +347,7 @@ class OHlCWidget(KeyEventWidget):
         if isinstance(end, QDateTime):
             end = end.toPyDateTime()
         ohlc.inactive_ticker()
-        ohlc([start, end])
+        ohlc([start, end], False)
         ohlc.update()
         self.chart_replot()
 

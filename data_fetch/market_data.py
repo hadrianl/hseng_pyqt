@@ -106,9 +106,9 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def __getattr__(self, item):
         return self.extra_data.get(item)
 
-    def __call__(self, daterange):
+    def __call__(self, daterange, limit_bar = True):
         start, end = daterange
-        if self._minbar:
+        if self._minbar&limit_bar:
             self._sql = f"select datetime, open, high, low, close from " \
                         f"(select * from carry_investment.futures_min " \
                         f"where datetime<\"{end} \" and prodcode=\"{self.symbol}\" " \

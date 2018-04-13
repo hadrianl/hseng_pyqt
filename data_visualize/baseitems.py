@@ -11,7 +11,7 @@ from pyqtgraph.Qt import QtGui, QtCore
 import time
 from abc import ABC, abstractmethod
 from util import V_logger
-
+import re
 
 class CandlestickItem(pg.GraphicsObject):
     """
@@ -185,7 +185,7 @@ class graph_base(ABC):
 
     def init(self, ohlc):
         if not self._active:
-            data = getattr(ohlc, self.name, None)
+            data = getattr(ohlc, re.sub(r'([\d]+)','',self.name), None)
             if data:
                 self.items_dict = {}
                 self._init(ohlc, data)
@@ -196,7 +196,7 @@ class graph_base(ABC):
 
     def update(self, ohlc):
         if self._active:
-            data = getattr(ohlc, self.name, None)
+            data = getattr(ohlc, re.sub(r'([\d]+)','',self.name), None)
             if data:
                 self._update(ohlc, data)
                 V_logger.info(f'G↑更新{self.name}图表')
