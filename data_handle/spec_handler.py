@@ -8,6 +8,7 @@
 from data_handle import handle_base
 import pandas as pd
 import datetime as dt
+from util import coincide
 
 class spec_handler_base(handle_base):
     def __init__(self, name, **kwargs):
@@ -124,3 +125,26 @@ class BuySell(spec_handler_base):
             return bs[bs=='S']
         else:
             return bs
+
+
+class COINCIDE(spec_handler_base):
+    def __init__(self):
+        super(COINCIDE,self).__init__('COINCIDE')
+
+    def calc(self):
+        ohlc=self.ohlc
+        df=pd.DataFrame()
+        df['date']=ohlc.datetime
+        df['open'] = ohlc.open
+        df['high'] = ohlc.high
+        df['low'] = ohlc.low
+        df['close'] = ohlc.close
+        self._coincide = coincide(df)
+
+    @property
+    def coincide(self):
+        return self._coincide
+
+    @property
+    def _data(self):
+        return self._coincide.rename('COINCIDE')
