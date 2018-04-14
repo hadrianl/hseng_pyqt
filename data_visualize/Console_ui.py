@@ -8,9 +8,11 @@
 
 from ui.console import Ui_Console
 from PyQt5.Qt import QWidget, QTableWidgetItem
+from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 import datetime as dt
 from logging import Handler, Formatter
+
 
 
 class AnalysisConsole(QWidget, Ui_Console):
@@ -54,11 +56,12 @@ class AnalysisConsole(QWidget, Ui_Console):
             if max_depth == i + 1:
                 break
 
-    def init_sp_func_signal(self):
-        self.Button_market_long.released.connect(lambda : add_market_order())
-        self.Button_market_short.released.connect(lambda : add_market_order())
-        self.Button_limit_long.released.connect(lambda : add_limit_order())
-        self.Button_limit_short.released.connect(lambda : add_limit_order())
+
+    # def init_sp_func_signal(self):
+    #     self.Button_market_long.released.connect(lambda : add_market_order())
+    #     self.Button_market_short.released.connect(lambda : add_market_order())
+    #     self.Button_limit_long.released.connect(lambda : add_limit_order())
+    #     self.Button_limit_short.released.connect(lambda : add_limit_order())
 
     class console_logging_handler(Handler):
         def __init__(self, consolewidget):

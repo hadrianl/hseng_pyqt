@@ -11,7 +11,7 @@ from pyqtgraph.Qt import QtGui, QtCore
 import time
 from abc import ABC, abstractmethod
 from util import V_logger
-import re
+import datetime as dt
 
 class CandlestickItem(pg.GraphicsObject):
     """
@@ -99,6 +99,7 @@ class DateAxis(pg.AxisItem):
         try:
             timestamp = self._timestamp_mapping.iloc[values]
             rng = max(timestamp)-min(timestamp)
+
         except Exception as e:
             timestamp = []
             rng =0
@@ -106,12 +107,12 @@ class DateAxis(pg.AxisItem):
         #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
         if rng < 3600*24:
             string = '%H:%M:%S'
-            label1 = '%b %d ->'
-            label2 = ' %b %d, %Y'
+            label1 = '%b-%d %H->'
+            label2 = ' %b-%d %H, %Y'
         elif rng >= 3600*24 and rng < 3600*24*30:
-            string = '%d D'
-            label1 = '%b -> '
-            label2 = '%b , %Y'
+            string = '%dD '
+            label1 = '%b,%d ->'
+            label2 = ' %b,%d ,%Y'
         elif rng >= 3600*24*30 and rng < 3600*24*30*24:
             string = '%b'
             label1 = '%Y ->'
@@ -167,10 +168,11 @@ class graph_base(ABC):
     '''
     图表的基础抽象类，需要实现init，update和deinit方法
     '''
-    def __init__(self, plt, name, **kwargs):
-        self.plt = plt
+    def __init__(self, plts, name, **kwargs):
+        self.plts = {p.vb.name: p for p in plts}
         self.name = name
         self._active = False
+        self._crosshair_text = True
         for i in kwargs:
             setattr(self, i, kwargs[i])
 
@@ -185,33 +187,63 @@ class graph_base(ABC):
 
     def init(self, ohlc):
         if not self._active:
-            data = getattr(ohlc, re.sub(r'([\d]+)','',self.name), None)
+            data = getattr(ohlc, self.name, None)
+            self.text_pos = {}
+            self.plt_texts = {}
+            self.plt_items = {p_name: {} for p_name in self.plts}
             if data:
-                self.items_dict = {}
-                self._init(ohlc, data)
-                V_logger.info(f'G+初始化{self.name}图表')
-                self._active = True
+                for p in self.plts:
+                    self._init(p, ohlc, data)
+                    V_logger.info(f'G+初始化{self.name}图表至{p}')
             else:
-                V_logger.error(f'G+初始化{self.name}图表失败，缺失{self.name}数据')
+                for p in self.plts:
+                    self._init(p, ohlc)
+                    V_logger.info(f'G+初始化{self.name}图表至{p}')
+            self._active = True
 
     def update(self, ohlc):
         if self._active:
-            data = getattr(ohlc, re.sub(r'([\d]+)','',self.name), None)
+            data = getattr(ohlc, self.name, None)
             if data:
-                self._update(ohlc, data)
-                V_logger.info(f'G↑更新{self.name}图表')
+                for p in self.plts:
+                    self._update(p, ohlc, data)
+                    V_logger.info(f'G↑更新{self.name}图表至{p}')
             else:
-                V_logger.info(f'数据类缺失{self.name}数据')
+                for p in self.plts:
+                    self._update(p, ohlc)
+                    V_logger.info(f'G↑更新{self.name}图表至{p}')
 
     def deinit(self):
         if self._active:
-            self._deinit()
+            for p in self.plts:
+                self._deinit(p)
             V_logger.info(f'G-反初始化{self.name}图表')
             self._active = False
 
-    def add_info_text(self):...
-    def set_info_text(self, x_index):...
-    def del_info_text(self):...
+    def info_text(self, p, *args, **kwargs):...
+
+    def add_info_text(self, p, anchor=(0, 0), pos=(0,0,1,1), active=True):
+        self.text_pos[p] = pos
+        self.plt_texts[p] = pg.TextItem(anchor=anchor)
+        self.plts[p].addItem(self.plt_texts[p])
+
+    def set_info_text(self, p, *args, **kwargs):
+        try:
+            if p in self.plt_texts:
+                plt = self.plts[p]
+                textitem = self.plt_texts[p]
+                vbr = plt.vb.viewRange()
+                info_text = self.info_text(p, *args, **kwargs)
+                textitem.setHtml(info_text)
+                p = self.text_pos[p]
+                Pos = (vbr[p[0]][p[1]], vbr[p[2]][p[3]])
+                textitem.setPos(*Pos)
+        except Exception as e:
+            V_logger.debug(f'set_info_text设置信息错误->{p}')
+
+
+    def del_info_text(self, p):
+        self.plts[p].removeItem(self.plt_texts.pop(p))
 
 from PyQt5.QtWidgets import QComboBox, QLineEdit, QListWidget, QCheckBox, QListWidgetItem
 
