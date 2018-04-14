@@ -415,3 +415,31 @@ class Graph_BuySell(graph_base):
         item = self.plt_items[p]
         for _, v in item.items():
             self.plts[p].removeItem(v)
+
+
+class Graph_COINCIDE(graph_base):
+    def __init__(self,plt):
+        super(Graph_COINCIDE,self).__init__(plt,'COINCIDE')
+
+    def _init(self, p, ohlc,coincide):
+        item = self.plt_items[p]
+        plt = self.plts[p]
+        item['cd']=TradeDataScatter()
+        plt.addItem(item['cd'])
+
+    def _update(self, p, ohlc,coincide):
+        item = self.plt_items[p]
+        _coincide=coincide.coincide
+        _y = ohlc.low[_coincide.keys()]
+        _is_du = ['t1' if i > 0 else 't' for i in _coincide.values()]
+        _is_bru = [QColor(255, 0, 255) if i % 2 == 1 else QColor(0, 0, 254) for i in _coincide.values()]
+        x = ohlc.x[_y.index].values
+        y = (_y - 5).values
+        item['cd'].setData(x=x, y=y, symbol=_is_du, size=15,
+                                                 brush=_is_bru)
+    def _deinit(self, p):
+        item = self.plt_items[p]
+        plt = self.plts[p]
+        for _, v in item.items():
+            #for i in v:
+            plt.removeItem(v)

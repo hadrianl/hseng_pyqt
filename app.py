@@ -8,7 +8,7 @@
 from data_fetch.market_data import OHLC  # 导入主图OHLC数据类
 from data_fetch.info_data import INFO
 from data_handle.indicator import MA, MACD, STD  # 导入指标
-from data_handle.spec_handler import MACD_HL_MARK, BuySell
+from data_handle.spec_handler import MACD_HL_MARK, BuySell, COINCIDE
 from util import *  # 导入常用函数
 from data_fetch.trade_data import TradeData  # 导入交易数据类
 from pyqtgraph.Qt import QtCore, QtWidgets
@@ -34,9 +34,10 @@ i_ma = MA(ma10=10, ma20=20, ma30=30, ma60=60)
 i_macd = MACD(short=10, long=22, m=9)
 i_std = STD(window=60, min_periods=2)
 h_macd_hl_mark = MACD_HL_MARK()
+i_coincide=COINCIDE()
 h_buysell = BuySell()
 trade_datas = TradeData('HSENG$.APR8')
-extra_data = [i_ma, i_macd, i_std, h_macd_hl_mark, h_buysell, trade_datas]
+extra_data = [i_ma, i_macd, i_std, h_macd_hl_mark, h_buysell,i_coincide, trade_datas]
 # 将指标假如到主图数据里
 ohlc.active_ticker()
 ohlc.active_price()
@@ -63,6 +64,7 @@ w_ohlc + Graph_MACD([w_ohlc.indicator1_plt])
 w_ohlc + Graph_MACD_HL_MARK([w_ohlc.main_plt])
 w_ohlc + Graph_STD([w_ohlc.indicator2_plt])
 w_ohlc + Graph_Trade_Data_Mark([w_ohlc.main_plt, w_ohlc.indicator3_plt])
+w_ohlc + Graph_COINCIDE([w_ohlc.main_plt])
 w_ohlc + Graph_Slicer([w_ohlc.date_slicer_plt])
 w_ohlc + Graph_BuySell([w_ohlc.date_slicer_plt])
 for g_name in w_ohlc.graphs:
