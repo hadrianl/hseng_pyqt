@@ -20,9 +20,9 @@ class handle_base(ABC):
     @abstractmethod
     def calc(self): ...
 
-    def __call__(self, ohlc):
+    def __call__(self, new_data):
         self.activate()
-        self.update(ohlc)
+        self.update(new_data)
         return self
 
     def __repr__(self):

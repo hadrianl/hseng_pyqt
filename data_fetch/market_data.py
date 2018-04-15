@@ -92,7 +92,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         F_logger.info(f'D+初始化请求{self.symbol}数据')
 
     def __str__(self):
-        return f"<{self.__ktype}-{self.symbol}> *{self.data['datetime'].min()}-->{self.data['datetime'].max()}*"
+        return f"<{self.__ktype}-{self.symbol}> *{self.datetime.min()}-->{self.datetime.max()}*"
 
     def __repr__(self):
         return self.data.__repr__()
@@ -106,9 +106,9 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def __getattr__(self, item):
         return self.extra_data.get(item)
 
-    def __call__(self, daterange, limit_bar = True):
+    def __call__(self, daterange, limit_bar=True):
         start, end = daterange
-        if self._minbar&limit_bar:
+        if bool(self._minbar)&limit_bar:
             self._sql = f"select datetime, open, high, low, close from " \
                         f"(select * from carry_investment.futures_min " \
                         f"where datetime<\"{end} \" and prodcode=\"{self.symbol}\" " \

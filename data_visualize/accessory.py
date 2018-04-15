@@ -77,8 +77,9 @@ class mouseaction(QtCore.QObject):
 
                     for k, v in graphs.items():
                         text_func = getattr(v, 'set_info_text', None)
-                        if text_func:
-                            text_func(x_index)
+                        if bool(text_func)&v._crosshair_text:
+                            for p in v.plts:
+                                text_func(p, x_index=x_index)
 
                 if self._at:
                     self.xaxis_text.setPos(x_index, main_plt.vb.viewRange()[1][0])

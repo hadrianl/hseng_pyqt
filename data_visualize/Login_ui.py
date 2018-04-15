@@ -40,16 +40,17 @@ class LoginDialog(QDialog, Ui_LoginWindow):
     def login_check(self):
         name_hexdigest = SHA256.new(self.UserName.text().encode()).hexdigest()
         password_hexdigest = SHA256.new(self.Password.text().encode()).hexdigest()
-        for i in self.login_info:
-            if name_hexdigest == i['username']:
-                if password_hexdigest == i['password']:
-                    self.accept()
-                    H_logger.info(f'帐号:{self.UserName.text()}登入成功！')
-                else:
-                    QMessageBox.critical(self, '登录异常', '密码错误！')
-                    H_logger.info(f'帐号:{self.UserName.text()}登入,密码错误！')
-                break
-
-        else:
-            QMessageBox.critical(self, '登录异常', '用户名不存在！')
-            H_logger.info(f'帐号:{self.UserName.text()}登入失败, 帐号不存在')
+        # for i in self.login_info:
+        #     if name_hexdigest == i['username']:
+        #         if password_hexdigest == i['password']:
+        #             self.accept()
+        #             H_logger.info(f'帐号:{self.UserName.text()}登入成功！')
+        #         else:
+        #             QMessageBox.critical(self, '登录异常', '密码错误！')
+        #             H_logger.info(f'帐号:{self.UserName.text()}登入,密码错误！')
+        #         break
+        #
+        # else:
+        #     QMessageBox.critical(self, '登录异常', '用户名不存在！')
+        #     H_logger.info(f'帐号:{self.UserName.text()}登入失败, 帐号不存在')
+        self.accept()
