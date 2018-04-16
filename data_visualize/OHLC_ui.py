@@ -379,18 +379,21 @@ class OHlCWidget(KeyEventWidget):
         self.main_plt.setXRange(x.max() - left_offset, x.max() + right_offset)
 
     def tick_update_plot(self, new_ticker):  # 当前K线根据ticker数据的更新
-        tickitems = self.graphs['OHLC'].items_dict['tick']
-        # ---------------------------更新数据到图表----------------------------------------------------+
-        tickitems.update()
+        plts = self.graphs['OHLC'].plts
+        plt_items = self.graphs['OHLC'].plt_items
         ohlc = self.data['ohlc']
         last_ohlc = ohlc.data.iloc[-1]
-        tickitems.setCurData(ohlc)
-        tickitems.update()
-        # ---------------------------调整画图界面高度----------------------------------------------------+
-        vbr = self.main_plt.getViewBox().viewRange()
-        if last_ohlc.high >= vbr[1][1] or last_ohlc.low <= vbr[1][0]:
-            self.main_plt.setYRange(min(vbr[1][0], last_ohlc.low),
-                                    max(vbr[1][1], last_ohlc.high))
+        for p in plt_items:
+            tickitem = plt_items[p]['tick']
+            # ---------------------------更新数据到图表----------------------------------------------------+
+            tickitem.update()
+            tickitem.setCurData(ohlc)
+            tickitem.update()
+            # ---------------------------调整画图界面高度----------------------------------------------------+
+            vbr = plts[p].getViewBox().viewRange()
+            if last_ohlc.high >= vbr[1][1] or last_ohlc.low <= vbr[1][0]:
+                plts[p].setYRange(min(vbr[1][0], last_ohlc.low),
+                                  max(vbr[1][1], last_ohlc.high))
         # app.processEvents()
 
     def goto_history(self, start, end):
