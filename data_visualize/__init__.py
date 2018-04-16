@@ -12,6 +12,8 @@ from functools import partial
 from experimental import normalize_test
 from data_visualize.Login_ui import LoginDialog
 from order import OrderDialog
+from data_visualize.OHLC_ui import TrayIcon
+from util import S_logger
 from PyQt5.QtCore import QCoreApplication
 import sys
 import os
@@ -27,10 +29,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.login_win.UserName.setFocus()
         self.login_win.show()
         self.login_win.accepted.connect(self.show)
-        self.login_win.accepted.connect(self.QWidget_ohlc.susp.show)
+        self.login_win.accepted.connect(self.init_tray)
         self.order_dialog = OrderDialog()
         self.pushButton_order.released.connect(self.order_dialog.show)
         # self.login_win.rejected.connect(self.closeAllWindows)
+
+    def init_tray(self):
+        self.tray_icon = TrayIcon()
+        w_ohlc = self.QWidget_ohlc
+        self.tray_icon.activated.connect(lambda r: w_ohlc.susp.setVisible(w_ohlc.susp.isHidden()) if r == 3 else ...)
+        self.tray_icon.action_win.triggered.connect(lambda : self.show())
+        self.tray_icon.action_susp.triggered.connect(lambda : w_ohlc.susp.show())
+        self.tray_icon.action_quit.triggered.connect(lambda : (self.tray_icon.hide(), self.close))
+        self.tray_icon.show()
+        S_logger.addHandler(self.tray_icon.messager)
 
 
     def closeEvent(self, a0: QtGui.QCloseEvent):

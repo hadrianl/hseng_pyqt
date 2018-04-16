@@ -11,7 +11,7 @@ from data_visualize.baseitems import DateAxis
 from PyQt5 import QtGui, QtWidgets, QtCore
 from PyQt5.QtCore import Qt, QSize, QPoint
 from PyQt5.QtGui import QMouseEvent
-from PyQt5.Qt import QFont
+from PyQt5.Qt import QFont, QIcon, QMenu, QAction
 from util import *
 from data_visualize.accessory import mouseaction
 import datetime as dt
@@ -22,7 +22,8 @@ from order import OrderDialog
 from sp_func.local import *
 from data_visualize.graph import *
 from data_visualize.plt import *
-
+from logging import Handler, Formatter
+import re
 
 class KeyEventWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -89,6 +90,7 @@ class OHlCWidget(KeyEventWidget):
         super(OHlCWidget, self).__init__(parent)
         self.pw = pg.PlotWidget()
         self.susp = Suspended_Widget()
+        # self.susp.hide()
         self.main_layout = pg.GraphicsLayout(border=(100, 100, 100))
         self.main_layout.setContentsMargins(10, 10, 10, 10)
         self.main_layout.setSpacing(0)
@@ -433,3 +435,77 @@ class Suspended_Widget(pg.PlotWidget):
             self._isTracking = False
             self._startPos = None
             self._endPos = None
+
+
+class TrayIcon(QtWidgets.QSystemTrayIcon):
+    def __init__(self, parent=None):
+        super(TrayIcon, self).__init__(parent)
+        self.push_msg_type = []
+        self.messager = self.system_message_handler(self)
+        self.init_Menu()
+        self.init_icon()
+
+    def init_Menu(self):
+        self.menu = QMenu()
+        self.action_win = QAction("实盘图表", self)
+        self.action_susp = QAction('悬浮窗',self)
+        self.action_quit = QAction("退出", self)
+        # self.menu1 = QMenu()
+        # self.menu1.addAction(self.showAction1)
+        # self.menu1.addAction(self.showAction2)
+        # self.menu.addMenu(self.menu1, )
+        # self.menu1.setTitle("二级菜单")
+        self.menu.addAction(self.action_win)
+        self.menu.addAction(self.action_susp)
+        self.menu.addAction(self.action_quit)
+        self.setContextMenu(self.menu)
+
+    def init_icon(self):
+        # self.activated.connect(self.iconClied)
+        # #把鼠标点击图标的信号和槽连接
+        # self.messageClicked.connect(self.mClied)
+        # #把鼠标点击弹出消息的信号和槽连接
+        self.setIcon(QIcon(os.path.join('ui', 'wifi.png')))
+        self.icon = self.MessageIcon()
+        #设置图标
+
+    def iconClied(self, reason):
+        "鼠标点击icon传递的信号会带有一个整形的值，1是表示单击右键，2是双击，3是单击左键，4是用鼠标中键点击"
+        if reason == 2 or reason == 3:
+            pw = self.parent()
+            if pw.isVisible():
+                pw.hide()
+            else:
+                pw.show()
+        print(reason)
+
+    def mClied(self):
+        print(22222)
+        self.showMessage("提示", "你点了消息", self.icon)
+
+    def showM(self):
+        print(1111)
+        self.showMessage("测试", "我是消息", self.icon)
+    def aaa(self):
+        print('sfsdfsf')
+
+    def push_message(self, type, info):
+        if type in self.push_msg_type:
+            self.showMessage(type, info, self.icon)
+
+    class system_message_handler(Handler):
+        def __init__(self, tray_icon):
+            Handler.__init__(self)
+            self.tray_icon = tray_icon
+            formatter = Formatter('%(message)s')
+            self.setLevel('INFO')
+            self.setFormatter(formatter)
+            self.pattern = r'(^<.+>'
+
+        def emit(self, record):
+            msg = self.format(record)
+            try:
+                print(msg)
+                # self.tray_icon.push_message()
+            except Exception as e:
+                print(e)

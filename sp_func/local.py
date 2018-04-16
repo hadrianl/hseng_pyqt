@@ -9,6 +9,7 @@ from spapi.sub_client import SpFunc
 from spapi.spAPI import *
 from util import S_logger
 import datetime as dt
+import sys
 
 
 
@@ -35,9 +36,11 @@ def addOrder(**kwargs):
 
 def info_handle(type, info, info_struct=None, handle_type=0):
     if handle_type == 0:
-        S_logger.info('<LOCAL>' + type + info)
+        S_logger.info('*LOCAL*' + type + info)
     elif handle_type == 1:
-        S_logger.error('<LOCAL>' + type + info)
+        S_logger.error('*LOCAL*' + type + info)
+
+
 
 
 def init_spapi():
@@ -48,12 +51,12 @@ def init_spapi():
             'user_id':'DEMO201706051A',
             'password':'1234'
             }
+
     # info.update(user_id=user_id, password=password)
     if initialize() == 0:
-        S_logger.info('<API>初始化成功')
+        info_handle('<API>','初始化成功')
         set_login_info(**info)
-        S_logger.info(
-            f"<LOCAL><连接>设置登录信息-host:{info['host']} port:{info['port']} license:{info['License']} app_id:{info['app_id']} user_id:{info['user_id']}")
+        info_handle('<连接>', f"设置登录信息-host:{info['host']} port:{info['port']} license:{info['License']} app_id:{info['app_id']} user_id:{info['user_id']}")
         login()
 
 @on_login_reply  # 登录调用
@@ -153,9 +156,9 @@ def pswchange_reply(ret_code, ret_msg):
 
 def deinit_spapi():
     if logout() == 0:
-        S_logger.info(f'<LOCAL><连接>{c_char_p_user_id.value.decode()}登出请求发送成功')
+        info_handle('<连接>',f'{c_char_p_user_id.value.decode()}登出请求发送成功')
         if unintialize() == 0:
-            S_logger.info('<LOCAL><API>释放成功')
+            info_handle('<API>','释放成功')
             global local_login
             local_login = False
 
