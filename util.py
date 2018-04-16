@@ -218,7 +218,6 @@ def coincide(df,ma=60):
                             if is_dpd:
                                 is_d +=1
                             if is_date or is_kpd:
-
                                 if is_kc>0 and ((is_k>is_d and is_k>2) or is_date):
                                     #maidian[dc[i]['datetimes']] = -cds
                                     cd[dc[i]['datetimes']] = -2
@@ -228,7 +227,7 @@ def coincide(df,ma=60):
                                     break
 
                             if is_date or is_dpd:
-                                if is_date or (is_kc<0 and is_d>is_k and is_d>2):
+                                if is_kc<0 and (( is_d>is_k and is_d>2) or is_date):
                                     #maidian[dc[i]['datetimes']] = cds
                                     cd[dc[i]['datetimes']] = 2
                                     is_kc = 0
