@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2018/3/30 0030 11:40
 # @Author  : Hadrianl 
-# @File    : order.py
+# @File    : local.py
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
 from PyQt5.Qt import QDialog
@@ -10,7 +10,7 @@ from PyQt5 import QtWidgets, QtCore
 import sys
 from ui.order_dialog import Ui_Dialog
 import datetime as dt
-from sp_func.order import add_order
+from sp_func.local import *
 
 class OrderDialog(QDialog, Ui_Dialog):
     def __init__(self):
@@ -85,6 +85,8 @@ class OrderDialog(QDialog, Ui_Dialog):
         self.pushButton_buy.released.connect(lambda :self.order('B'))
         self.pushButton_sell.released.connect(lambda :self.order('S'))
 
+        self.checkBox_local_login.toggled.connect(lambda x: init_spapi() if x else deinit_spapi())
+
     def order(self, BuySell):
         try:
             order_kwargs = {}
@@ -155,7 +157,7 @@ class OrderDialog(QDialog, Ui_Dialog):
                 order_kwargs['SchedTime'] = int(self.dateTimeEdit_sched_time.dateTime().toPyDateTime().timestamp())
         except Exception as e:
             raise e
-        add_order(**order_kwargs)
+        addOrder(**order_kwargs)
 
 
 
