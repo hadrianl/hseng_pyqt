@@ -14,6 +14,7 @@ from data_visualize.Login_ui import LoginDialog
 from order import OrderDialog
 from PyQt5.QtCore import QCoreApplication
 import sys
+import os
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -38,6 +39,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                           QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
             a0.accept()
+            pid = os.getpid()
+            os.system(f'taskkill /F /PID {pid}')
         else:
             a0.ignore()
 

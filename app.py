@@ -57,14 +57,14 @@ win.setWindowTitle(Symbol + '实盘分钟图')
 w_ohlc.binddata(ohlc)  # 把数据与UI绑定
 w_ohlc.init_plt()  # 初始化画布并绑定了初始化与反初始化函数在字典plt_init_func与plt_deinit_func中
 # 创建图形实例
-w_ohlc + Graph_OHLC([w_ohlc.main_plt, w_ohlc.indicator3_plt])
-w_ohlc + Graph_MA([w_ohlc.main_plt, w_ohlc.indicator3_plt])
-w_ohlc + Graph_MACD([w_ohlc.indicator1_plt])
-w_ohlc + Graph_MACD_HL_MARK([w_ohlc.main_plt])
-w_ohlc + Graph_STD([w_ohlc.indicator2_plt])
-w_ohlc + Graph_Trade_Data_Mark([w_ohlc.main_plt, w_ohlc.indicator3_plt])
-w_ohlc + Graph_Slicer([w_ohlc.date_slicer_plt])
-w_ohlc + Graph_BuySell([w_ohlc.date_slicer_plt])
+w_ohlc + Graph_OHLC([w_ohlc.plts['main'], w_ohlc.plts['indicator3']])
+w_ohlc + Graph_MA([w_ohlc.plts['main'], w_ohlc.plts['indicator3']])
+w_ohlc + Graph_MACD([w_ohlc.plts['indicator1']])
+w_ohlc + Graph_MACD_HL_MARK([w_ohlc.plts['main']])
+w_ohlc + Graph_STD([w_ohlc.plts['indicator2']])
+w_ohlc + Graph_Trade_Data_Mark([w_ohlc.plts['main'], w_ohlc.plts['indicator3']])
+w_ohlc + Graph_Slicer([w_ohlc.plts['date_slicer']])
+w_ohlc + Graph_BuySell([w_ohlc.plts['date_slicer']])
 for g_name in w_ohlc.graphs:
     w_ohlc.init_graph(g_name)
 

@@ -8,6 +8,7 @@
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
+from PyQt5.Qt import QFont
 import time
 from abc import ABC, abstractmethod
 from util import V_logger
@@ -289,3 +290,27 @@ class ComboCheckBox(QComboBox):
             show += i + ';'
         self.qLineEdit.setText(show)
         self.qLineEdit.setReadOnly(True)
+
+class plt_base(pg.PlotItem):
+    def __init__(self, name, date_xaxis):
+        super(plt_base, self).__init__(viewBox=pg.ViewBox(), name=name, axisItems={'bottom': date_xaxis})
+        # vb = CustomViewBox()
+        self.setMenuEnabled(False)
+        # self.setClipToView(True)
+        self.hideAxis('left')
+        self.showAxis('right')
+        self.setDownsampling(mode='peak')
+        # # self.setRange(xRange=(0, 1), yRange=(0, 1))
+        self.getAxis('right').setWidth(30)
+        self.getAxis('right').setStyle(tickFont=QFont("Roman times", 6, QFont.Bold))
+        self.getAxis('right').setPen(color=(255, 255, 255, 255), width=0.8)
+        self.showGrid(True, True)
+        self.hideButtons()
+        V_logger.info(f'初始化{name}画布')
+
+    def bind(self, layout, row=None, col=None):
+        self.layout = layout
+        self.layout.addItem(self, row, col)
+
+    def unbind(self):
+        self.layout.removeItem(self)

@@ -108,16 +108,6 @@ def help_doc():
     ohlc.datetime-历史K线时间
     ohlc.timestamp-历史K线时间戳
     ohlc.timeindex-历史k线时间序列
-    tick_datas有ohlc以上的所有属性，另外
-    tick_datas.ticker-当前K线的ticker数据
-    trade_datas.account-交易数据包含的账户
-    win.ohlc_plt-主窗口主图
-    win.indicator_plt-主窗口指标图
-    win.ma_items_dict-主窗口ma
-    win.macd_items_dict-主窗口macd
-    win.std_plt-主窗口std图
-    win.std_items_dict-主窗口std
-    win.mouse-主窗口鼠标
     '''
     print(text)
     return
