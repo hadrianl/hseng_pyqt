@@ -217,7 +217,7 @@ class OHlCWidget(KeyEventWidget):
         self.plts['main'].sigXRangeChanged.connect(self.ohlc_Yrange_update)  # 主图X轴变化绑定Y轴更新高度
         self.graphs['Slicer'].plt_items['date_slicer']['date_region'].sigRegionChanged.connect(self.date_slicer_update)  # 时间切片变化信号绑定调整画图
         ohlc.ticker_sig.connect(self.tick_update_plot) # ticker更新信号绑定最后的bar的画图
-
+        # ---------------------------数据更新的信号与图形更新槽连接------------------------------------------------
         ohlc.ohlc_sig.connect(lambda: self.graphs['OHLC'].update(ohlc))
         ohlc.ohlc_sig.connect(lambda: self.graphs['Slicer'].update(ohlc))
         for k, v in ohlc.extra_data.items():
@@ -227,7 +227,8 @@ class OHlCWidget(KeyEventWidget):
         ohlc.ohlc_sig.connect(lambda :self.draw_interline(ohlc))
         ohlc.ohlc_sig.connect(lambda : self.xaxis.update_tickval(ohlc.timestamp))
         ohlc.ohlc_sig.connect(lambda :self.ohlc_Xrange_update())
-        ohlc.ohlc_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
+        # ohlc.ohlc_sig.connect(partial(self.readjust_Xrange))
+        # ------------------------------------------------------------------------------------------------------
         # ----------------------重采样信号--------------------------------------
         self.console.RadioButton_min_1.clicked.connect(partial(ohlc.set_ktype, '1T'))
         self.console.RadioButton_min_5.clicked.connect(partial(ohlc.set_ktype, '5T'))
@@ -349,9 +350,7 @@ class OHlCWidget(KeyEventWidget):
         for p in plt_items:
             tickitem = plt_items[p]['tick']
             # ---------------------------更新数据到图表----------------------------------------------------+
-            tickitem.update()
             tickitem.setCurData(ohlc)
-            tickitem.update()
             # ---------------------------调整画图界面高度----------------------------------------------------+
             vbr = plts[p].getViewBox().viewRange()
             if last_ohlc.high >= vbr[1][1] or last_ohlc.low <= vbr[1][0]:
@@ -370,8 +369,9 @@ class OHlCWidget(KeyEventWidget):
             end = end.toPyDateTime()
         ohlc.inactive_ticker()
         ohlc([start, end], False)
-        ohlc.update()
         ohlc.ohlc_sig.emit()
+        ohlc.update()
+
 
     def goto_current(self):
         V_logger.info(f'回到当前行情')
@@ -380,8 +380,9 @@ class OHlCWidget(KeyEventWidget):
             start, end = date_range('present', bar_num=680)
             ohlc([start, end])
             ohlc.active_ticker()
-            ohlc.update()
             ohlc.ohlc_sig.emit()
+            ohlc.update()
+
 
 
     def on_K_Up(self):  # 键盘up键触发，放大

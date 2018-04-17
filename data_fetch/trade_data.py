@@ -17,7 +17,7 @@ class TradeData():
         self.name = 'Trade_Data'
         self.symbol = symbol
         self.__active = False
-        self.update_thread = self.QThread_update(self)
+        self.update_thread = self.QThread_update(self.calc)
         F_logger.info(f'D+初始化{self.symbol}交易数据')
 
     def __call__(self, ohlc):
@@ -97,8 +97,8 @@ class TradeData():
         return self._trade_data.query('Type==1')[['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',  'CloseTime', 'ClosePrice', 'Lots']]
 
     class QThread_update(QThread):
-        def __init__(self, handler):
+        def __init__(self, handle):
             QThread.__init__(self)
-            self.handler = handler
+            self.handle = handle
         def run(self):
-            self.handler.calc()
+            self.handle()

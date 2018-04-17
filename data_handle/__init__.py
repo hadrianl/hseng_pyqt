@@ -16,7 +16,7 @@ class handle_base(ABC):
         for k, v in kwargs.items():
             setattr(self, '_' + k, v)
         H_logger.info(f'D+初始化{self.type}-{self.name if hasattr(self, "name") else ""}数据-{[k + "=" + str(v) for k, v in kwargs.items()]}')
-        self.update_thread = self.QThread_update(self)
+        self.update_thread = self.QThread_update(self.calc)
 
     @abstractmethod
     def calc(self): ...
@@ -53,11 +53,11 @@ class handle_base(ABC):
     def _data(self): ...
 
     class QThread_update(QThread):
-        def __init__(self, handler):
+        def __init__(self, handle):
             QThread.__init__(self)
-            self.handler = handler
+            self.handle = handle
         def run(self):
-            self.handler.calc()
+            self.handle()
 
 
 
