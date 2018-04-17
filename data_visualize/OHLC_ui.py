@@ -440,7 +440,7 @@ class Suspended_Widget(pg.PlotWidget):
 class TrayIcon(QtWidgets.QSystemTrayIcon):
     def __init__(self, parent=None):
         super(TrayIcon, self).__init__(parent)
-        self.push_msg_type = []
+        self.push_msg_type = ['<API>']
         self.messager = self.system_message_handler(self)
         self.init_Menu()
         self.init_icon()
@@ -489,9 +489,9 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
     def aaa(self):
         print('sfsdfsf')
 
-    def push_message(self, type, info):
-        if type in self.push_msg_type:
-            self.showMessage(type, info, self.icon)
+    def push_message(self, info_type, info):
+        if info_type in self.push_msg_type:
+            self.showMessage(info_type, info, self.icon)
 
     class system_message_handler(Handler):
         def __init__(self, tray_icon):
@@ -500,12 +500,15 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
             formatter = Formatter('%(message)s')
             self.setLevel('INFO')
             self.setFormatter(formatter)
-            self.pattern = r'(^<.+>'
+            self.pattern = r'(<.+>)(.+)'
 
         def emit(self, record):
-            msg = self.format(record)
             try:
-                print(msg)
-                # self.tray_icon.push_message()
+                msg = self.format(record)
+                info_re = re.search(self.pattern, msg)
+                if info_re:
+                    info_type = info_re.group(1)
+                    info = info_re.group(2)
+                    self.tray_icon.push_message(info_type, info)
             except Exception as e:
                 print(e)
