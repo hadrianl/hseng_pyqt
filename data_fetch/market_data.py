@@ -11,6 +11,7 @@ import pymysql as pm
 from util import *
 from threading import Thread, Lock
 from PyQt5 import QtCore
+from  PyQt5.QtWidgets import QApplication
 from queue import Queue
 import queue
 import zmq
@@ -264,7 +265,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             self.__ktype = value
             F_logger.info(f'D↑更新OHLC数据,重采样->{self.ktype}')
             self.update()
-            self.resample_sig.emit()
+            self.ohlc_sig.emit()
     # -----------------------------------------------------------------------------------------------------
 
     def _data_register(self, data):  # 添加注册指标进入图表的函数

@@ -8,7 +8,7 @@
 
 from util import H_logger
 from abc import ABC, abstractmethod
-
+from PyQt5.QtCore import QThread
 class handle_base(ABC):
     def __init__(self, type, **kwargs):
         self.type = type
@@ -16,6 +16,7 @@ class handle_base(ABC):
         for k, v in kwargs.items():
             setattr(self, '_' + k, v)
         H_logger.info(f'D+初始化{self.type}-{self.name if hasattr(self, "name") else ""}数据-{[k + "=" + str(v) for k, v in kwargs.items()]}')
+        self.update_thread = self.QThread_update(self)
 
     @abstractmethod
     def calc(self): ...
@@ -32,7 +33,7 @@ class handle_base(ABC):
         if self.__active:
             self.ohlc = new_data
             self.x = self.ohlc.x
-            self.calc()
+            self.update_thread.start()
             H_logger.info(f'D↑更新{self.type}-{self.name if hasattr(self, "name") else ""}数据')
 
     def activate(self):
@@ -50,4 +51,13 @@ class handle_base(ABC):
     @property
     @abstractmethod
     def _data(self): ...
+
+    class QThread_update(QThread):
+        def __init__(self, handler):
+            QThread.__init__(self)
+            self.handler = handler
+        def run(self):
+            self.handler.calc()
+
+
 

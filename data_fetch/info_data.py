@@ -10,6 +10,7 @@ import zmq
 from threading import Thread
 from queue import Queue
 import pickle
+from spapi.sub_client import SpFunc
 
 class INFO():
     def __init__(self):

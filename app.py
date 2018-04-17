@@ -38,8 +38,8 @@ h_buysell = BuySell()
 trade_datas = TradeData('HSENG$.APR8')
 extra_data = [i_ma, i_macd, i_std, h_macd_hl_mark, h_buysell, trade_datas]
 # 将指标假如到主图数据里
-ohlc.active_ticker()
-ohlc.active_price()
+ohlc.active_ticker()  # 让ticker数据推送生效
+ohlc.active_price()  #让price数据推送生效
 ohlc._thread_lock.acquire()
 for d in extra_data:
     ohlc + d
@@ -74,12 +74,11 @@ w_ohlc.init_console_widget(namespace)  # 初始化交互界面
 w_ohlc.init_signal()  # 初始化指标信号
 win.init_data_signal()
 win.init_test()
-info.receiver_start()
+info.receiver_start()  # 服务器信息接收
 
 # 完成初始化的视图调整
 w_ohlc.init_date_region()  # 初始化可视化范围
 V_logger.info(f'初始化图表完成')
-w_ohlc.chart_replot()
 win.init_login_win()
 
 

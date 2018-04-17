@@ -9,6 +9,7 @@ import pandas as pd
 import pymysql as pm
 from util import *
 import datetime as dt
+from PyQt5.QtCore import QThread
 
 class TradeData():
     def __init__(self, symbol):
@@ -16,6 +17,7 @@ class TradeData():
         self.name = 'Trade_Data'
         self.symbol = symbol
         self.__active = False
+        self.update_thread = self.QThread_update(self)
         F_logger.info(f'D+初始化{self.symbol}交易数据')
 
     def __call__(self, ohlc):
@@ -56,16 +58,19 @@ class TradeData():
                         f'where Symbol="{self.symbol}" ' \
                         f'and OpenTime>="{self.start}" and CloseTime<"{self.end}" ' \
                         f'and Status>=0'
-            try:
-                self._trade_data = pd.read_sql(self._sql, self._conn)
-                self._conn.commit()
-                self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
-                self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
-                F_logger.info(f'D↑更新{self.symbol}交易数据,<{self.start}>-<{self.end}>')
-            except Exception as e:
-                self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
-                                                         'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
-                F_logger.error(f'D↑更新{self.symbol}交易数据,<{self.start}>-<{self.end}>失败.ERROR:', e)
+            self.update_thread.start()
+
+    def calc(self):
+        try:
+            self._trade_data = pd.read_sql(self._sql, self._conn)
+            self._conn.commit()
+            self._trade_data['OpenTime'] = self._trade_data['OpenTime'] + dt.timedelta(hours=8)
+            self._trade_data['CloseTime'] = self._trade_data['CloseTime'] + dt.timedelta(hours=8)
+            F_logger.info(f'D↑更新{self.symbol}交易数据,<{self.start}>-<{self.end}>')
+        except Exception as e:
+            self._trade_data = pd.DataFrame(columns=['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',
+                                                     'CloseTime', 'ClosePrice', 'Type', 'Lots', 'Status'])
+            F_logger.error(f'D↑更新{self.symbol}交易数据,<{self.start}>-<{self.end}>失败.ERROR:', e)
 
     @property
     def account(self):
@@ -90,3 +95,10 @@ class TradeData():
     @property
     def short(self):
         return self._trade_data.query('Type==1')[['Ticket', 'Account_ID', 'OpenTime', 'OpenPrice',  'CloseTime', 'ClosePrice', 'Lots']]
+
+    class QThread_update(QThread):
+        def __init__(self, handler):
+            QThread.__init__(self)
+            self.handler = handler
+        def run(self):
+            self.handler.calc()

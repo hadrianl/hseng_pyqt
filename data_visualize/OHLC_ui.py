@@ -17,7 +17,7 @@ from data_visualize.accessory import mouseaction
 import datetime as dt
 from functools import partial
 from data_visualize.Console_ui import AnalysisConsole
-from PyQt5.QtWidgets import QDesktopWidget
+from PyQt5.QtWidgets import QDesktopWidget, QApplication
 from order import OrderDialog
 from sp_func.local import *
 from data_visualize.graph import *
@@ -194,6 +194,8 @@ class OHlCWidget(KeyEventWidget):
         ohlc = self.data['ohlc']
         self.graphs['Slicer'].plt_items['date_slicer']['date_region'].setRegion([ohlc.x.max() - 120,
                                                                                  ohlc.x.max() + 5])  # 初始化可视区域
+        ohlc.ohlc_sig.emit()
+        ohlc.update()
         self.ohlc_Xrange_update()
 
     def init_mouseaction(self):  # 初始化鼠标十字光标动作以及光标所在位置的信息
@@ -214,11 +216,19 @@ class OHlCWidget(KeyEventWidget):
         ohlc = self.data['ohlc']
         self.plts['main'].sigXRangeChanged.connect(self.ohlc_Yrange_update)  # 主图X轴变化绑定Y轴更新高度
         self.graphs['Slicer'].plt_items['date_slicer']['date_region'].sigRegionChanged.connect(self.date_slicer_update)  # 时间切片变化信号绑定调整画图
-        ohlc.ohlc_sig.connect(self.chart_replot) # K线更新信号绑定更新画图
         ohlc.ticker_sig.connect(self.tick_update_plot) # ticker更新信号绑定最后的bar的画图
+
+        ohlc.ohlc_sig.connect(lambda: self.graphs['OHLC'].update(ohlc))
+        ohlc.ohlc_sig.connect(lambda: self.graphs['Slicer'].update(ohlc))
+        for k, v in ohlc.extra_data.items():
+            if k in self.graphs:
+                v.update_thread.finished.connect(partial(lambda n: self.graphs[n].update(ohlc), k))
+
+        ohlc.ohlc_sig.connect(lambda :self.draw_interline(ohlc))
+        ohlc.ohlc_sig.connect(lambda : self.xaxis.update_tickval(ohlc.timestamp))
+        ohlc.ohlc_sig.connect(lambda :self.ohlc_Xrange_update())
+        ohlc.ohlc_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
         # ----------------------重采样信号--------------------------------------
-        ohlc.resample_sig.connect(self.chart_replot)  # 重采样重画
-        ohlc.resample_sig.connect(partial(self.readjust_Xrange)) # 重采样调整视图
         self.console.RadioButton_min_1.clicked.connect(partial(ohlc.set_ktype, '1T'))
         self.console.RadioButton_min_5.clicked.connect(partial(ohlc.set_ktype, '5T'))
         self.console.RadioButton_min_10.clicked.connect(partial(ohlc.set_ktype, '10T'))
@@ -238,15 +248,18 @@ class OHlCWidget(KeyEventWidget):
     #     self.consolebutton = QtWidgets.QPushButton(text='交互console', parent=self.pw)
     #     self.consolebutton.setGeometry(QtCore.QRect(10, 250, 75, 23))
 
-    def chart_replot(self):  # 重新画图
-        V_logger.info('G↑更新图表......')
-        ohlc = self.data['ohlc']
-        for name, graph in self.graphs.items():
-            graph.update(ohlc)
-        self.draw_interline(ohlc)
-        self.xaxis.update_tickval(ohlc.timestamp)
-        self.ohlc_Xrange_update()
-        V_logger.info('G↑更新图表完成......')
+
+
+    # def chart_replot(self):  # 重新画图
+    #     V_logger.info('G↑更新图表......')
+    #     ohlc = self.data['ohlc']
+    #     for name, graph in self.graphs.items():
+    #         # QApplication.processEvents()
+    #         graph.update(ohlc)
+    #     self.draw_interline(ohlc)
+    #     self.xaxis.update_tickval(ohlc.timestamp)
+    #     self.ohlc_Xrange_update()
+    #     V_logger.info('G↑更新图表完成......')
 
     def ohlc_Yrange_update(self):  # 更新主图和指标图的高度
         date_region = self.graphs['Slicer'].plt_items['date_slicer']['date_region']
@@ -346,6 +359,7 @@ class OHlCWidget(KeyEventWidget):
                                   max(vbr[1][1], last_ohlc.high))
         # app.processEvents()
 
+
     def goto_history(self, start, end):
         V_logger.info(f'回顾历史行情')
         ohlc = self.data['ohlc']
@@ -357,7 +371,7 @@ class OHlCWidget(KeyEventWidget):
         ohlc.inactive_ticker()
         ohlc([start, end], False)
         ohlc.update()
-        self.chart_replot()
+        ohlc.ohlc_sig.emit()
 
     def goto_current(self):
         V_logger.info(f'回到当前行情')
@@ -367,8 +381,8 @@ class OHlCWidget(KeyEventWidget):
             ohlc([start, end])
             ohlc.active_ticker()
             ohlc.update()
-            self.chart_replot()
-            self.init_date_region()
+            ohlc.ohlc_sig.emit()
+
 
     def on_K_Up(self):  # 键盘up键触发，放大
         ohlc_xrange = self.plts['main'].getViewBox().viewRange()[0]
@@ -465,7 +479,7 @@ class TrayIcon(QtWidgets.QSystemTrayIcon):
         # #把鼠标点击图标的信号和槽连接
         # self.messageClicked.connect(self.mClied)
         # #把鼠标点击弹出消息的信号和槽连接
-        self.setIcon(QIcon(os.path.join('ui', 'wifi.png')))
+        self.setIcon(QIcon(os.path.join('ui', 'tracking.png')))
         self.icon = self.MessageIcon()
         #设置图标
 
