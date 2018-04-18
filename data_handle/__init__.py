@@ -21,18 +21,19 @@ class handle_base(ABC):
     @abstractmethod
     def calc(self): ...
 
-    def __call__(self, new_data):
+    def __call__(self, ohlc):
         self.activate()
-        self.update(new_data)
+        self.update(ohlc)
         return self
 
     def __repr__(self):
         return self._data.__repr__()
 
-    def update(self, new_data):
+    def update(self, ohlc):
         if self.__active:
-            self.ohlc = new_data
-            self.x = self.ohlc.x
+            self.data = ohlc.data.copy()
+            self.x = ohlc.x.copy()
+            self.ohlc = ohlc
             self.update_thread.start()
             H_logger.info(f'D↑更新{self.type}-{self.name if hasattr(self, "name") else ""}数据')
 

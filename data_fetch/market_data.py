@@ -264,8 +264,9 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         if value in KTYPES and value != self.__ktype:
             self.__ktype = value
             F_logger.info(f'D↑更新OHLC数据,重采样->{self.ktype}')
+            self.resample_sig.emit()
             self.update()
-            self.ohlc_sig.emit()
+
     # -----------------------------------------------------------------------------------------------------
 
     def _data_register(self, data):  # 添加注册指标进入图表的函数

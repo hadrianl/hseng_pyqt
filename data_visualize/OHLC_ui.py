@@ -90,6 +90,7 @@ class OHlCWidget(KeyEventWidget):
         super(OHlCWidget, self).__init__(parent)
         self.pw = pg.PlotWidget()
         self.susp = Suspended_Widget()
+        self.susp.setWindowTitle('悬浮窗口')
         # self.susp.hide()
         self.main_layout = pg.GraphicsLayout(border=(100, 100, 100))
         self.main_layout.setContentsMargins(10, 10, 10, 10)
@@ -227,9 +228,10 @@ class OHlCWidget(KeyEventWidget):
         ohlc.ohlc_sig.connect(lambda :self.draw_interline(ohlc))
         ohlc.ohlc_sig.connect(lambda : self.xaxis.update_tickval(ohlc.timestamp))
         ohlc.ohlc_sig.connect(lambda :self.ohlc_Xrange_update())
-        # ohlc.ohlc_sig.connect(partial(self.readjust_Xrange))
         # ------------------------------------------------------------------------------------------------------
         # ----------------------重采样信号--------------------------------------
+        ohlc.resample_sig.connect(ohlc.ohlc_sig)
+        ohlc.resample_sig.connect(partial(self.readjust_Xrange))
         self.console.RadioButton_min_1.clicked.connect(partial(ohlc.set_ktype, '1T'))
         self.console.RadioButton_min_5.clicked.connect(partial(ohlc.set_ktype, '5T'))
         self.console.RadioButton_min_10.clicked.connect(partial(ohlc.set_ktype, '10T'))
