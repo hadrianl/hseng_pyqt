@@ -11,9 +11,11 @@ from data_visualize.graph import *
 from functools import partial
 from experimental import normalize_test
 from data_visualize.Login_ui import LoginDialog
-from order import OrderDialog
+from SpInfo_ui import OrderDialog, AccInfoWidget
 from data_visualize.OHLC_ui import TrayIcon
 from util import S_logger
+from data_fetch.info_data import INFO
+from sp_func.local import *
 from PyQt5.QtCore import QCoreApplication
 import sys
 import os
@@ -23,6 +25,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         QMainWindow.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
+        self.init_login_win()
+        self.init_tray()
+        self.init_order_dialog()
+        self.init_info()
+        self.init_acc_info_widget()
+
 
     def init_login_win(self):
         self.login_win = LoginDialog()  # 登录界面
@@ -30,8 +38,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.login_win.show()
         self.login_win.accepted.connect(self.show)
         self.login_win.accepted.connect(self.init_tray)
-        self.order_dialog = OrderDialog()
-        self.pushButton_order.released.connect(self.order_dialog.show)
         # self.login_win.rejected.connect(self.closeAllWindows)
 
     def init_tray(self):
@@ -44,6 +50,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tray_icon.show()
         S_logger.addHandler(self.tray_icon.messager)
 
+    def init_order_dialog(self):
+        self.order_dialog = OrderDialog()
+        self.pushButton_order.released.connect(self.order_dialog.show)
+
+    def init_info(self):
+        self.info = INFO()
+        self.info.receiver_start()
+
+    def init_acc_info_widget(self):
+        self.acc_info_widget = AccInfoWidget()
+        self.pushButton_acc_info.released.connect(self.acc_info_widget.show)
+        self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
+            lambda n: print(self.info.orders) if n in [0] else ...)
+        self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
+            lambda n: print(self.info.position) if n in [1] else ...)
+        self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
+            lambda n: print(self.info.trades) if n in [2] else ...)
+        self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
+            lambda n: print(self.info.balance) if n in [3] else ...)
 
     def closeEvent(self, a0: QtGui.QCloseEvent):
         reply = QtWidgets.QMessageBox.question(self, '退出',"是否要退出程序？",
@@ -56,7 +81,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             a0.ignore()
 
-    def init_data_signal(self):
+    def init_signal(self):
         w_ohlc = self.QWidget_ohlc
         ohlc = w_ohlc.data['ohlc']
         extra_data = ohlc.extra_data
