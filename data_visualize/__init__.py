@@ -13,11 +13,8 @@ from experimental import normalize_test
 from data_visualize.Login_ui import LoginDialog
 from SpInfo_ui import OrderDialog, AccInfoWidget
 from data_visualize.OHLC_ui import TrayIcon
-from util import S_logger
 from data_fetch.info_data import INFO
 from sp_func.local import *
-from PyQt5.QtCore import QCoreApplication
-import sys
 import os
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -26,7 +23,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
         self.init_login_win()
-        self.init_tray()
         self.init_order_dialog()
         self.init_info()
         self.init_acc_info_widget()
