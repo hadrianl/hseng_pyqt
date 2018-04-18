@@ -11,9 +11,11 @@
 import datetime as dt
 from dateutil.parser import parse
 import numpy as np
+from pandas import Timestamp
 import configparser
 import logging.config
 import os
+import datetime
 server_conf = configparser.ConfigParser()
 server_conf.read(os.path.join('conf', 'server.conf'))
 
@@ -238,3 +240,458 @@ def coincide(df,ma=60):
                             continue
         return cd
     return macd2(da)
+
+
+class Zbjs(object):
+    fa_doc = {
+        '1': '',
+        '2': '',
+        '3': '',
+        '4': '',
+        '5': '',
+    }
+    def __init__(self,df):
+        self.da = [(d[0], d[1], d[2], d[3], d[4]) for d in df.values]
+        self.xzfa = {'1': self.fa1, '2': self.fa2, '3': self.fa3, '4': self.fa4,'5':self.fa5}  # 执行方案
+
+    def get_doc(self,fa):
+        return self.fa_doc.get(fa)
+
+    def is_date(self,datetimes):
+        ''' 是否已经或即将进入晚盘 '''
+        h=datetimes.hour
+        return (h==16 and datetimes.minute>=29) or h>16 or h<9
+
+
+    def macd2(self,da,ma=60,short=12,long=26,phyd=9):
+        # da格式：((datetime.datetime(2018, 3, 19, 9, 22),31329.0,31343.0,31328.0,31331.0,249)...)
+        dc=[]
+        co=0
+        cds=1
+        def body_k(o, h, l, c):
+            if abs(h - l) > 0:
+                return abs(o - c) / abs(h - l) > 0.6
+            else:
+                return False
+        for i in range(len(da)):
+            dc.append({'ema_short':0,'ema_long':0,'diff':0,'dea':0,'macd':0,'ma':0,'var':0,'std':0,'reg':0,'mul':0,'datetimes':da[i][0],'open':da[i][1],'high':da[i][2],'low':da[i][3],'close':da[i][4],'cd':0,'maidian':0})
+            if i == long-1:
+                ac = da[i - 1][4]
+                this_c = da[i][4]
+                dc[i]['ema_short'] = ac + (this_c - ac) * 2 / short
+                dc[i]['ema_long'] = ac + (this_c - ac) * 2 / long
+                #dc[i]['ema_short'] = sum([(short-j)*da[i-j][4] for j in range(short)])/(3*short)
+                #dc[i]['ema_long'] = sum([(long-j)*da[i-j][4] for j in range(long)])/(3*long)
+                dc[i]['diff'] = dc[i]['ema_short'] - dc[i]['ema_long']
+                dc[i]['dea'] = dc[i]['diff'] * 2 / phyd
+                dc[i]['macd'] = 2 * (dc[i]['diff'] - dc[i]['dea'])
+                co=1 if dc[i]['macd']>=0 else 0
+            elif i>long-1:
+                n_c = da[i][4]
+                dc[i]['ema_short'] = dc[i-1]['ema_short'] * (short-2) / short + n_c * 2 / short
+                dc[i]['ema_long'] = dc[i-1]['ema_long'] * (long-2) / long + n_c * 2 / long
+                dc[i]['diff'] = dc[i]['ema_short'] - dc[i]['ema_long']
+                dc[i]['dea'] = dc[i-1]['dea'] * (phyd-2) / phyd + dc[i]['diff'] * 2 / phyd
+                dc[i]['macd'] = 2 * (dc[i]['diff'] - dc[i]['dea'])
+
+            if i>=ma-1:
+                dc[i]['ma']=sum(da[i-j][4] for j in range(ma))/ma # 移动平均值 i-ma+1,i+1
+                std_pj=sum(da[i-j][4]-da[i-j][1] for j in range(ma))/ma
+                dc[i]['var']=sum((da[i-j][4]-da[i-j][1]-std_pj)**2 for j in range(ma))/ma  # 方差 i-ma+1,i+1
+                dc[i]['std']=float(np.sqrt(dc[i]['var'])) # 标准差
+
+                if dc[i]['macd']>=0 and dc[i-1]['macd']<0:
+                    co+=1
+                elif dc[i]['macd']<0 and dc[i-1]['macd']>=0:
+                    co+=1
+                dc[i]['reg']=co
+                price=dc[i]['close']-dc[i]['open']
+                std=dc[i]['std']
+                if std:
+                    dc[i]['mul']=round(price/std,2)
+
+                o1 = dc[i]['open']
+                h1 = dc[i]['high']
+                l1 = dc[i]['low']
+                c1 = dc[i]['close']
+                if abs(dc[i]['mul']) > 1.5 and body_k(o1, h1, l1, c1):
+                    for j in range(i - 2, i - 15, -1):
+                        o2 = dc[j]['open']
+                        h2 = dc[j]['high']
+                        l2 = dc[j]['low']
+                        c2 = dc[j]['close']
+                        try:
+                            if abs(dc[j]['mul']) > 1.5 and ((o1 > c1 and o2 > c2) or (o1 < c1 and o2 < c2)) and body_k(o2, h2, l2, c2):
+                                if o1 < c1:
+                                    if dc[j]['cd'] == 0 and (c2 - o1) / (c1 - o2) > 0.4 and o2 < o1 < c2 < c1:
+                                        dc[i]['cd'] = cds
+                                        cds += 1
+                                        break
+                                elif o1 > c1:
+                                    if dc[j]['cd'] == 0 and (o1 - c2) / (o2 - c1) > 0.4 and c1 < c2 < o1 < o2:
+                                        dc[i]['cd'] = -cds
+                                        cds += 1
+                                        break
+
+                            elif abs(dc[j]['mul']) > 1.4 and (o1 > c1 and o2 < c2 and (h1 <= h2 and l1 <= l2 or c1 <= o2)):  # and body_k(o2, h2, l2,c2):
+                                if (o1 - o2) / (c2 - c1) > 0.4:
+                                    dc[i]['maidian'] = -cds
+                                    break
+
+                            elif abs(dc[j]['mul']) > 1.4 and (o1 < c1 and o2 > c2) and (h1 >= h2 and l1 >= l2 or c1 >= o2):  # and body_k(o2, h2, l2,c2):
+                                if (o2 - o1) / (c1 - c2) > 0.4:
+                                    dc[i]['maidian'] = cds
+                                    break
+                        except:
+                            continue
+
+        data=1 # data future is list
+        while data:
+            data=yield dc
+
+            ind=len(dc)
+            if isinstance(data,tuple):
+                dc.append({'ema_short':0,'ema_long':0,'diff':0,'dea':0,'macd':0,'ma':0,'var':0,'std':0,'reg':0,'mul':0,'datetimes':data[0],'open':data[1],'high':data[2],'low':data[3],'close':data[4],'cd':0,'maidian':0})
+                try:
+                    dc[ind]['ema_short'] = dc[ind-1]['ema_short'] * (short-2) / short + dc[ind]['close'] * 2 / short  # 当日EMA(12)
+                    dc[ind]['ema_long'] = dc[ind-1]['ema_long'] * (long-2) / long + dc[ind]['close'] * 2 / long  # 当日EMA(26)
+                    dc[ind]['diff'] = dc[ind]['ema_short'] - dc[ind]['ema_long']
+                    dc[ind]['dea'] = dc[ind-1]['dea'] * (phyd-2) / phyd + dc[ind]['diff'] * 2 / phyd
+                    dc[ind]['macd'] = 2 * (dc[ind]['diff'] - dc[ind]['dea'])
+
+                    dc[ind]['ma']=sum(dc[ind-j]['close'] for j in range(ma))/ma # 移动平均值
+                    std_pj=sum(dc[ind-j]['close']-dc[ind-j]['open']  for j in range(ma))/ma
+                    dc[ind]['var']=sum((dc[ind-j]['close']-dc[ind-j]['open']-std_pj)**2 for j in range(ma))/ma # 方差
+                    dc[ind]['std']=float(np.sqrt(dc[ind]['var'])) # 标准差
+                except Exception as exc:
+                    logging.error(exc)
+
+                if dc[ind]['macd']>=0 and dc[ind-1]['macd']<0:
+                    co+=1
+                elif dc[ind]['macd']<0 and dc[ind-1]['macd']>=0:
+                    co+=1
+                dc[ind]['reg']=co
+                price=dc[ind]['close']-dc[ind]['open']
+                std=dc[ind]['std']
+                if std:
+                    dc[ind]['mul']=round(price/std,2)
+
+                o1 = dc[ind]['open']
+                h1 = dc[ind]['high']
+                l1 = dc[ind]['low']
+                c1 = dc[ind]['close']
+                if abs(dc[ind]['mul']) > 1.5 and body_k(o1, h1, l1, c1):
+                    for j in range(ind - 1, ind - 12, -1):
+                        o2 = dc[j]['open']
+                        h2 = dc[j]['high']
+                        l2 = dc[j]['low']
+                        c2 = dc[j]['close']
+                        try:
+                            if abs(dc[j]['mul']) > 1.5 and ((o1 > c1 and o2 > c2) or (o1 < c1 and o2 < c2)) and body_k(
+                                    o2, h2, l2, c2):
+                                if o1 < c1:
+                                    if dc[j]['cd'] == 0 and (c2 - o1) / (c1 - o2) > 0.4:
+                                        dc[ind]['cd'] = cds
+                                        cds += 1
+                                        break
+                                elif o1 > c1:
+                                    if dc[j]['cd'] == 0 and (o1 - c2) / (o2 - c1) > 0.4:
+                                        dc[ind]['cd'] = -cds
+                                        cds += 1
+                                        break
+                            elif abs(dc[j]['mul']) > 1.4 and (o1 > c1 and o2 < c2 and (h1 <= h2 and l1 <= l2 or c1 <= o2)):  # and body_k(o2, h2, l2,c2):
+                                if (o1 - o2) / (c2 - c1) > 0.4:
+                                    dc[ind]['maidian'] = -cds
+                                    break
+
+                            elif abs(dc[j]['mul']) > 1.4 and (o1 < c1 and o2 > c2) and (h1 >= h2 and l1 >= l2 or c1 >= o2):  # and body_k(o2, h2, l2,c2):
+                                if (o2 - o1) / (c1 - c2) > 0.4:
+                                    dc[ind]['maidian'] = cds
+                                    break
+                        except Exception as exc:
+                            continue
+            else:
+                print('data不是tuple',type(data),data)
+
+    def fa1(self):
+        jg_d, jg_k = 0, 0
+        startMony_d, startMony_k = 0, 0
+        str_time1, str_time2 = '', ''
+        is_d, is_k = 0, 0
+        is_dk = not (is_k or is_d)
+        res = {}
+        while 1:
+            _while, res, dt3, dates = yield res
+            if not _while:
+                break
+            dt2 = dt3[-1]
+            datetimes, ope, clo, macd, mas, std, reg, mul, cd = dt2['datetimes'], dt2['open'], dt2['close'], dt2[
+                'macd'], dt2['ma'], dt2['std'], dt2['reg'], dt2['mul'], dt2['cd']
+            if mul > 1.5:
+                res[dates]['dy'] += 1
+            elif mul < -1.5:
+                res[dates]['xy'] += 1
+            res[dates]['ch'] += 1 if cd != 0 else 0
+
+            if clo>mas and mul>1.5 and is_dk and not datetimes.hour==16:
+                jg_d=clo
+                startMony_d=clo
+                str_time1=str(datetimes)
+                is_d=1
+            if clo<mas and mul<-1.5 and is_dk and not datetimes.hour==16:
+                jg_k=clo
+                startMony_k=clo
+                str_time2=str(datetimes)
+                is_k=-1
+            if is_d==1 and ((macd<0 and clo<mas) or self.is_date(datetimes)):
+                if clo - jg_d < 50 or self.is_date(datetimes):
+                    res[dates]['duo'] += 1
+                    res[dates]['mony'] += (clo - jg_d)
+                    res[dates]['datetimes'].append([str_time1, str(datetimes), '多', clo - startMony_d])
+                    is_d = 0
+                elif clo - jg_d > 60:
+                    res[dates]['mony'] += (clo - jg_d)
+                    jg_d = clo
+            if is_k==-1 and ((macd>0 and clo>mas) or self.is_date(datetimes)):
+                if jg_k - clo < 50 or self.is_date(datetimes):
+                    res[dates]['kong'] += 1
+                    res[dates]['mony'] += (jg_k - clo)
+                    res[dates]['datetimes'].append([str_time2, str(datetimes), '空', startMony_k - clo])
+                    is_k = 0
+                elif jg_k - clo > 60:
+                    res[dates]['mony'] += (jg_k - clo)
+                    jg_k = clo
+
+    def fa2(self):
+        startMony_d, startMony_k = 0, 0
+        str_time1, str_time2 = '', ''
+        is_d, is_k = 0, 0
+        is_dk = not (is_k or is_d)
+        res = {}
+        while 1:
+            _while, res, dt3, dates = yield res
+            if not _while:
+                break
+            dt2 = dt3[-1]
+            datetimes, ope, clo, macd, mas, std, reg, mul, cd = dt2['datetimes'], dt2['open'], dt2['close'], dt2[
+                'macd'], dt2['ma'], dt2['std'], dt2['reg'], dt2['mul'], dt2['cd']
+            if mul > 1.5:
+                res[dates]['dy'] += 1
+            elif mul < -1.5:
+                res[dates]['xy'] += 1
+            res[dates]['ch'] += 1 if cd != 0 else 0
+
+            if cd > 0 and is_dk:
+                res[dates]['duo'] += 1
+                jg_d = clo
+                startMony_d=clo
+                str_time1 = str(datetimes)
+                is_d = 1
+            if cd < 0 and is_dk:
+                res[dates]['kong'] += 1
+                jg_k = clo
+                startMony_k=clo
+                str_time2 = str(datetimes)
+                is_k = -1
+            if is_d == 1 and (macd<dt3[-2]['macd'] or self.is_date(datetimes)):
+                res[dates]['mony'] += (clo - startMony_d)
+                res[dates]['datetimes'].append([str_time1, str(datetimes), '多', clo - startMony_d])
+                is_d = 0
+            if is_k == -1 and (macd>dt3[-2]['macd'] or self.is_date(datetimes)):
+                res[dates]['mony'] += (startMony_k - clo)
+                res[dates]['datetimes'].append([str_time2, str(datetimes), '空', startMony_k - clo])
+                is_k = 0
+
+    def fa3(self):
+        jg_d, jg_k = 0, 0
+        startMony_d, startMony_k = 0, 0
+        str_time1, str_time2 = '', ''
+        is_d, is_k = 0, 0
+        is_dk = not (is_k or is_d)
+        res = {}
+        while 1:
+            _while, res, dt3, dates = yield res
+            if not _while:
+                break
+            dt2 = dt3[-1]
+            datetimes, ope, clo, macd, mas, std, reg, mul, cd = dt2['datetimes'], dt2['open'], dt2['close'], dt2[
+                'macd'], dt2['ma'], dt2['std'], dt2['reg'], dt2['mul'], dt2['cd']
+            if mul > 1.5:
+                res[dates]['dy'] += 1
+            elif mul < -1.5:
+                res[dates]['xy'] += 1
+            res[dates]['ch'] += 1 if cd != 0 else 0
+
+            if clo>mas and mul>1.5 and is_dk:
+                jg_d=clo
+                startMony_d=clo
+                str_time1=str(datetimes)
+                is_d=1
+            if clo<mas and mul<-1.5 and is_dk:
+                jg_k=clo
+                startMony_k=clo
+                str_time2=str(datetimes)
+                is_k=-1
+            if is_d==1 and (macd<dt3[-2]['macd'] or self.is_date(datetimes)):
+                if clo-jg_d<0:
+                    res[dates]['duo']+=1
+                    res[dates]['mony']+=(clo-jg_d)
+                    res[dates]['datetimes'].append([str_time1, str(datetimes),'多',clo-startMony_d])
+                    is_d=0
+                if clo-jg_d>10:
+                    res[dates]['mony']+=(clo-jg_d)
+                    jg_d=clo
+            if is_k==-1 and (macd>dt3[-2]['macd'] or self.is_date(datetimes)):
+                if jg_k-clo<0:
+                    res[dates]['kong']+=1
+                    res[dates]['mony']+=(jg_k-clo)
+                    res[dates]['datetimes'].append([str_time2,str(datetimes),'空',startMony_k-clo])
+                    is_k=0
+
+    def fa4(self):
+        jg_d, jg_k = 0, 0
+        startMony_d, startMony_k = 0, 0
+        str_time1, str_time2 = '', ''
+        is_d, is_k = 0, 0
+        is_dk = not (is_k or is_d)
+        res = {}
+        while 1:
+            _while, res, dt3, dates = yield res
+            if not _while:
+                break
+            dt2 = dt3[-1]
+            datetimes, ope, clo, macd, mas, std, reg, mul, cd = dt2['datetimes'], dt2['open'], dt2['close'], dt2[
+                'macd'], dt2['ma'], dt2['std'], dt2['reg'], dt2['mul'], dt2['cd']
+            if mul > 1.5:
+                res[dates]['dy'] += 1
+            elif mul < -1.5:
+                res[dates]['xy'] += 1
+            res[dates]['ch'] += 1 if cd != 0 else 0
+            if clo>mas and mul>1.5 and is_dk:
+                res[dates]['duo'] += 1
+                jg_d=clo
+                startMony_d=clo
+                str_time1=str(datetimes)
+                is_d=1
+            if clo<mas and mul<-1.5 and is_dk:
+                res[dates]['kong'] += 1
+                jg_k=clo
+                startMony_k=clo
+                str_time2=str(datetimes)
+                is_k=-1
+            if is_d==1 and (macd<0 and clo<mas and clo-startMony_d>100) or self.is_date(datetimes):
+                    res[dates]['mony']+=(clo-jg_d)
+                    res[dates]['datetimes'].append([str_time1,str(datetimes),'多',clo-startMony_d])
+                    is_d=0
+
+            if is_k==-1 and (macd>0 and clo>mas and startMony_k-clo>100) or self.is_date(datetimes):
+                    res[dates]['mony']+=(jg_k-clo)
+                    res[dates]['datetimes'].append([str_time2,str(datetimes),'空',startMony_k-clo])
+                    is_k=0
+
+    def fa5(self):
+        up_c,down_c=0,0
+        startMony_d,startMony_k=0,0
+        str_time1,str_time2='',''
+        is_d,is_k=0,0
+        is_dk=not (is_k or is_d)
+        res={}
+        while 1:
+            _while, res, dt3, dates = yield res
+            if not _while:
+                break
+            dt2 = dt3[-1]
+            datetimes, ope, clo, macd, mas, std, reg, mul, cd ,maidian= dt2['datetimes'], dt2['open'], dt2['close'], dt2[
+                'macd'], dt2['ma'], dt2['std'], dt2['reg'], dt2['mul'], dt2['cd'], dt2['maidian']
+            if mul > 1.5:
+                res[dates]['dy'] += 1
+            elif mul < -1.5:
+                res[dates]['xy'] += 1
+            res[dates]['ch'] += 1 if cd != 0 else 0
+            up_c += 1 if (cd > 0 or maidian > 0) else 0 # 上涨提示次数
+            down_c += 1 if (cd < 0 or maidian < 0) else 0 # 下跌提示次数
+
+            judge_d=(down_c>up_c and down_c>2) # 做多与平多仓的判断
+            judge_k=(up_c>down_c and up_c>2) # 做空与平空仓的判断
+            if cd < 0 and is_dk and not judge_d:
+                #res[dates]['duo'] += 1
+                jg_d = clo
+                startMony_d=clo
+                str_time1 = str(datetimes)
+                is_d = 1
+            elif cd > 0 and is_dk and not judge_k:
+                #res[dates]['kong'] += 1
+                jg_k = clo
+                startMony_k=clo
+                str_time2 = str(datetimes)
+                is_k = -1
+
+            if is_d == 1 and (judge_d or self.is_date(datetimes)):
+                # res[dates]['mony'] += (clo - startMony_d)
+                # res[dates]['datetimes'].append([str_time1, str(datetimes), '多', clo - startMony_d])
+                # is_d = 0
+                # up_c = 0
+                # down_c = 0
+                if clo - jg_d < 50 or self.is_date(datetimes):
+                    res[dates]['duo'] += 1
+                    res[dates]['mony'] += (clo - jg_d)
+                    res[dates]['datetimes'].append([str_time1, str(datetimes), '多', clo - startMony_d])
+                    is_d = 0
+                    up_c = 0
+                    down_c = 0
+                elif clo - jg_d > 60:
+                    res[dates]['mony'] += (clo - jg_d)
+                    jg_d = clo
+
+            elif is_k == -1 and (judge_k or self.is_date(datetimes)):
+                # res[dates]['mony'] += (startMony_k - clo)
+                # res[dates]['datetimes'].append([str_time2, str(datetimes), '空', startMony_k - clo])
+                # is_k = 0
+                # up_c = 0
+                # down_c = 0
+                if jg_k - clo < 50 or self.is_date(datetimes):
+                    res[dates]['kong'] += 1
+                    res[dates]['mony'] += (jg_k - clo)
+                    res[dates]['datetimes'].append([str_time2, str(datetimes), '空', startMony_k - clo])
+                    is_k = 0
+                    up_c = 0
+                    down_c = 0
+                elif jg_k - clo > 60:
+                    res[dates]['mony'] += (jg_k - clo)
+                    jg_k = clo
+
+
+    def main2(self,_fa,_ma=60):
+        #fa_send_no = 0
+        res={}
+        da = self.da
+        if len(da)>_ma:
+            data2=self.macd2(da=da[:_ma],ma=_ma)
+            data2.send(None)
+            da=da[_ma:]
+            fa = self.xzfa[_fa]()
+            fa.send(None)
+        else:
+            return
+        for df2 in da:
+            # df2格式：(Timestamp('2018-03-16 09:22:00') 31304.0 31319.0 31295.0 31316.0 275)
+            dates=str(df2[0])[:10]
+            if dates not in res:
+                res[dates] = {'duo': 0, 'kong': 0, 'mony': 0, 'datetimes': [], 'dy': 0, 'xy': 0, 'ch': 0}
+            dt3=data2.send(df2)
+            datetimes=dt3[-1]['datetimes']
+            if ((datetimes.hour==16 and datetimes.minute>30) or datetimes.hour>16 or datetimes.hour<9):
+                continue
+            res=fa.send((True,res,dt3,dates))
+
+        #data2.send(None)
+        #fa.send(None)
+        #return res
+        res2=[res[i]['datetimes'] for i in res]
+        buysell={}
+        for day in res2:
+            for i in day:
+                if i:
+                    buysell[Timestamp(i[0])]=1 if i[2]=='多' else -1
+                    buysell[Timestamp(i[1])]=2 if i[2]=='空' else -2
+        return buysell

@@ -15,6 +15,7 @@ from order import OrderDialog
 from PyQt5.QtCore import QCoreApplication
 import sys
 import os
+from signal import SIGTERM
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -39,7 +40,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                           QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
             pid=os.getpid()
-            os.system(f'taskkill /F /PID {pid}')
+            os.kill(pid,SIGTERM)
             a0.accept()
         else:
             a0.ignore()
