@@ -62,6 +62,9 @@ class Ui_MainWindow(object):
         self.pushButton_order = QtWidgets.QPushButton(self.layoutWidget)
         self.pushButton_order.setObjectName("pushButton_order")
         self.horizontalLayout.addWidget(self.pushButton_order)
+        self.pushButton_acc_info = QtWidgets.QPushButton(self.layoutWidget)
+        self.pushButton_acc_info.setObjectName("pushButton_acc_info")
+        self.horizontalLayout.addWidget(self.pushButton_acc_info)
         self.pushButton_console = QtWidgets.QPushButton(self.layoutWidget)
         self.pushButton_console.setObjectName("pushButton_console")
         self.horizontalLayout.addWidget(self.pushButton_console)
@@ -96,6 +99,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.pushButton_TEST.setText(_translate("MainWindow", "TEST"))
         self.pushButton_order.setText(_translate("MainWindow", "order"))
+        self.pushButton_acc_info.setText(_translate("MainWindow", "acc_info"))
         self.pushButton_console.setText(_translate("MainWindow", "console"))
 
 from data_visualize.OHLC_ui import OHlCWidget
