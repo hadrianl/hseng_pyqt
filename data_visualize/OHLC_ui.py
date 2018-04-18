@@ -18,7 +18,7 @@ import datetime as dt
 from functools import partial
 from data_visualize.Console_ui import AnalysisConsole
 from PyQt5.QtWidgets import QDesktopWidget, QApplication
-from order import OrderDialog
+from SpInfo_ui import OrderDialog
 from sp_func.local import *
 from data_visualize.graph import *
 from data_visualize.plt import *
@@ -219,8 +219,9 @@ class OHlCWidget(KeyEventWidget):
         self.graphs['Slicer'].plt_items['date_slicer']['date_region'].sigRegionChanged.connect(self.date_slicer_update)  # 时间切片变化信号绑定调整画图
         ohlc.ticker_sig.connect(self.tick_update_plot) # ticker更新信号绑定最后的bar的画图
         # ---------------------------数据更新的信号与图形更新槽连接------------------------------------------------
-        ohlc.ohlc_sig.connect(lambda: self.graphs['OHLC'].update(ohlc))
-        ohlc.ohlc_sig.connect(lambda: self.graphs['Slicer'].update(ohlc))
+        ohlc.ohlc_sig.connect(lambda :self.mouse.update(ohlc))
+        ohlc.ohlc_sig.connect(lambda :self.graphs['OHLC'].update(ohlc))
+        ohlc.ohlc_sig.connect(lambda :self.graphs['Slicer'].update(ohlc))
         for k, v in ohlc.extra_data.items():
             if k in self.graphs:
                 v.update_thread.finished.connect(partial(lambda n: self.graphs[n].update(ohlc), k))
@@ -246,23 +247,6 @@ class OHlCWidget(KeyEventWidget):
         ohlc.ticker_sig.connect(self.console.add_ticker_to_table)  # 绑定ticker数据到ticker列表
         ohlc.price_sig.connect(self.console.add_price_to_table)  # 绑定price数据到price列表
 
-
-    # def init_buttons(self):
-    #     self.consolebutton = QtWidgets.QPushButton(text='交互console', parent=self.pw)
-    #     self.consolebutton.setGeometry(QtCore.QRect(10, 250, 75, 23))
-
-
-
-    # def chart_replot(self):  # 重新画图
-    #     V_logger.info('G↑更新图表......')
-    #     ohlc = self.data['ohlc']
-    #     for name, graph in self.graphs.items():
-    #         # QApplication.processEvents()
-    #         graph.update(ohlc)
-    #     self.draw_interline(ohlc)
-    #     self.xaxis.update_tickval(ohlc.timestamp)
-    #     self.ohlc_Xrange_update()
-    #     V_logger.info('G↑更新图表完成......')
 
     def ohlc_Yrange_update(self):  # 更新主图和指标图的高度
         date_region = self.graphs['Slicer'].plt_items['date_slicer']['date_region']

@@ -19,7 +19,7 @@ class mouseaction(QtCore.QObject):
         self.yaxis_text = pg.TextItem(anchor=(1, 0))
         self.cross_hair_pen = pg.mkPen(color='y', dash=[3, 4])
 
-    def __call__(self, plts, market_data, graphs):
+    def __call__(self, plts, ohlc, graphs):
         if self._ch:
             for p in plts:
                 if p != 'date_slicer':
@@ -39,17 +39,17 @@ class mouseaction(QtCore.QObject):
             #     mousePoint = ohlc_vb.mapSceneToView(pos) if ohlc_plt.sceneBoundingRect().contains(pos) else indicator_vb.mapSceneToView(pos)
             # if ohlc_plt.parentItem().sceneBoundingRect().contains(pos):
             inside = False
+            t_min = self.t_min
+            t_max = self.t_max
             for name, plt in plts.items():
                 if plt.sceneBoundingRect().contains(pos):
                     inside = True
                     self.mousePoint = mousePoint = plt.vb.mapSceneToView(pos)
-                    t_max = market_data.x.max()
-                    t_min = market_data.x.min()
                     x_type = ((mousePoint.x() <= t_min - 3) << 1) + (mousePoint.x() <= t_max + 3)
                     x_index = {0: t_max + 3, 1: int(mousePoint.x()), 3: t_min - 3}.get(x_type)
                     break
                 else:
-                    x_index = market_data.x.max()
+                    x_index = t_max
 
             for name, plt in plts.items():
                 if self._ch:
@@ -65,7 +65,7 @@ class mouseaction(QtCore.QObject):
 
                 if self._if:
                     try:
-                        text_df = market_data.data.iloc[x_index]
+                        text_df = self.ohlc_data.iloc[x_index]
                         self.xaxis_text.setText(str(text_df.name))
                         self.yaxis_text.setText('{:.2f}'.format(mousePoint.y())) if inside else ...
                     except IndexError:
@@ -83,3 +83,9 @@ class mouseaction(QtCore.QObject):
 
 
         return pg.SignalProxy(plts['main'].scene().sigMouseMoved, rateLimit=60, slot=mouseMoved)
+
+    def update(self, ohlc):
+        self.ohlc_data = ohlc.data.copy()
+        self.x = ohlc.x.copy()
+        self.t_max = self.x.max()
+        self.t_min = self.x.min()
