@@ -9,8 +9,9 @@ from PyQt5.Qt import QDialog
 from PyQt5 import QtWidgets, QtCore
 import sys
 from ui.order_dialog import Ui_Dialog
+from ui.acc_info import Ui_Form
 import datetime as dt
-from sp_func.local import *
+from sp_func.local import addOrder
 
 class OrderDialog(QDialog, Ui_Dialog):
     def __init__(self):
@@ -85,7 +86,6 @@ class OrderDialog(QDialog, Ui_Dialog):
         self.pushButton_buy.released.connect(lambda :self.order('B'))
         self.pushButton_sell.released.connect(lambda :self.order('S'))
 
-        self.checkBox_local_login.toggled.connect(lambda x: init_spapi() if x else deinit_spapi())
 
     def order(self, BuySell):
         try:
@@ -159,6 +159,12 @@ class OrderDialog(QDialog, Ui_Dialog):
             raise e
         addOrder(**order_kwargs)
 
+
+class AccInfoWidget(QtWidgets.QWidget, Ui_Form):
+    def __init__(self, parent=None):
+        QtWidgets.QWidget.__init__(self, parent)
+        Ui_Form.__init__(self)
+        self.setupUi(self)
 
 
 if __name__ == '__main__':
