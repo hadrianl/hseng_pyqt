@@ -19,6 +19,7 @@ class INFO():
         self._server_info_socket.set_string(zmq.SUBSCRIBE, '')
         self._server_info_socket.setsockopt(zmq.RCVTIMEO, 5000)
         self.info_queue = Queue()
+        self.spfunc = SpFunc()
         self.__receiver_alive = False
         S_logger.info(f'初始化SERVER信息对接')
         F_logger.info(f'初始化SERVER信息对接')
@@ -50,3 +51,51 @@ class INFO():
             self.__receiver_alive = False
             S_logger.info(f'关闭SERVER信息对接')
             F_logger.info(f'关闭SERVER信息对接')
+
+    def _get_orders(self):
+        self._orders = self.spfunc.get_orders_by_array()
+        return self._orders
+
+    def _get_position(self):
+        self._position = self.spfunc.get_all_pos_by_array()
+        return self._position
+
+    def _get_trades(self):
+        self._trades = self.spfunc.get_all_trades_by_array()
+        return self._trades
+
+    def _get_balance(self):
+        self._balance = self.spfunc.get_all_accbal_by_array()
+        return self._balance
+
+    @property
+    def orders(self):
+        try:
+            return self._get_orders()
+        except Exception as e:
+            print(e)
+            return self._orders
+
+    @property
+    def position(self):
+        try:
+            return self._get_position()
+        except Exception as e:
+            print(e)
+            return self._position
+
+    @property
+    def trades(self):
+        try:
+            return self._get_trades()
+        except Exception as e:
+            print(e)
+            return self._trades
+
+    @property
+    def balance(self):
+        try:
+            return self._get_balance()
+        except Exception as e:
+            print(e)
+            return self._balance
