@@ -226,9 +226,10 @@ class OHlCWidget(KeyEventWidget):
             if k in self.graphs:
                 v.update_thread.finished.connect(partial(lambda n: self.graphs[n].update(ohlc), k))
 
-        ohlc.ohlc_sig.connect(lambda :self.draw_interline(ohlc))
+        ohlc.ohlc_sig.connect(lambda : self.draw_interline(ohlc))
         ohlc.ohlc_sig.connect(lambda : self.xaxis.update_tickval(ohlc.timestamp))
-        ohlc.ohlc_sig.connect(lambda :self.ohlc_Xrange_update())
+        ohlc.ohlc_sig.connect(lambda : self.ohlc_Xrange_update())
+        ohlc.ohlc_sig.connect(lambda : (plt.update() for _,plt in self.plts.items()))
         # ------------------------------------------------------------------------------------------------------
         # ----------------------重采样信号--------------------------------------
         ohlc.resample_sig.connect(ohlc.ohlc_sig)
