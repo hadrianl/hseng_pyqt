@@ -105,12 +105,7 @@ class Graph_MACD(graph_base):
     def _init(self, p, ohlc, i_macd):
         plt = self.plts[p]
         item = self.plt_items[p]
-        macd_pens = pd.concat([ohlc.close > ohlc.open, i_macd.macd > 0], 1).apply(
-            lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map(self.macd_colors_map)
-        macd_brushs = [None if (i_macd.macd > i_macd.macd.shift(1))[i]
-                       else v for i, v in macd_pens.iteritems()]
-        item['MACD'] = pg.BarGraphItem(x=ohlc.x, height=i_macd.macd,
-                                                       width=0.5, pens=macd_pens, brushes=macd_brushs)
+        item['MACD'] = pg.BarGraphItem(x=[0], height=[0], width=0.5)
         item['diff'] = pg.PlotDataItem(pen=self.diff_colors)
         item['dea'] = pg.PlotDataItem(pen=self.dea_colors)
         plt.addItem(item['MACD'])
@@ -209,12 +204,7 @@ class Graph_STD(graph_base):
     def _init(self,p, ohlc, i_std):
         plt = self.plts[p]
         item = self.plt_items[p]
-        std_inc_pens = pd.cut((i_std.inc / i_std.std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],  # 设置画笔颜色
-                              labels=self.inc_colors)
-        inc_gt_std = (i_std.inc.abs() / i_std.std) > 1
-        std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)  # 设置画刷颜色
-        item['inc'] = pg.BarGraphItem(x=i_std.x, height=i_std.inc,
-                                                 width=0.5, pens=std_inc_pens, brushes=std_inc_brushes)
+        item['inc'] = pg.BarGraphItem(x=[0], height=[0], width=0.5)  # 初始化给个0参数，不给不能additem
         item['pos_std'] = pg.PlotDataItem(pen=self.pos_std_color)
         item['neg_std'] = pg.PlotDataItem(pen=self.neg_std_color)
         item['ratio'] = pg.PlotDataItem()
