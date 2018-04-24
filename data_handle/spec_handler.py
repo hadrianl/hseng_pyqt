@@ -141,7 +141,7 @@ class COINCIDE(spec_handler_base):
         df['close'] = ohlc.close
         #self._coincide = coincide(df)
         zj = Zbjs(df=df)
-        self._coincide = zj.main2('1')
+        self._coincide = zj.main2('3')
 
     @property
     def coincide(self):
