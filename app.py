@@ -28,7 +28,6 @@ symbol_list = ['HSIJ8']
 # init_data_sub(symbol_list)
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
 ohlc = OHLC('HSIJ8',minbar=600, ktype='1T')
-info = INFO()
 ohlc(daterange=[Start_Time, End_Time])
 i_ma = MA(ma10=10, ma20=20, ma30=30, ma60=60)
 i_macd = MACD(short=10, long=22, m=9)
@@ -39,8 +38,8 @@ h_buysell = BuySell()
 trade_datas = TradeData('HSENG$.APR8')
 extra_data = [i_ma, i_macd, i_std, h_macd_hl_mark, h_buysell,i_coincide, trade_datas]
 # 将指标假如到主图数据里
-ohlc.active_ticker()
-ohlc.active_price()
+ohlc.active_ticker()  # 让ticker数据推送生效
+ohlc.active_price()  #让price数据推送生效
 ohlc._thread_lock.acquire()
 for d in extra_data:
     ohlc + d
@@ -58,31 +57,30 @@ win.setWindowTitle(Symbol + '实盘分钟图')
 w_ohlc.binddata(ohlc)  # 把数据与UI绑定
 w_ohlc.init_plt()  # 初始化画布并绑定了初始化与反初始化函数在字典plt_init_func与plt_deinit_func中
 # 创建图形实例
-w_ohlc + Graph_OHLC([w_ohlc.main_plt, w_ohlc.indicator3_plt])
-w_ohlc + Graph_MA([w_ohlc.main_plt, w_ohlc.indicator3_plt])
-w_ohlc + Graph_MACD([w_ohlc.indicator1_plt])
-w_ohlc + Graph_MACD_HL_MARK([w_ohlc.main_plt])
-w_ohlc + Graph_STD([w_ohlc.indicator2_plt])
-w_ohlc + Graph_Trade_Data_Mark([w_ohlc.main_plt, w_ohlc.indicator3_plt])
-w_ohlc + Graph_COINCIDE([w_ohlc.main_plt])
-w_ohlc + Graph_Slicer([w_ohlc.date_slicer_plt])
-w_ohlc + Graph_BuySell([w_ohlc.date_slicer_plt])
+w_ohlc + Graph_OHLC([w_ohlc.plts['main'], w_ohlc.plts['indicator3']])
+w_ohlc + Graph_MA([w_ohlc.plts['main']])
+w_ohlc + Graph_MACD([w_ohlc.plts['indicator1']])
+w_ohlc + Graph_MACD_HL_MARK([w_ohlc.plts['main']])
+w_ohlc + Graph_STD([w_ohlc.plts['indicator2']])
+w_ohlc + Graph_Trade_Data_Mark([w_ohlc.plts['main']])
+w_ohlc + Graph_COINCIDE([w_ohlc.plts['main']])
+w_ohlc + Graph_Slicer([w_ohlc.plts['date_slicer']])
+w_ohlc + Graph_BuySell([w_ohlc.plts['date_slicer']])
 for g_name in w_ohlc.graphs:
     w_ohlc.init_graph(g_name)
 
 w_ohlc.init_mouseaction()  # 初始化十字光标与鼠标交互
-namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'w_ohlc':w_ohlc, 'help_doc': help_doc, 'info': info, 'test': test}  # console的命名空间
+namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'w_ohlc':w_ohlc, 'help_doc': help_doc, 'test': test}  # console的命名空间
 w_ohlc.init_console_widget(namespace)  # 初始化交互界面
 w_ohlc.init_signal()  # 初始化指标信号
-win.init_data_signal()
+win.init_signal()
 win.init_test()
-info.receiver_start()
+
 
 # 完成初始化的视图调整
 w_ohlc.init_date_region()  # 初始化可视化范围
 V_logger.info(f'初始化图表完成')
-w_ohlc.chart_replot()
-win.init_login_win()
+# win.init_login_win()
 
 
 if __name__ == '__main__':

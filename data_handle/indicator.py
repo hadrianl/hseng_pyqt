@@ -28,7 +28,7 @@ class MACD(indicator_base):
         return f'<{self.name}>----SHORT:{self._short} LONG:{self._long} SIGNAL:{self._m}'
 
     def calc(self):
-        self._close = self.ohlc.close
+        self._close = self.data.close
         self._diff = self._close.ewm(self._short).mean() - self._close.ewm(self._long).mean()
         self._dea = self._diff.ewm(self._m).mean()
         self._macd = (self._diff - self._dea) * 2
@@ -60,7 +60,7 @@ class MA(indicator_base):
 
     def calc(self):
         for k, v in self._windows.items():
-            self.__dict__[k] = self.ohlc.close.rolling(v).mean().rename(k)
+            self.__dict__[k] = self.data.close.rolling(v).mean().rename(k)
 
     @property
     def _data(self):
@@ -75,7 +75,7 @@ class STD(indicator_base):
         return f'<{self.name}>----WINDOW{self._window}-MIN_PERIOUS:{self._min_periods}'
 
     def calc(self):
-        self._inc = self.ohlc.close - self.ohlc.open
+        self._inc = self.data.close - self.data.open
         self._avg = self._inc.rolling(window=self._window, min_periods=self._min_periods).mean()
         self._std = self._inc.rolling(window=self._window, min_periods=self._min_periods).std()
         self._pos_std = self._std*2

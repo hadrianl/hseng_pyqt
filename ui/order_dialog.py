@@ -12,7 +12,7 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.setEnabled(True)
-        Dialog.resize(387, 258)
+        Dialog.resize(387, 262)
         self.horizontalLayout_7 = QtWidgets.QHBoxLayout(Dialog)
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
         self.gridLayout = QtWidgets.QGridLayout()
@@ -561,7 +561,7 @@ class Ui_Dialog(object):
         self.label_Qty.setBuddy(self.spinBox_Qty)
 
         self.retranslateUi(Dialog)
-        self.stackedWidget.setCurrentIndex(1)
+        self.stackedWidget.setCurrentIndex(0)
         self.radioButton_buy1.clicked['bool'].connect(self.pushButton_buy.setVisible)
         self.radioButton_sell1.clicked['bool'].connect(self.pushButton_sell.setVisible)
         self.comboBox_CondType.activated['int'].connect(self.stackedWidget.setCurrentIndex)
