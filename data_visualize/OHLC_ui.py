@@ -282,6 +282,13 @@ class OHlCWidget(KeyEventWidget):
                                                   i_std.pos_std[x_range].max())
                                               )
                 self.plts['date_slicer'].setYRange(ohlc.close.min(), ohlc.close.max())
+
+            if 'Trade_Data' in self.graphs:
+                for p in self.graphs['Trade_Data'].plts:
+                    text = self.graphs['Trade_Data'].plt_texts[p]
+                    plt = self.graphs['Trade_Data'].plts[p]
+                    vbr = plt.getViewBox().viewRange()
+                    text.setPos(vbr[0][1], vbr[1][0])
         except Exception as e:
             V_logger.debug(f'图表高度更新错误.')
 
@@ -311,12 +318,6 @@ class OHlCWidget(KeyEventWidget):
                 date_region.setRegion([date_region_Max - date_region_len, date_region_Max])
         self.ohlc_Yrange_update()
         self.xaxis.update_tickval(ohlc.timestamp)
-        if 'Trade_Data' in self.graphs:
-            for p in self.graphs['Trade_Data'].plts:
-                text = self.graphs['Trade_Data'].plt_texts[p]
-                plt = self.graphs['Trade_Data'].plts[p]
-                vbr = plt.getViewBox().viewRange()
-                text.setPos(vbr[0][1], vbr[1][0])
         self.plts['main'].update()
 
     def readjust_Xrange(self, left_offset=120, right_offset=3):
