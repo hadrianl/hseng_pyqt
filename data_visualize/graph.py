@@ -124,8 +124,10 @@ class Graph_MACD(graph_base):
         macd_pens = pd.concat(
             [ohlc.close > ohlc.open, macd > 0], 1).apply(
             lambda x: (x.iloc[0] << 1) + x.iloc[1], 1).map(self.macd_colors_map)
+        # print('macd_pen:', macd_pens.value_counts())
         macd_brushes = [None if (macd > macd.shift(1))[i]
                         else v for i, v in macd_pens.iteritems()]
+        # print('macd_brush:', macd_brushes)
         item['MACD'].setOpts(x=x, height=macd, pens=macd_pens, brushes=macd_brushes)
 
     def _deinit(self, p):
@@ -223,8 +225,10 @@ class Graph_STD(graph_base):
         item = self.plt_items[p]
         std_inc_pens = pd.cut((inc / std).fillna(0), [-np.inf, -2, -1, 1, 2, np.inf],
                               labels=self.inc_colors)
+        # print('std_pen:', std_inc_pens.value_counts())
         inc_gt_std = (inc.abs() / std) > 1
         std_inc_brushes = np.where(inc_gt_std, std_inc_pens, None)
+        # print('std_brush:',std_inc_brushes)
         item['pos_std'].setData(x, pos_std)
         item['neg_std'].setData(x, neg_std)
         item['ratio'].setData(x, ratio)

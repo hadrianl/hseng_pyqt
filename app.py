@@ -27,7 +27,7 @@ Symbol = symbol('HSI')
 symbol_list = ['HSIJ8']
 # init_data_sub(symbol_list)
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
-ohlc = OHLC('HSIJ8',minbar=600, ktype='1T')
+ohlc = OHLC('HSIK8',minbar=600, ktype='1T')
 ohlc(daterange=[Start_Time, End_Time])
 i_ma = MA(ma10=10, ma20=20, ma30=30, ma60=60)
 i_macd = MACD(short=10, long=22, m=9)
@@ -82,5 +82,6 @@ V_logger.info(f'初始化图表完成')
 
 
 if __name__ == '__main__':
+    win.login_win.show()
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         sys.exit(app.exec_())

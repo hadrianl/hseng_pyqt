@@ -31,7 +31,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def init_login_win(self):
         self.login_win = LoginDialog()  # 登录界面
         self.login_win.UserName.setFocus()
-        self.login_win.show()
         self.login_win.accepted.connect(self.show)
         self.login_win.accepted.connect(self.init_tray)
         # self.login_win.rejected.connect(self.closeAllWindows)
