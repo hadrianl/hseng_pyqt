@@ -9,6 +9,7 @@ from data_handle import handle_base
 import pandas as pd
 import datetime as dt
 
+
 class spec_handler_base(handle_base):
     def __init__(self, name, **kwargs):
         self.name = name
@@ -25,15 +26,17 @@ class MACD_HL_MARK(spec_handler_base):
             self.macd_gt_zero = self.macd.macd > 0
             self.macd_area_num = self.create_area(self.macd_gt_zero).rename('macd_area')
             self.area_close_frame = pd.concat([self.macd_area_num, self.macd.data.high, self.macd.data.low], 1).reset_index()
-            data_pos=self.area_close_frame.groupby('macd_area').apply(lambda x: [x.loc[x.high.idxmax(), ['high', 'datetime']], x.loc[x.low.idxmin(), ['low', 'datetime']]])
+            data_pos = self.area_close_frame.groupby('macd_area').apply(lambda x: [x.loc[x.high.idxmax(), ['high', 'datetime']], x.loc[x.low.idxmin(), ['low', 'datetime']]])
             self._high_pos = pd.Series(data_pos.str[0].str[0].values, index=data_pos.str[0].str[1])._set_name('high')
-            self._low_pos = pd.Series( data_pos.str[1].str[0].values, index=data_pos.str[1].str[1])._set_name('low')
-        except:...
+            self._low_pos = pd.Series(data_pos.str[1].str[0].values, index=data_pos.str[1].str[1])._set_name('low')
+        except Exception as e:
+            print(e)
 
-    def create_area(self, v):
+    @staticmethod
+    def create_area(v):
         k = v.copy()
         k.iloc[0] = 1
-        for i in range(1,len(v)):
+        for i in range(1, len(v)):
             if v.iloc[i] != v.iloc[i-1]:
                 k.iloc[i] = k.iloc[i-1] + 1
             else:
@@ -52,9 +55,10 @@ class MACD_HL_MARK(spec_handler_base):
     def low_pos(self):
         return self._low_pos
 
+
 class BuySell(spec_handler_base):
     def __init__(self, windows=15, real_bar_rate=0.6, overlap_rate=0.4):
-        assert windows>=2
+        assert windows >= 2
         super(BuySell, self).__init__('BuySell', windows=windows, real_bar_rate=real_bar_rate, overlap_rate=overlap_rate)
 
     def calc(self):
@@ -85,18 +89,18 @@ class BuySell(spec_handler_base):
                 cond1 = (Open > o1).rename('cond1')  # 条件一:开盘价更高
                 cond2 = (Close > c1).rename('cond2')  # 条件二:收盘价要高
                 cond3 = (c1 > Open).rename('cond3')  # 条件三:有重叠
-                cond4 = (((c1 - Open) > (Close - o1) * overlap_rate)).rename('cond4') # 条件四:重叠部分大于overlap
+                cond4 = (((c1 - Open) > (Close - o1) * overlap_rate)).rename('cond4')  # 条件四:重叠部分大于overlap
                 cond5 = (ma_restrict == 3).rename('cond5')
-                cond = cond1 & cond2 & cond3 & cond4 & cond5 & unstack.b_gt_std & unstack.b_real_bar & gt_std & real_bar  #条件五六七八:标准差都大于1.5倍，实体部分大于real_bar_rate
+                cond = cond1 & cond2 & cond3 & cond4 & cond5 & unstack.b_gt_std & unstack.b_real_bar & gt_std & real_bar  # 条件五六七八:标准差都大于1.5倍，实体部分大于real_bar_rate
             else:
                 cond1 = (Open < o1).rename('cond1')
                 cond2 = (Close < c1).rename('cond2')
                 cond3 = (c1 < Open).rename('cond3')
-                cond4 = ((( Open - c1) > (o1 - Close ) * overlap_rate)).rename('cond4')
+                cond4 = ((Open - c1) > (o1 - Close) * overlap_rate).rename('cond4')
                 cond5 = (ma_restrict == 0).rename('cond5')
                 cond = cond1 & cond2 & cond3 & cond4 & cond5 & unstack.b_gt_std & unstack.b_real_bar & gt_std & real_bar
             unstack = unstack[cond].assign(bs=['S', 'B'][b_s])
-            return  unstack['bs']
+            return unstack['bs']
 
         self._bs = self.data_merged.apply(buysell, 1).dropna(how='all').stack()._set_name('bs')
 
@@ -112,14 +116,14 @@ class BuySell(spec_handler_base):
         bs = self._bs.reset_index().apply(lambda x: (x.datetime + dt.timedelta(minutes=int(x.shift_)*ktype),
                                                      0,
                                                      x.bs
-                                                     ), 1).drop('shift_', 1).set_index('datetime').loc[:,'bs']
+                                                     ), 1).drop('shift_', 1).set_index('datetime').loc[:, 'bs']
         return bs
 
     @property
     def buy_points(self):
         bs = self.bs_points
         if not bs.empty:
-            return bs[bs=='B']
+            return bs[bs == 'B']
         else:
             return bs
 
@@ -127,6 +131,6 @@ class BuySell(spec_handler_base):
     def sell_points(self):
         bs = self.bs_points
         if not bs.empty:
-            return bs[bs=='S']
+            return bs[bs == 'S']
         else:
             return bs

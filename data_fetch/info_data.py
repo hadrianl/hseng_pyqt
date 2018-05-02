@@ -12,6 +12,7 @@ from queue import Queue
 import pickle
 from spapi.sub_client import SpFunc
 
+
 class INFO():
     def __init__(self):
         self._ctx = zmq.Context()

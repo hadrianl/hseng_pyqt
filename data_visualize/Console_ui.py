@@ -14,7 +14,6 @@ import datetime as dt
 from logging import Handler, Formatter
 
 
-
 class AnalysisConsole(QWidget, Ui_Console):
     def __init__(self, namespace):
         QWidget.__init__(self)
@@ -44,7 +43,6 @@ class AnalysisConsole(QWidget, Ui_Console):
         self.TableWidget_tickers.setItem(0, 2, qty)
         if self.TableWidget_tickers.rowCount() > 100:
             self.TableWidget_tickers.removeRow(100)
-
 
     def add_price_to_table(self, price):
         max_depth = 5

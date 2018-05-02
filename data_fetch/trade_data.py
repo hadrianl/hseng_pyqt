@@ -11,6 +11,7 @@ from util import *
 import datetime as dt
 from PyQt5.QtCore import QThread
 
+
 class TradeData():
     def __init__(self, symbol):
         self.type = 'Mark'
@@ -100,5 +101,6 @@ class TradeData():
         def __init__(self, handle):
             QThread.__init__(self)
             self.handle = handle
+
         def run(self):
             self.handle()

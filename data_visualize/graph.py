@@ -7,7 +7,7 @@
 from util import V_logger, MA_COLORS
 import pandas as pd
 import numpy as np
-from PyQt5.Qt import  QBrush, QColor
+from PyQt5.Qt import QBrush, QColor
 from data_visualize.baseitems import graph_base, TradeDataScatter, TradeDataLinkLine, CandlestickItem
 import pyqtgraph as pg
 from collections import Iterable
@@ -203,7 +203,7 @@ class Graph_STD(graph_base):
         self.pos_std_color = pos_std_color
         self.neg_std_color = neg_std_color
 
-    def _init(self,p, ohlc, i_std):
+    def _init(self, p, ohlc, i_std):
         plt = self.plts[p]
         item = self.plt_items[p]
         item['inc'] = pg.BarGraphItem(x=[0], height=[0], width=0.5)  # 初始化给个0参数，不给不能additem
@@ -373,6 +373,7 @@ class Graph_Slicer(graph_base):
         item = self.plt_items[p]
         for _, v in item.items():
             self.plts[p].removeItem(v)
+
 
 class Graph_BuySell(graph_base):
     def __init__(self, plts, buy_symbol='t1', sell_symbol='t', buy_brush='r', sell_brush='g', size=8):

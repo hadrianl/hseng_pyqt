@@ -7,6 +7,7 @@
 
 from data_visualize.baseitems import plt_base
 
+
 class MainPlt(plt_base):
     def __init__(self, name, date_xaxis):
         super(MainPlt, self).__init__(name, date_xaxis)
@@ -20,6 +21,7 @@ class IndicatorPlt(plt_base):
             self.setMaximumHeight(height_range[0])
             self.setMinimumHeight(height_range[1])
         self.hideAxis('bottom')
+
 
 class SlicerPlt(plt_base):
     def __init__(self, name, date_xaxis):

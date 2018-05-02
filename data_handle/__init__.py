@@ -9,9 +9,11 @@
 from util import H_logger
 from abc import ABC, abstractmethod
 from PyQt5.QtCore import QThread
+
+
 class handle_base(ABC):
-    def __init__(self, type, **kwargs):
-        self.type = type
+    def __init__(self, type_, **kwargs):
+        self.type = type_
         self.__active = False
         for k, v in kwargs.items():
             setattr(self, '_' + k, v)
@@ -57,8 +59,6 @@ class handle_base(ABC):
         def __init__(self, handle):
             QThread.__init__(self)
             self.handle = handle
+
         def run(self):
             self.handle()
-
-
-

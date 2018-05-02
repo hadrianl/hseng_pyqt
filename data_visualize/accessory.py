@@ -73,14 +73,13 @@ class mouseaction(QtCore.QObject):
 
                     for k, v in graphs.items():
                         text_func = getattr(v, 'set_info_text', None)
-                        if bool(text_func)&v._crosshair_text:
+                        if bool(text_func) & v._crosshair_text:
                             for p in v.plts:
                                 text_func(p, x_index=x_index)
 
                 if self._at:
                     self.xaxis_text.setPos(x_index, plts['main'].vb.viewRange()[1][0])
                     self.yaxis_text.setPos(plts['main'].vb.viewRange()[0][1], mousePoint.y()) if inside else ...
-
 
         return pg.SignalProxy(plts['main'].scene().sigMouseMoved, rateLimit=60, slot=mouseMoved)
 

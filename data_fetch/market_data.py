@@ -9,9 +9,9 @@
 import pandas as pd
 import pymysql as pm
 from util import *
-from threading import Thread, Lock
+from threading import Lock
 from PyQt5 import QtCore
-from  PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication
 from queue import Queue
 import queue
 import zmq
@@ -35,7 +35,7 @@ class market_data_base(QtCore.QObject):
 
     @property
     def high(self):
-        return self.data.loc[:,'high']
+        return self.data.loc[:, 'high']
 
     @property
     def low(self):
@@ -109,7 +109,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
 
     def __call__(self, daterange, limit_bar=True):
         start, end = daterange
-        if bool(self._minbar)&limit_bar:
+        if bool(self._minbar) & limit_bar:
             self._sql = f"select datetime, open, high, low, close from " \
                         f"(select * from carry_investment.futures_min " \
                         f"where datetime<\"{end} \" and prodcode=\"{self.symbol}\" " \
@@ -130,6 +130,20 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         except:
             F_logger.error(f'D+初始化{self.symbol}数据失败.ERROR,')
         return self
+
+    def change_symbol(self, symbol, daterange=None, limit_bar=True):
+        self.inactive_ticker()
+        self.inactive_price()
+        self.symbol = symbol
+        if daterange:
+            self.__call__(daterange, limit_bar)
+        else:
+            self.__call__([self.start, self.end], limit_bar)
+
+        self.active_ticker()
+        self.active_price()
+        self.ohlc_sig.emit()
+        self.update()
 
     def __init_ticker_sub(self):
         """
@@ -188,7 +202,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
                     ticker_resampled = self._tickers.resample('1T').apply({'price': 'ohlc'})  # 上一分钟内的所有tick构造出新的_data bar
                     self._data = self._data.append(ticker_resampled.iloc[0]['price'])
                     self.update()  # 更新相关的指标数据
-                    if not self.last_bar_timerange[0] <=self._data.index[0] <self.last_bar_timerange[1]:
+                    if not self.last_bar_timerange[0] <= self._data.index[0] < self.last_bar_timerange[1]:
                         # 判断是否已经超出data的最后一根bar的范围
                         self.ohlc_sig.emit()
                         self.last_bar_timerange = [self.data.index.floor(self.__ktype)[-1],
@@ -203,11 +217,10 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
                 # self._thread_lock.release()
                 self._last_tick = ticker
                 self.ticker_sig.emit(self._last_tick)  # 发出ticker信号
-            except queue.Empty :
+            except queue.Empty:
                 F_logger.debug('接收TICKER队列数据超时')
                 ...
         F_logger.info(f'D-暂停更新{self.symbol}-TICKER数据')
-
 
     def active_ticker(self):
         if not self.__is_ticker_active:
@@ -241,9 +254,9 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     @property
     def data(self):
         data_resampled = self._data.resample(self.__ktype).apply({'open': 'first',
-                                                                'high': 'max',
-                                                                'low': 'min',
-                                                                'close': 'last'})
+                                                                  'high': 'max',
+                                                                  'low': 'min',
+                                                                  'close': 'last'})
         return data_resampled.dropna(how='any')
 
     @property
@@ -272,6 +285,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def _data_register(self, data):  # 添加注册指标进入图表的函数
         self.extra_data[data.name] = data(self)
         F_logger.info(f'D+加入{data.type}-{data.name}')
+
     def _data_unregister(self, data):
         if self.extra_data.pop(data.name, None):
             F_logger.info(f'D-删除{data.type}-{data.name}')
@@ -279,6 +293,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def update(self):
         for i, v in self.extra_data.items():
             v.update(self)
+
     # -------------------------------------price---------------------------------------------------------------
     def __init_price_sub(self):
         self.maxlen = 300
@@ -309,7 +324,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             try:
                 price = self._sub_price_queue.get(timeout=5)
                 self.price_sig.emit(price)
-            except queue.Empty :
+            except queue.Empty:
                 F_logger.debug('接收PRICE队列数据超时')
 
         F_logger.info(f'D-暂停更新{self.symbol}-PRICE数据')
@@ -333,7 +348,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
 
     @property
     def price_list(self):
-        return  list(self.price_queue).reverse()
+        return list(self.price_queue).reverse()
 
 
 # class Price(QtCore.QObject):

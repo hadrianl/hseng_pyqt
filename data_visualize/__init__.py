@@ -17,6 +17,7 @@ from data_fetch.info_data import INFO
 from sp_func.local import *
 import os
 
+
 class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
@@ -26,7 +27,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.init_order_dialog()
         self.init_info()
         self.init_acc_info_widget()
-
 
     def init_login_win(self):
         self.login_win = LoginDialog()  # 登录界面
@@ -39,9 +39,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tray_icon = TrayIcon()
         w_ohlc = self.QWidget_ohlc
         self.tray_icon.activated.connect(lambda r: w_ohlc.susp.setVisible(w_ohlc.susp.isHidden()) if r == 3 else ...)
-        self.tray_icon.action_win.triggered.connect(lambda : self.show())
-        self.tray_icon.action_susp.triggered.connect(lambda : w_ohlc.susp.show())
-        self.tray_icon.action_quit.triggered.connect(lambda : (self.tray_icon.hide(), self.close))
+        self.tray_icon.action_win.triggered.connect(lambda: self.show())
+        self.tray_icon.action_susp.triggered.connect(lambda: w_ohlc.susp.show())
+        self.tray_icon.action_quit.triggered.connect(lambda: (self.tray_icon.hide(), self.close))
         self.tray_icon.show()
         S_logger.addHandler(self.tray_icon.messager)
 
@@ -66,9 +66,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             lambda n: print(self.info.balance) if n in [3] else ...)
 
     def closeEvent(self, a0: QtGui.QCloseEvent):
-        reply = QtWidgets.QMessageBox.question(self, '退出',"是否要退出程序？",
-                                          QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                                          QtWidgets.QMessageBox.No)
+        reply = QtWidgets.QMessageBox.question(self, '退出', "是否要退出程序？",
+                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                               QtWidgets.QMessageBox.No)
         if reply == QtWidgets.QMessageBox.Yes:
             a0.accept()
             pid = os.getpid()
@@ -80,12 +80,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         w_ohlc = self.QWidget_ohlc
         ohlc = w_ohlc.data['ohlc']
         extra_data = ohlc.extra_data
+        self.pushButton_ChangeSymbol.released.connect(lambda: [setattr(extra_data['Trade_Data'], 'symbol', self.lineEdit_TradeSymbol.text()),
+                                                               ohlc.change_symbol(self.lineEdit_Symbol.text()),
+                                                               ])
         for i, (name, data) in enumerate(extra_data.items()):
             self.comboBox.addQCheckBox(i, name)
             self.comboBox.qCheckBox[i].setChecked(True)
-            self.comboBox.qCheckBox[i].toggled.connect(partial(lambda data, x: data.activate() if x else data.inactivate(), data))
-            self.comboBox.qCheckBox[i].toggled.connect(partial(lambda g_name, x:(w_ohlc.init_graph(g_name), w_ohlc.update_graph(g_name)) if x else w_ohlc.deinit_graph(g_name), name))
+            self.comboBox.qCheckBox[i].toggled.connect(partial(lambda data_, x: data_.activate() if x else data_.inactivate(), data))
+            self.comboBox.qCheckBox[i].toggled.connect(partial(lambda g_name, x: (w_ohlc.init_graph(g_name), w_ohlc.update_graph(g_name)) if x else w_ohlc.deinit_graph(g_name), name))
 
     def init_test(self):
         ohlc = self.QWidget_ohlc.data['ohlc']
-        self.pushButton_TEST.released.connect(lambda : normalize_test(ohlc, self.horizontalSlider_TEST.value()))
+        self.pushButton_TEST.released.connect(lambda: normalize_test(ohlc, self.horizontalSlider_TEST.value()))

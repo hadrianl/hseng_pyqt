@@ -12,7 +12,7 @@ from PyQt5.Qt import QFont
 import time
 from abc import ABC, abstractmethod
 from util import V_logger
-import datetime as dt
+
 
 class CandlestickItem(pg.GraphicsObject):
     """
@@ -59,18 +59,18 @@ class CandlestickItem(pg.GraphicsObject):
         p = QtGui.QPainter(self.picture)
         p.setPen(self.WLinePen)
         w = self.PenWidth
-        for (i, (t, open, high, low, close)) in zip(self.ohlc_x, self.ohlc_data.itertuples()):
-            p.drawLine(QtCore.QPointF(i, low), QtCore.QPointF(i, high))
+        for (i, (t, Open, High, Low, Close)) in zip(self.ohlc_x, self.ohlc_data.itertuples()):
+            p.drawLine(QtCore.QPointF(i, Low), QtCore.QPointF(i, High))
             if self.is_current_bar:
-                self.hline.setPos(close)
-                self.htext.setText(f'{close}', color='w')
-            if open > close:
+                self.hline.setPos(Close)
+                self.htext.setText(f'{Close}', color='w')
+            if Open > Close:
                 p.setBrush(self.GreenBrush)
                 self.hline.setPen(self.GLinePen)
             else:
                 p.setBrush(self.RedBrush)
                 self.hline.setPen(self.RLinePen)
-            p.drawRect(QtCore.QRectF(i-w, open, w*2, close-open))
+            p.drawRect(QtCore.QRectF(i-w, Open, w*2, Close-Open))
         p.end()
 
     def paint(self, p, *args):
@@ -103,18 +103,18 @@ class DateAxis(pg.AxisItem):
 
         except Exception as e:
             timestamp = []
-            rng =0
+            rng = 0
         # if rng < 120:
         #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
         if rng < 3600*24:
             string = '%H:%M:%S'
             label1 = '%b-%d %H->'
             label2 = ' %b-%d %H, %Y'
-        elif rng >= 3600*24 and rng < 3600*24*30:
+        elif 3600*24 <= rng < 3600*24*30:
             string = '%dD '
             label1 = '%b,%d ->'
             label2 = ' %b,%d ,%Y'
-        elif rng >= 3600*24*30 and rng < 3600*24*30*24:
+        elif 3600*24*30 <= rng < 3600*24*30*24:
             string = '%b'
             label1 = '%Y ->'
             label2 = ' %Y'
@@ -160,15 +160,16 @@ class TradeDataLinkLine(pg.LineSegmentROI):
         for i, p in enumerate(positions):
             self.addFreeHandle(p, item=handles[i])
 
-    def offset(self,i=1):
+    def offset(self, i=1):
         self.setData([[self.handles[0]['item'].pos().x() - i,  self.handles[0]['item'].pos().y()],
                       [self.handles[1]['item'].pos().x() - i,  self.handles[1]['item'].pos().y()]],
                      self.pen)
 
+
 class graph_base(ABC):
-    '''
+    """
     图表的基础抽象类，需要实现init，update和deinit方法
-    '''
+    """
     def __init__(self, plts, name, **kwargs):
         self.plts = {p.vb.name: p for p in plts}
         self.name = name
@@ -178,13 +179,13 @@ class graph_base(ABC):
             setattr(self, i, kwargs[i])
 
     @abstractmethod
-    def _init(self, ohlc): ...
+    def _init(self, p, ohlc, *args): ...
 
     @abstractmethod
-    def _deinit(self): ...
+    def _deinit(self, p): ...
 
     @abstractmethod
-    def _update(self, ohlc): ...
+    def _update(self, p, ohlc, *args): ...
 
     def init(self, ohlc):
         if not self._active:
@@ -221,9 +222,9 @@ class graph_base(ABC):
             V_logger.info(f'G-反初始化{self.name}图表')
             self._active = False
 
-    def info_text(self, p, *args, **kwargs):...
+    def info_text(self, p, *args, **kwargs): ...
 
-    def add_info_text(self, p, anchor=(0, 0), pos=(0,0,1,1), active=True):
+    def add_info_text(self, p, anchor=(0, 0), pos=(0, 0, 1, 1), active=True):
         self.text_pos[p] = pos
         self.plt_texts[p] = pg.TextItem(anchor=anchor)
         self.plts[p].addItem(self.plt_texts[p])
@@ -246,11 +247,12 @@ class graph_base(ABC):
     def del_info_text(self, p):
         self.plts[p].removeItem(self.plt_texts.pop(p))
 
+
 from PyQt5.QtWidgets import QComboBox, QLineEdit, QListWidget, QCheckBox, QListWidgetItem
 
 
 class ComboCheckBox(QComboBox):
-    def __init__(self, parent=None, items = None):  # items==[str,str...]
+    def __init__(self, parent=None, items=None):  # items==[str,str...]
         super(ComboCheckBox, self).__init__(parent)
         self.items = items if items else []
         self.qCheckBox = []
@@ -260,7 +262,7 @@ class ComboCheckBox(QComboBox):
 
         self.row_num = len(self.items)
         for i in range(self.row_num):
-            self.addQCheckBox(i)
+            self.addQCheckBox(i, '')
             self.qCheckBox[i].stateChanged.connect(self.show)
 
         self.setLineEdit(self.qLineEdit)
@@ -278,7 +280,7 @@ class ComboCheckBox(QComboBox):
     def Selectlist(self):
         Outputlist = []
         for i in range(self.row_num):
-            if self.qCheckBox[i].isChecked() == True:
+            if self.qCheckBox[i].isChecked():
                 Outputlist.append(self.qCheckBox[i].text())
         return Outputlist
 
@@ -290,6 +292,7 @@ class ComboCheckBox(QComboBox):
             show += i + ';'
         self.qLineEdit.setText(show)
         self.qLineEdit.setReadOnly(True)
+
 
 class plt_base(pg.PlotItem):
     def __init__(self, name, date_xaxis):

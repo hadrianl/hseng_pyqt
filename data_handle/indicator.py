@@ -20,6 +20,7 @@ class indicator_base(handle_base):
         self.name = name
         super(indicator_base, self).__init__('Indicator', **kwargs)
 
+
 class MACD(indicator_base):
     def __init__(self, short=12, long=26, m=9):
         super(MACD, self).__init__('MACD', short=short, long=long, m=m)
@@ -109,7 +110,7 @@ class STD(indicator_base):
 
 if __name__ == '__main__':
     _df = OHLC('2017-12-15', '2017-12-18', 'HSIc1')
-    _macd = MACD(_df)
-    _ma = MA(_df, 10, 20, 30)
+    _macd = MACD()
+    _ma = MA(10, 20, 30)
     print(_macd)
     print(_ma)
