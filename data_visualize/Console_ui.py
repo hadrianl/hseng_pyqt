@@ -8,7 +8,6 @@
 
 from ui.console import Ui_Console
 from PyQt5.Qt import QWidget, QTableWidgetItem
-from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 import datetime as dt
 from logging import Handler, Formatter

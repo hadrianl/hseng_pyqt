@@ -10,7 +10,6 @@
 
 
 from data_fetch.market_data import OHLC
-from util import H_logger
 import pandas as pd
 from data_handle import handle_base
 

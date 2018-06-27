@@ -10,7 +10,7 @@ import zmq
 from threading import Thread
 from queue import Queue
 import pickle
-from spapi.sub_client import SpFunc
+# from spapi.sub_client import SpFunc
 
 
 class INFO():
@@ -20,7 +20,7 @@ class INFO():
         self._server_info_socket.set_string(zmq.SUBSCRIBE, '')
         self._server_info_socket.setsockopt(zmq.RCVTIMEO, 5000)
         self.info_queue = Queue()
-        self.spfunc = SpFunc()
+        # self.spfunc = SpFunc()
         self.__receiver_alive = False
         S_logger.info(f'初始化SERVER信息对接')
         F_logger.info(f'初始化SERVER信息对接')
@@ -69,34 +69,34 @@ class INFO():
         self._balance = self.spfunc.get_all_accbal_by_array()
         return self._balance
 
-    @property
-    def orders(self):
-        try:
-            return self._get_orders()
-        except Exception as e:
-            print(e)
-            return self._orders
-
-    @property
-    def position(self):
-        try:
-            return self._get_position()
-        except Exception as e:
-            print(e)
-            return self._position
-
-    @property
-    def trades(self):
-        try:
-            return self._get_trades()
-        except Exception as e:
-            print(e)
-            return self._trades
-
-    @property
-    def balance(self):
-        try:
-            return self._get_balance()
-        except Exception as e:
-            print(e)
-            return self._balance
+    # @property
+    # def orders(self):
+    #     try:
+    #         return self._get_orders()
+    #     except Exception as e:
+    #         print(e)
+    #         return self._orders
+    #
+    # @property
+    # def position(self):
+    #     try:
+    #         return self._get_position()
+    #     except Exception as e:
+    #         print(e)
+    #         return self._position
+    #
+    # @property
+    # def trades(self):
+    #     try:
+    #         return self._get_trades()
+    #     except Exception as e:
+    #         print(e)
+    #         return self._trades
+    #
+    # @property
+    # def balance(self):
+    #     try:
+    #         return self._get_balance()
+    #     except Exception as e:
+    #         print(e)
+    #         return self._balance

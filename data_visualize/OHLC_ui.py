@@ -16,8 +16,8 @@ from util import *
 from data_visualize.accessory import mouseaction
 from functools import partial
 from data_visualize.Console_ui import AnalysisConsole
-from PyQt5.QtWidgets import QDesktopWidget, QApplication
-from SpInfo_ui import OrderDialog
+from PyQt5.QtWidgets import QDesktopWidget
+# from SpInfo_ui import OrderDialog
 from sp_func.local import *
 from data_visualize.graph import *
 from data_visualize.plt import *

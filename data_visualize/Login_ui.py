@@ -6,7 +6,7 @@
 # @License : (C) Copyright 2013-2017, 凯瑞投资
 
 from ui.login import Ui_LoginWindow
-from PyQt5.Qt import QDialog, QMessageBox
+from PyQt5.Qt import QDialog
 from Crypto.Hash import SHA256
 import pymysql as pm
 from util import *

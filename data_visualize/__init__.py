@@ -4,17 +4,18 @@
 # @Author  : Hadrianl 
 # @File    : __init__.py.py
 # @License : (C) Copyright 2013-2017, 凯瑞投资
-from PyQt5.Qt import QMainWindow, QWidget
+from PyQt5.Qt import QMainWindow
 from PyQt5 import QtGui, QtWidgets
 from ui.mainwindow import Ui_MainWindow
 from data_visualize.graph import *
 from functools import partial
 from experimental import normalize_test
 from data_visualize.Login_ui import LoginDialog
-from SpInfo_ui import OrderDialog, AccInfoWidget
+# from SpInfo_ui import OrderDialog, AccInfoWidget
 from data_visualize.OHLC_ui import TrayIcon
 from data_fetch.info_data import INFO
-from sp_func.local import *
+# from sp_func.local import *
+from util import S_logger
 import os
 
 
@@ -24,9 +25,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
         self.init_login_win()
-        self.init_order_dialog()
+        # self.init_order_dialog()
         self.init_info()
-        self.init_acc_info_widget()
+        # self.init_acc_info_widget()
 
     def init_login_win(self):
         self.login_win = LoginDialog()  # 登录界面
@@ -45,25 +46,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tray_icon.show()
         S_logger.addHandler(self.tray_icon.messager)
 
-    def init_order_dialog(self):
-        self.order_dialog = OrderDialog()
-        self.pushButton_order.released.connect(self.order_dialog.show)
+    # def init_order_dialog(self):
+    #     self.order_dialog = OrderDialog()
+    #     self.pushButton_order.released.connect(self.order_dialog.show)
 
     def init_info(self):
         self.info = INFO()
         self.info.receiver_start()
 
-    def init_acc_info_widget(self):
-        self.acc_info_widget = AccInfoWidget()
-        self.pushButton_acc_info.released.connect(self.acc_info_widget.show)
-        self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
-            lambda n: print(self.info.orders) if n in [0] else ...)
-        self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
-            lambda n: print(self.info.position) if n in [1] else ...)
-        self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
-            lambda n: print(self.info.trades) if n in [2] else ...)
-        self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
-            lambda n: print(self.info.balance) if n in [3] else ...)
+    # def init_acc_info_widget(self):
+    #     self.acc_info_widget = AccInfoWidget()
+    #     self.pushButton_acc_info.released.connect(self.acc_info_widget.show)
+    #     self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
+    #         lambda n: print(self.info.orders) if n in [0] else ...)
+    #     self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
+    #         lambda n: print(self.info.position) if n in [1] else ...)
+    #     self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
+    #         lambda n: print(self.info.trades) if n in [2] else ...)
+    #     self.acc_info_widget.tabWidget_acc_info.currentChanged.connect(
+    #         lambda n: print(self.info.balance) if n in [3] else ...)
 
     def closeEvent(self, a0: QtGui.QCloseEvent):
         reply = QtWidgets.QMessageBox.question(self, '退出', "是否要退出程序？",

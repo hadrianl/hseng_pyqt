@@ -7,7 +7,6 @@
 
 import pyqtgraph as pg
 from PyQt5 import QtCore
-from util import MA_COLORS
 
 
 class mouseaction(QtCore.QObject):

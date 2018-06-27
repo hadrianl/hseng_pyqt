@@ -11,7 +11,6 @@ import pymysql as pm
 from util import *
 from threading import Lock
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QApplication
 from queue import Queue
 import queue
 import zmq
@@ -19,7 +18,6 @@ from datetime import datetime
 from spapi.sp_struct import SPApiTicker, SPApiPrice
 from collections import deque
 from threading import Thread
-from multiprocessing import Process
 
 
 class market_data_base(QtCore.QObject):
@@ -79,7 +77,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     ticker_sig = QtCore.pyqtSignal(SPApiTicker)
     price_sig = QtCore.pyqtSignal(SPApiPrice)
 
-    def __init__(self, symbol, minbar=None, ktype='1T'):
+    def __init__(self, symbol, minbar=None, ktype='1T', db='futures_min'):
         market_data_base.__init__(self)
         self.__ktype = ktype
         self.symbol = symbol
@@ -90,6 +88,7 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self._thread_lock = Lock()
         self.extra_data = {}
         self.bar_size = 200
+        self.db = db
         F_logger.info(f'D+初始化请求{self.symbol}数据')
 
     def __str__(self):
@@ -109,18 +108,19 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
 
     def __call__(self, daterange, limit_bar=True):
         start, end = daterange
+        symbol = self.symbol[:3] if self.db != 'futures_min' else self.symbol
         if bool(self._minbar) & limit_bar:
             self._sql = f"select datetime, open, high, low, close from " \
-                        f"(select * from carry_investment.futures_min " \
-                        f"where datetime<\"{end} \" and prodcode=\"{self.symbol}\" " \
+                        f"(select * from carry_investment.{self.db} " \
+                        f"where datetime<\"{end} \" and prodcode=\"{symbol}\" " \
                         f"order by id desc limit 0,{self._minbar}) as fm order by fm.id asc"
-            F_logger.info(f'D+初始化{self.symbol}数据,请求结束时间：<{end}>前至{self._minbar}条1min bar')
+            F_logger.info(f'D+初始化{symbol}数据,请求结束时间：<{end}>前至{self._minbar}条1min bar')
         else:
-            self._sql = f"select datetime, open, high, low, close from carry_investment.futures_min \
+            self._sql = f"select datetime, open, high, low, close from carry_investment.{self.db} \
                                         where datetime>=\"{start}\" \
                                         and datetime<\"{end} \"\
-                                        and prodcode=\"{self.symbol}\""
-            F_logger.info(f'D+初始化{self.symbol}数据,请求时间<{start}>-<{end}>')
+                                        and prodcode=\"{symbol}\""
+            F_logger.info(f'D+初始化{symbol}数据,请求时间<{start}>-<{end}>')
         try:
             self._data = pd.read_sql(self._sql, self._conn, index_col='datetime')  # _data是一分钟的OHLC
             self._conn.commit()
@@ -144,6 +144,33 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         self.active_price()
         self.ohlc_sig.emit()
         self.update()
+
+    def amend_ohlc(self, ticker):
+        l_datetime = self._data.index[-2]
+        n_datetime = dt.datetime.fromtimestamp(ticker.TickerTime)
+        print(l_datetime, n_datetime)
+        if  l_datetime < n_datetime - dt.timedelta(seconds=n_datetime.second):
+            sql = f"select datetime, open, high, low, close from carry_investment.futures_min " \
+                  f"where datetime>\"{l_datetime}\" and datetime<=\"{n_datetime}\" and prodcode=\"{self.symbol}\" "
+            try:
+                amend_data = pd.read_sql(sql, self._conn, index_col='datetime')  # _data是一分钟的OHLC
+                self._conn.commit()
+                self._data = self._data.append(amend_data)
+            except Exception as e:
+                print(e)
+
+    # def repair_ohlc(self):
+    #     index = self._data.index
+    #     for i0, i1 in zip(index, index.offset(1))[1:]:
+    #         if dt.timedelta(minutes=1) < i1 - i0 < dt.timedelta(minutes=10):
+    #             sql = f"select datetime, open, high, low, close from carry_investment.futures_min " \
+    #                   f"where datetime>\"{i0}\" and datetime<=\"{i1}\" and prodcode=\"{self.symbol}\" "
+    #             try:
+    #                 repair_data = pd.read_sql(sql, self._conn, index_col='datetime')
+    #                 self._data = self._data.append(repair_data)
+    #             except Exception as e:
+    #                 print(e)
+
 
     def __init_ticker_sub(self):
         """
@@ -187,9 +214,13 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def __ticker_update(self):
         """订阅的基础tick数据构造成1min的ohlc，同时只保留当前分钟的ticker数据"""
         F_logger.info(f'D↑开始更新{self.symbol}-TICKER数据')
+        _first = True
         while self.__is_ticker_active:
             try:
                 ticker = self._sub_tickers_queue.get(timeout=5)
+                if _first:
+                    _first = False
+                    self.amend_ohlc(ticker)
                 if not self._last_tick:
                     self._last_tick = ticker
                 # self._thread_lock.acquire()
@@ -212,8 +243,8 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
                     self._tickers = self._tickers.append(pd.DataFrame({'price': ticker.Price, 'qty': ticker.Qty},
                                                                       index=[datetime.fromtimestamp(ticker.TickerTime)]))
                     ticker_resampled = self._tickers.resample('1T').apply({'price': 'ohlc'})
-                    self._data.iloc[-1] = ticker_resampled.iloc[0]['price']
-
+                    # self._data.iloc[-1] = ticker_resampled.iloc[0]['price']
+                    self._data = self._data.append(ticker_resampled.iloc[0]['price'])
                 # self._thread_lock.release()
                 self._last_tick = ticker
                 self.ticker_sig.emit(self._last_tick)  # 发出ticker信号
