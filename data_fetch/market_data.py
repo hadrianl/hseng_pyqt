@@ -159,6 +159,10 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
             except Exception as e:
                 print(e)
 
+        sql = f'select tickertime, price, qty from carry_investment.futures_tick ' \
+              f'where tickertime>"{l_datetime}" ' \
+              f'from carry_investment.futures_tick)'
+
     # def repair_ohlc(self):
     #     index = self._data.index
     #     for i0, i1 in zip(index, index.offset(1))[1:]:
@@ -178,15 +182,16 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
         :return:
         """
         try:
-            sql = 'select tickertime, price, qty from carry_investment.futures_tick ' \
-                  'where tickertime>=(select DATE_FORMAT(TIMESTAMP(max(tickertime)),"%Y-%m-%d %H:%i:00") ' \
-                  'from carry_investment.futures_tick)'
+            l_datetime = self._data.index[-1]
+            sql = f'select tickertime, price, qty from carry_investment.futures_tick ' \
+                  f'where tickertime>"{l_datetime}" '
             # if len(self._data) >= self.bar_size:
             #     self._data.drop(self._data.index[0], inplace=True)
             self._tickers = pd.read_sql(sql, self._conn, index_col='tickertime')
             self._conn.commit()
             ticker_resampled = self._tickers.resample('1T').apply({'price': 'ohlc'})
-            self._data = self._data.append(ticker_resampled.iloc[0]['price'])
+            ticker_resampled.index.name = 'datetime'
+            self._data = self._data.append(ticker_resampled['price'])
             F_logger.info(f'D+初始化请求{self.symbol}当前min-TICKER数据')
         except Exception as e:
             self._tickers = pd.DataFrame(columns=['price', 'qty'], index=pd.Index([], name='tickertime'))
@@ -214,13 +219,9 @@ class OHLC(market_data_base):  # 主图表的OHLC数据类
     def __ticker_update(self):
         """订阅的基础tick数据构造成1min的ohlc，同时只保留当前分钟的ticker数据"""
         F_logger.info(f'D↑开始更新{self.symbol}-TICKER数据')
-        _first = True
         while self.__is_ticker_active:
             try:
                 ticker = self._sub_tickers_queue.get(timeout=5)
-                if _first:
-                    _first = False
-                    self.amend_ohlc(ticker)
                 if not self._last_tick:
                     self._last_tick = ticker
                 # self._thread_lock.acquire()

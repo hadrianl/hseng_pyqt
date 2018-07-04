@@ -22,7 +22,7 @@ pg.setConfigOptions(leftButtonPan=True, crashWarning=True)
 # 确定需要展示的K线范围
 Start_Time, End_Time = date_range('present', bar_num=680)
 Symbol = symbol('HSI')
-symbols = ['HSIM8', 'HSENG$.JUN8']
+symbols = ['HSIN8', 'HSENG$.JUL8']
 # init_data_sub(symbol_list)
 # 初始化主图的历史ohlc，最新ohlc与指标数据的参数配置
 ohlc = OHLC(symbols[0], minbar=600, ktype='1T', db='wh_same_month_min')
