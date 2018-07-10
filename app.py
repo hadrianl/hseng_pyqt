@@ -28,7 +28,7 @@ symbols = ['HSIN8', 'HSENG$.JUL8']
 ohlc = OHLC(symbols[0], minbar=600, ktype='1T', db='wh_same_month_min')
 ohlc(daterange=[Start_Time, End_Time])
 i_ma = MA(ma10=10, ma20=20, ma30=30, ma60=60)
-i_macd = MACD(short=10, long=22, m=9)
+i_macd = MACD(short=12, long=26, m=9)
 i_std = STD(window=60, min_periods=2)
 h_macd_hl_mark = MACD_HL_MARK()
 h_buysell = BuySell()

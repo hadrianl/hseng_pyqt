@@ -29,8 +29,8 @@ class MACD(indicator_base):
 
     def calc(self):
         self._close = self.data.close
-        self._diff = self._close.ewm(self._short).mean() - self._close.ewm(self._long).mean()
-        self._dea = self._diff.ewm(self._m).mean()
+        self._diff = self._close.ewm(span=self._short).mean() - self._close.ewm(span=self._long).mean()
+        self._dea = self._diff.ewm(span=self._m).mean()
         self._macd = (self._diff - self._dea) * 2
 
     @property
