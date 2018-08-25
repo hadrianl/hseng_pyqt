@@ -57,7 +57,7 @@ win.setWindowTitle(Symbol + '实盘分钟图')
 w_ohlc.binddata(ohlc)  # 把数据与UI绑定
 w_ohlc.init_plt()  # 初始化画布并绑定了初始化与反初始化函数在字典plt_init_func与plt_deinit_func中
 # 创建图形实例
-w_ohlc + Graph_OHLC([w_ohlc.plts['main'], w_ohlc.plts['indicator3']])
+w_ohlc + Graph_OHLC([w_ohlc.plts['main']])  #  w_ohlc + Graph_OHLC([w_ohlc.plts['main'],w_ohlc.plts['indicator3']])
 w_ohlc + Graph_MA([w_ohlc.plts['main']])
 w_ohlc + Graph_MACD([w_ohlc.plts['indicator1']])
 w_ohlc + Graph_MACD_HL_MARK([w_ohlc.plts['main']])
@@ -67,7 +67,8 @@ w_ohlc + Graph_COINCIDE([w_ohlc.plts['main']])
 w_ohlc + Graph_Slicer([w_ohlc.plts['date_slicer']])
 w_ohlc + Graph_BuySell([w_ohlc.plts['date_slicer']])
 for g_name in w_ohlc.graphs:
-    w_ohlc.init_graph(g_name)
+    if g_name != 'COINCIDE':
+        w_ohlc.init_graph(g_name)
 
 w_ohlc.init_mouseaction()  # 初始化十字光标与鼠标交互
 namespace = {'ohlc': ohlc, 'trade_datas': trade_datas, 'win': win, 'w_ohlc':w_ohlc, 'help_doc': help_doc, 'test': test}  # console的命名空间

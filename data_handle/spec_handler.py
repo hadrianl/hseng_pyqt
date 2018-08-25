@@ -8,7 +8,7 @@
 from data_handle import handle_base
 import pandas as pd
 import datetime as dt
-from util import coincide
+from util import Zbjs
 
 class spec_handler_base(handle_base):
     def __init__(self, name, **kwargs):
@@ -136,6 +136,7 @@ class BuySell(spec_handler_base):
 class COINCIDE(spec_handler_base):
     def __init__(self):
         super(COINCIDE,self).__init__('COINCIDE')
+        self.faNumber='5'
 
     def calc(self):
         ohlc=self.ohlc
@@ -145,7 +146,9 @@ class COINCIDE(spec_handler_base):
         df['high'] = ohlc.high
         df['low'] = ohlc.low
         df['close'] = ohlc.close
-        self._coincide = coincide(df)
+        #self._coincide = coincide(df)
+        zj = Zbjs(df=df)
+        self._coincide = zj.main2(self.faNumber)
 
     @property
     def coincide(self):
@@ -153,4 +156,7 @@ class COINCIDE(spec_handler_base):
 
     @property
     def _data(self):
-        return self._coincide.rename('COINCIDE')
+        return self._coincide
+
+    def xz(self,number):
+        self.faNumber=number

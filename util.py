@@ -11,9 +11,14 @@
 import datetime as dt
 from dateutil.parser import parse
 import numpy as np
+from pandas import Timestamp
 import configparser
 import logging.config
 import os
+import datetime
+
+from DataIndex import ZB
+
 server_conf = configparser.ConfigParser()
 server_conf.read(os.path.join('conf', 'server.conf'))
 
@@ -208,7 +213,6 @@ def coincide(df,ma=60):
                             if is_dpd:
                                 is_d +=1
                             if is_date or is_kpd:
-
                                 if is_kc>0 and ((is_k>is_d and is_k>2) or is_date):
                                     #maidian[dc[i]['datetimes']] = -cds
                                     cd[dc[i]['datetimes']] = -2
@@ -218,7 +222,7 @@ def coincide(df,ma=60):
                                     break
 
                             if is_date or is_dpd:
-                                if is_date or (is_kc<0 and is_d>is_k and is_d>2):
+                                if is_kc<0 and (( is_d>is_k and is_d>2) or is_date):
                                     #maidian[dc[i]['datetimes']] = cds
                                     cd[dc[i]['datetimes']] = 2
                                     is_kc = 0
@@ -229,3 +233,29 @@ def coincide(df,ma=60):
                             continue
         return cd
     return macd2(da)
+
+
+class Zbjs(ZB):
+    def __init__(self,df):
+        super(Zbjs, self).__init__()
+        self.zdata = [(d[0], d[1], d[2], d[3], d[4]) for d in df.values]
+
+    def get_doc(self,fa):
+        return self.fa_doc.get(fa)
+
+    def is_date(self,datetimes):
+        ''' 是否已经或即将进入晚盘 '''
+        h=datetimes.hour
+        return (h==16 and datetimes.minute>=29) or h>16 or h<9
+
+    def main2(self,_fa,_ma=60):
+        res,first_time = self.trd(_fa=_fa,_ma=_ma)
+        res2 = [res[i]['datetimes'] for i in res]
+        buysell = {}
+        for day in res2:
+            for i in day:
+                if i:
+                    buysell[Timestamp(i[0])] = 1 if i[2] == '多' else -1
+                    buysell[Timestamp(i[1])] = 2 if i[2] == '空' else -2
+        return buysell
+
